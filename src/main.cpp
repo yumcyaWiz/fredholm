@@ -83,12 +83,15 @@ class App
     create_context();
     init_pipeline_compile_options();
     create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "white.ptx");
+    create_program_group();
   }
 
   void render();
 
   void cleanup()
   {
+    OPTIX_CHECK(optixProgramGroupDestroy(raygen_program_group));
+    OPTIX_CHECK(optixProgramGroupDestroy(miss_program_group));
     OPTIX_CHECK(optixModuleDestroy(module));
     OPTIX_CHECK(optixDeviceContextDestroy(context));
   }
@@ -96,10 +99,13 @@ class App
  private:
   bool enable_validation_mode = false;
 
-  OptixDeviceContext context;
+  OptixDeviceContext context = nullptr;
 
   OptixPipelineCompileOptions pipeline_compile_options = {};
-  OptixModule module;
+  OptixModule module = nullptr;
+
+  OptixProgramGroup raygen_program_group = nullptr;
+  OptixProgramGroup miss_program_group = nullptr;
 
   void create_context()
   {
@@ -132,8 +138,13 @@ class App
     OptixModuleCompileOptions module_compile_options = {};
     module_compile_options.maxRegisterCount =
         OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-    module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
-    module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
+    if (enable_validation_mode) {
+      module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_0;
+      module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_FULL;
+    } else {
+      module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+      module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
+    }
 
     std::vector<char> ptx = read_file(ptx_filepath);
 
@@ -142,6 +153,29 @@ class App
     OPTIX_CHECK_LOG(optixModuleCreateFromPTX(
         context, &module_compile_options, &pipeline_compile_options, ptx.data(),
         ptx.size(), log, &sizeof_log, &module));
+  }
+
+  void create_program_group()
+  {
+    OptixProgramGroupOptions program_group_options = {};
+
+    OptixProgramGroupDesc raygen_program_group_desc = {};
+    raygen_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
+    raygen_program_group_desc.raygen.module = module;
+    raygen_program_group_desc.raygen.entryFunctionName = "__raygen__white";
+
+    char log[2048];
+    size_t sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(
+        context, &raygen_program_group_desc, 1, &program_group_options, log,
+        &sizeof_log, &raygen_program_group));
+
+    OptixProgramGroupDesc miss_program_group_desc = {};
+    miss_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
+    sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(context, &miss_program_group_desc,
+                                            1, &program_group_options, log,
+                                            &sizeof_log, &miss_program_group));
   }
 
   static void context_log_callback(unsigned int level, const char* tag,
