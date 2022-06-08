@@ -34,7 +34,14 @@
 class App
 {
  public:
-  App() {}
+  App()
+  {
+#ifdef NDEBUG
+    enable_validation_mode = false;
+#else
+    enable_validation_mode = true;
+#endif
+  }
 
   void init()
   {
@@ -45,6 +52,8 @@ class App
   void cleanup() { OPTIX_CHECK(optixDeviceContextDestroy(context)); }
 
  private:
+  bool enable_validation_mode = false;
+
   OptixDeviceContext context;
 
   OptixPipelineCompileOptions pipeline_compile_options = {};
@@ -57,6 +66,9 @@ class App
     CUcontext cu_cxt = 0;
     OPTIX_CHECK(optixInit());
     OptixDeviceContextOptions options = {};
+    options.validationMode = enable_validation_mode
+                                 ? OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_ALL
+                                 : OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_OFF;
     options.logCallbackFunction = &context_log_callback;
     options.logCallbackLevel = 4;
     OPTIX_CHECK(optixDeviceContextCreate(cu_cxt, &options, &context));
