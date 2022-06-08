@@ -3,10 +3,12 @@
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
 
-#include <exception>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
+#include <vector>
 
 #define CUDA_CHECK(call)                                                   \
   do {                                                                     \
@@ -30,6 +32,38 @@
       throw std::runtime_error(ss.str().c_str());                            \
     }                                                                        \
   } while (0)
+
+#define OPTIX_CHECK_LOG(call)                                                \
+  do {                                                                       \
+    OptixResult res = call;                                                  \
+    const size_t sizeof_log_returned = sizeof_log;                           \
+    sizeof_log = sizeof(log); /* reset sizeof_log for future calls */        \
+    if (res != OPTIX_SUCCESS) {                                              \
+      std::stringstream ss;                                                  \
+      ss << "Optix call '" << #call << "' failed: " __FILE__ ":" << __LINE__ \
+         << ")\nLog:\n"                                                      \
+         << log << (sizeof_log_returned > sizeof(log) ? "<TRUNCATED>" : "")  \
+         << "\n";                                                            \
+      throw std::runtime_error(ss.str().c_str());                            \
+    }                                                                        \
+  } while (0)
+
+std::vector<char> read_file(const std::string& filename)
+{
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+  if (!file.is_open()) {
+    throw std::runtime_error("failed to open " + filename);
+  }
+
+  const size_t file_size = static_cast<size_t>(file.tellg());
+  std::vector<char> buffer(file_size);
+
+  file.seekg(0);
+  file.read(buffer.data(), file_size);
+  file.close();
+
+  return buffer;
+}
 
 class App
 {
@@ -57,7 +91,6 @@ class App
   OptixDeviceContext context;
 
   OptixPipelineCompileOptions pipeline_compile_options = {};
-  OptixModule module;
 
   void create_context()
   {
@@ -85,13 +118,24 @@ class App
     pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
   }
 
-  void create_module()
+  OptixModule create_module(const std::string& ptx_filepath)
   {
     OptixModuleCompileOptions module_compile_options = {};
     module_compile_options.maxRegisterCount =
         OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
     module_compile_options.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
     module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
+
+    std::vector<char> ptx = read_file(ptx_filepath);
+
+    OptixModule module;
+    char log[2048];
+    size_t sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixModuleCreateFromPTX(
+        context, &module_compile_options, &pipeline_compile_options, ptx.data(),
+        ptx.size(), log, &sizeof_log, &module));
+
+    return module;
   }
 
   static void context_log_callback(unsigned int level, const char* tag,
