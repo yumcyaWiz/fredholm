@@ -4,6 +4,7 @@
 #include <optix_stack_size.h>
 #include <optix_stubs.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -230,10 +231,15 @@ class App
 
 int main()
 {
-  App app;
-  app.init();
+  try {
+    App app;
+    app.init();
 
-  app.cleanup();
+    app.cleanup();
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 
   return 0;
 }
