@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 #include <optix_function_table_definition.h>
+#include <optix_stack_size.h>
 #include <optix_stubs.h>
 
 #include <filesystem>
@@ -84,12 +85,14 @@ class App
     init_pipeline_compile_options();
     create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "white.ptx");
     create_program_group();
+    create_pipeline();
   }
 
   void render();
 
   void cleanup()
   {
+    OPTIX_CHECK(optixPipelineDestroy(pipeline));
     OPTIX_CHECK(optixProgramGroupDestroy(raygen_program_group));
     OPTIX_CHECK(optixProgramGroupDestroy(miss_program_group));
     OPTIX_CHECK(optixModuleDestroy(module));
@@ -106,6 +109,8 @@ class App
 
   OptixProgramGroup raygen_program_group = nullptr;
   OptixProgramGroup miss_program_group = nullptr;
+
+  OptixPipeline pipeline = nullptr;
 
   void create_context()
   {
@@ -176,6 +181,43 @@ class App
     OPTIX_CHECK_LOG(optixProgramGroupCreate(context, &miss_program_group_desc,
                                             1, &program_group_options, log,
                                             &sizeof_log, &miss_program_group));
+  }
+
+  void create_pipeline()
+  {
+    const uint32_t max_trace_depth = 0;
+
+    OptixProgramGroup program_groups[] = {raygen_program_group};
+
+    OptixPipelineLinkOptions pipeline_link_options = {};
+    pipeline_link_options.maxTraceDepth = max_trace_depth;
+    pipeline_link_options.debugLevel = enable_validation_mode
+                                           ? OPTIX_COMPILE_DEBUG_LEVEL_FULL
+                                           : OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
+
+    char log[2048];
+    size_t sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixPipelineCreate(
+        context, &pipeline_compile_options, &pipeline_link_options,
+        program_groups, sizeof(program_groups) / sizeof(program_groups[0]), log,
+        &sizeof_log, &pipeline));
+
+    OptixStackSizes stack_sizes = {};
+    for (auto& program_group : program_groups) {
+      OPTIX_CHECK(optixUtilAccumulateStackSizes(program_group, &stack_sizes));
+    }
+
+    uint32_t direct_callable_stack_size_from_traversal;
+    uint32_t direct_callable_stack_size_from_state;
+    uint32_t continuation_stack_size;
+    OPTIX_CHECK(optixUtilComputeStackSizes(
+        &stack_sizes, max_trace_depth, 0, 0,
+        &direct_callable_stack_size_from_traversal,
+        &direct_callable_stack_size_from_state, &continuation_stack_size));
+
+    OPTIX_CHECK(optixPipelineSetStackSize(
+        pipeline, direct_callable_stack_size_from_traversal,
+        direct_callable_stack_size_from_state, continuation_stack_size, 2));
   }
 
   static void context_log_callback(unsigned int level, const char* tag,
