@@ -1,12 +1,12 @@
 #include <cuda_runtime.h>
 #include <optix.h>
+#include <optix_function_table_definition.h>
+#include <optix_stubs.h>
 
 #include <exception>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-
-#include "optix_stubs.h"
 
 #define CUDA_CHECK(call)                                                   \
   do {                                                                     \
