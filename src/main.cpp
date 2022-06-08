@@ -3,6 +3,7 @@
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
 
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -48,11 +49,11 @@
     }                                                                        \
   } while (0)
 
-std::vector<char> read_file(const std::string& filename)
+std::vector<char> read_file(const std::filesystem::path& filepath)
 {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+  std::ifstream file(filepath, std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
-    throw std::runtime_error("failed to open " + filename);
+    throw std::runtime_error("failed to open " + filepath.generic_string());
   }
 
   const size_t file_size = static_cast<size_t>(file.tellg());
@@ -81,9 +82,16 @@ class App
   {
     create_context();
     init_pipeline_compile_options();
+    create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "white.ptx");
   }
+
   void render();
-  void cleanup() { OPTIX_CHECK(optixDeviceContextDestroy(context)); }
+
+  void cleanup()
+  {
+    OPTIX_CHECK(optixModuleDestroy(module));
+    OPTIX_CHECK(optixDeviceContextDestroy(context));
+  }
 
  private:
   bool enable_validation_mode = false;
@@ -91,6 +99,7 @@ class App
   OptixDeviceContext context;
 
   OptixPipelineCompileOptions pipeline_compile_options = {};
+  OptixModule module;
 
   void create_context()
   {
@@ -118,7 +127,7 @@ class App
     pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
   }
 
-  OptixModule create_module(const std::string& ptx_filepath)
+  void create_module(const std::filesystem::path& ptx_filepath)
   {
     OptixModuleCompileOptions module_compile_options = {};
     module_compile_options.maxRegisterCount =
@@ -128,14 +137,11 @@ class App
 
     std::vector<char> ptx = read_file(ptx_filepath);
 
-    OptixModule module;
     char log[2048];
     size_t sizeof_log = sizeof(log);
     OPTIX_CHECK_LOG(optixModuleCreateFromPTX(
         context, &module_compile_options, &pipeline_compile_options, ptx.data(),
         ptx.size(), log, &sizeof_log, &module));
-
-    return module;
   }
 
   static void context_log_callback(unsigned int level, const char* tag,

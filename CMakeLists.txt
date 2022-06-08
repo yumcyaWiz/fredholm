@@ -14,15 +14,15 @@ find_package(CUDAToolkit REQUIRED)
 set(OptiX_INSTALL_DIR "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64")
 find_package(OptiX REQUIRED)
 
-# compile shaders into PTX
-add_library(shaders OBJECT
-    "shaders/white.cu"
+# compile modules into PTX
+add_library(modules OBJECT
+    "modules/white.cu"
 )
-set_target_properties(shaders PROPERTIES 
+set_target_properties(modules PROPERTIES 
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_PTX_COMPILATION ON
 )
-target_include_directories(shaders PRIVATE ${OptiX_INCLUDE})
+target_include_directories(modules PRIVATE ${OptiX_INCLUDE})
 
 # main
 add_executable(main "src/main.cpp")
@@ -30,3 +30,6 @@ target_compile_features(main PRIVATE cxx_std_20)
 set_target_properties(main PROPERTIES CXX_EXTENSIONS OFF)
 target_include_directories(main PRIVATE ${OptiX_INCLUDE})
 target_link_libraries(main PRIVATE CUDA::cudart)
+
+# set modules source dir macro
+target_compile_definitions(main PRIVATE MODULES_SOURCE_DIR="${CMAKE_BINARY_DIR}/CMakeFiles/modules.dir/modules")
