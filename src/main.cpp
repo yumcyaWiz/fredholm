@@ -68,6 +68,31 @@ std::vector<char> read_file(const std::filesystem::path& filepath)
   return buffer;
 }
 
+template <typename T>
+CUdeviceptr alloc_and_copy_to_device(const T& src)
+{
+  // alloc memory on device
+  CUdeviceptr dst;
+  const size_t size = sizeof(T);
+  CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&dst), size));
+
+  // copy data from host to device
+  CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(dst), &src, size,
+                        cudaMemcpyHostToDevice));
+
+  return dst;
+}
+
+template <typename T>
+struct SbtRecord {
+  __align__(
+      OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+  T data;
+};
+
+using RayGenSbtRecord = SbtRecord<int>;
+using MissSbtRecord = SbtRecord<int>;
+
 class App
 {
  public:
@@ -87,12 +112,16 @@ class App
     create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "white.ptx");
     create_program_group();
     create_pipeline();
+    create_shader_binding_table();
   }
 
   void render();
 
   void cleanup()
   {
+    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
+    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
+
     OPTIX_CHECK(optixPipelineDestroy(pipeline));
     OPTIX_CHECK(optixProgramGroupDestroy(raygen_program_group));
     OPTIX_CHECK(optixProgramGroupDestroy(miss_program_group));
@@ -112,6 +141,8 @@ class App
   OptixProgramGroup miss_program_group = nullptr;
 
   OptixPipeline pipeline = nullptr;
+
+  OptixShaderBindingTable sbt = {};
 
   void create_context()
   {
@@ -221,6 +252,22 @@ class App
         direct_callable_stack_size_from_state, continuation_stack_size, 2));
   }
 
+  void create_shader_binding_table()
+  {
+    RayGenSbtRecord raygen_sbt;
+    OPTIX_CHECK(optixSbtRecordPackHeader(raygen_program_group, &raygen_sbt));
+    CUdeviceptr raygen_record = alloc_and_copy_to_device(raygen_sbt);
+
+    MissSbtRecord miss_sbt;
+    OPTIX_CHECK(optixSbtRecordPackHeader(miss_program_group, &miss_sbt));
+    CUdeviceptr miss_record = alloc_and_copy_to_device(miss_sbt);
+
+    sbt.raygenRecord = raygen_record;
+    sbt.missRecordBase = miss_record;
+    sbt.missRecordStrideInBytes = sizeof(MissSbtRecord);
+    sbt.missRecordCount = 1;
+  }
+
   static void context_log_callback(unsigned int level, const char* tag,
                                    const char* message, void* cbdata)
   {
@@ -241,5 +288,5 @@ int main()
     return EXIT_FAILURE;
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
