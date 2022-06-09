@@ -34,7 +34,10 @@ set_target_properties(modules PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_PTX_COMPILATION ON
 )
-target_include_directories(modules PRIVATE ${OptiX_INCLUDE})
+target_include_directories(modules PRIVATE 
+    ${OptiX_INCLUDE}
+    "src"
+)
 
 # main
 add_executable(main "src/main.cpp")

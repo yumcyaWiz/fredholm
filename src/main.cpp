@@ -14,6 +14,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "buffer.h"
+#include "shared.h"
 #include "util.h"
 
 std::vector<char> read_file(const std::filesystem::path& filepath)
@@ -46,7 +48,7 @@ using MissSbtRecord = SbtRecord<int>;
 class App
 {
  public:
-  App()
+  App(uint32_t width, uint32_t height) : width(width), height(height)
   {
 #ifdef NDEBUG
     enable_validation_mode = false;
@@ -65,7 +67,29 @@ class App
     create_shader_binding_table();
   }
 
-  void render() {}
+  void render()
+  {
+    CUstream stream;
+    CUDA_CHECK(cudaStreamCreate(&stream));
+
+    Buffer<float4> image(width * height);
+
+    Params params;
+    params.image = image.get_device_ptr();
+    params.image_width = width;
+    params.image_height = height;
+
+    // TODO: free d_params
+    CUdeviceptr d_params = alloc_and_copy_to_device(params);
+
+    // run pipeline
+    OPTIX_CHECK(optixLaunch(pipeline, stream, d_params, sizeof(Params), &sbt,
+                            width, height, 1));
+    CUDA_SYNC_CHECK();
+
+    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_params)));
+    CUDA_CHECK(cudaStreamDestroy(stream));
+  }
 
   void cleanup()
   {
@@ -80,6 +104,8 @@ class App
   }
 
  private:
+  uint32_t width = 0;
+  uint32_t height = 0;
   bool enable_validation_mode = false;
 
   OptixDeviceContext context = nullptr;
@@ -228,9 +254,14 @@ class App
 
 int main()
 {
+  const uint32_t width = 512;
+  const uint32_t height = 512;
+
   try {
-    App app;
+    App app(width, height);
     app.init();
+
+    app.render();
 
     app.cleanup();
   } catch (const std::exception& e) {

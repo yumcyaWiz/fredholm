@@ -44,6 +44,19 @@
     }                                                                        \
   } while (0)
 
+#define CUDA_SYNC_CHECK()                                                  \
+  do {                                                                     \
+    cudaDeviceSynchronize();                                               \
+    cudaError_t error = cudaGetLastError();                                \
+    if (error != cudaSuccess) {                                            \
+      std::stringstream ss;                                                \
+      ss << "CUDA error on synchronize with error '"                       \
+         << cudaGetErrorString(error) << "' (" __FILE__ << ":" << __LINE__ \
+         << ")\n";                                                         \
+      throw std::runtime_error(ss.str().c_str());                          \
+    }                                                                      \
+  } while (0)
+
 template <typename T>
 inline CUdeviceptr alloc_and_copy_to_device(const T& src)
 {
