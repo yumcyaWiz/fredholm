@@ -79,15 +79,15 @@ class App
     params.image_width = width;
     params.image_height = height;
 
-    // TODO: free d_params
-    CUdeviceptr d_params = alloc_and_copy_to_device(params);
+    DeviceObject d_params(params);
 
     // run pipeline
-    OPTIX_CHECK(optixLaunch(pipeline, stream, d_params, sizeof(Params), &sbt,
-                            width, height, 1));
+    OPTIX_CHECK(
+        optixLaunch(pipeline, stream,
+                    reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
+                    sizeof(Params), &sbt, width, height, 1));
     CUDA_SYNC_CHECK();
 
-    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(d_params)));
     CUDA_CHECK(cudaStreamDestroy(stream));
   }
 
