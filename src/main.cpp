@@ -14,8 +14,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include "buffer.h"
+#include "io.h"
 #include "shared.h"
+#include "texture.h"
 #include "util.h"
 
 std::vector<char> read_file(const std::filesystem::path& filepath)
@@ -72,7 +73,7 @@ class App
     CUstream stream;
     CUDA_CHECK(cudaStreamCreate(&stream));
 
-    Buffer<float4> image(width * height);
+    Texture2D<float4> image(width, height);
 
     Params params;
     params.image = image.get_device_ptr();
@@ -88,13 +89,9 @@ class App
                     sizeof(Params), &sbt, width, height, 1));
     CUDA_SYNC_CHECK();
 
+    // save image as ppm
     image.copy_from_device_to_host();
-    for (int j = 0; j < height; ++j) {
-      for (int i = 0; i < width; ++i) {
-        const float4 v = image.get_value(i + width * j);
-        printf("(%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
-      }
-    }
+    write_ppm(image, "output.ppm");
 
     CUDA_CHECK(cudaStreamDestroy(stream));
   }
