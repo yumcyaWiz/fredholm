@@ -88,6 +88,14 @@ class App
                     sizeof(Params), &sbt, width, height, 1));
     CUDA_SYNC_CHECK();
 
+    image.copy_from_device_to_host();
+    for (int j = 0; j < height; ++j) {
+      for (int i = 0; i < width; ++i) {
+        const float4 v = image.get_value(i + width * j);
+        printf("(%f, %f, %f, %f)\n", v.x, v.y, v.z, v.w);
+      }
+    }
+
     CUDA_CHECK(cudaStreamDestroy(stream));
   }
 
