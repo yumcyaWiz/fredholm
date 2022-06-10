@@ -26,7 +26,18 @@ class Buffer : public DeviceAndHostObject<T>
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_device_ptr)));
   }
 
-  uint32_t get_size() const override { return m_buffer_size; }
+  T* get_host_ptr() const override { return m_host_ptr; }
+
+  T* get_device_ptr() const override { return m_device_ptr; }
+
+  uint32_t get_size() const { return m_buffer_size; }
+
+  T get_value(uint32_t index) const { return m_host_ptr[index]; }
+
+  uint32_t get_size_in_bytes() const override
+  {
+    return m_buffer_size * sizeof(T);
+  }
 
   void copy_from_host_to_device() override
   {
@@ -39,9 +50,6 @@ class Buffer : public DeviceAndHostObject<T>
     CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_device_ptr), m_host_ptr,
                           m_buffer_size * sizeof(T), cudaMemcpyDeviceToHost));
   }
-
-  T* get_host_ptr() const override { return m_host_ptr; }
-  T* get_device_ptr() const override { return m_device_ptr; }
 
  private:
   uint32_t m_buffer_size = 0;

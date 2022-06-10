@@ -12,7 +12,7 @@ class DeviceAndHostObject
   virtual void copy_from_device_to_host() = 0;
 
   // get size of object in bytes
-  virtual uint32_t get_size() const = 0;
+  virtual uint32_t get_size_in_bytes() const = 0;
 
   // get pointer to object on host
   virtual T* get_host_ptr() const = 0;
