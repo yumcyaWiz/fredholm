@@ -41,13 +41,13 @@ class Buffer : public DeviceAndHostObject<T>
 
   void copy_from_host_to_device() override
   {
-    CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_host_ptr), m_device_ptr,
+    CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_device_ptr), m_host_ptr,
                           m_buffer_size * sizeof(T), cudaMemcpyHostToDevice));
   }
 
   void copy_from_device_to_host() override
   {
-    CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_device_ptr), m_host_ptr,
+    CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_host_ptr), m_device_ptr,
                           m_buffer_size * sizeof(T), cudaMemcpyDeviceToHost));
   }
 
