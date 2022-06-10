@@ -1,9 +1,10 @@
 #pragma once
 
+#include "types.h"
 #include "util.h"
 
 template <typename T>
-class Buffer
+class Buffer : public DeviceAndHostObject<T>
 {
  public:
   Buffer(uint32_t buffer_size) : m_buffer_size(buffer_size)
@@ -25,22 +26,22 @@ class Buffer
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_device_ptr)));
   }
 
-  uint32_t get_size() const { return m_buffer_size; }
+  uint32_t get_size() const override { return m_buffer_size; }
 
-  void copy_from_host_to_device()
+  void copy_from_host_to_device() override
   {
     CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_host_ptr), m_device_ptr,
                           m_buffer_size * sizeof(T), cudaMemcpyHostToDevice));
   }
 
-  void copy_from_device_to_host()
+  void copy_from_device_to_host() override
   {
     CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(m_device_ptr), m_host_ptr,
                           m_buffer_size * sizeof(T), cudaMemcpyDeviceToHost));
   }
 
-  T* get_host_ptr() const { return m_host_ptr; }
-  T* get_device_ptr() const { return m_device_ptr; }
+  T* get_host_ptr() const override { return m_host_ptr; }
+  T* get_device_ptr() const override { return m_device_ptr; }
 
  private:
   uint32_t m_buffer_size = 0;
