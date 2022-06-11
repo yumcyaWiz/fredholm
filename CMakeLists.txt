@@ -26,6 +26,9 @@ find_package(CUDAToolkit REQUIRED)
 set(OptiX_INSTALL_DIR "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64")
 find_package(OptiX REQUIRED)
 
+# external
+add_subdirectory("externals/")
+
 # compile modules into PTX
 add_library(modules OBJECT
     "modules/white.cu"
