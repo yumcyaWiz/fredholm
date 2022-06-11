@@ -9,18 +9,34 @@
 #include <memory>
 
 #include "device/buffer.h"
+#include "device/texture.h"
 #include "device/util.h"
 #include "scene.h"
 
+template <typename T>
+concept CLaunchParams = requires
+{
+  typename T::framebuffer;
+  typename T::width;
+  typename T::height;
+
+  typename T::cam_origin;
+  typename T::cam_forward;
+  typename T::cam_up;
+
+  typename T::gas_handle;
+};
+
 template <typename RayGenSbtRecord, typename MissSbtRecord,
-          typename HitGroupSbtRecord>
+          typename HitGroupSbtRecord, CLaunchParams LaunchParams>
 class Renderer
 {
  public:
   Renderer(uint32_t width, uint32_t height, bool enable_validation_mode = false)
       : m_width(width),
         m_height(height),
-        m_enable_validation_mode(enable_validation_mode)
+        m_enable_validation_mode(enable_validation_mode),
+        m_framebuffer(width, height)
   {
   }
 
@@ -264,6 +280,32 @@ class Renderer
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
+  void render()
+  {
+    CUstream stream;
+    CUDA_CHECK(cudaStreamCreate(&stream));
+
+    LaunchParams params;
+    params.framebuffer = m_framebuffer.get_device_ptr();
+    params.width = m_width;
+    params.height = m_height;
+    params.cam_origin = make_float3(0.0f, 1.0f, 3.0f);
+    params.cam_right = make_float3(0.0f, 0.0f, -1.0f);
+    params.cam_up = make_float3(0.0f, 1.0f, 0.0f);
+    params.gas_handle = m_gas_handle;
+
+    DeviceObject d_params(params);
+
+    // run pipeline
+    OPTIX_CHECK(
+        optixLaunch(m_pipeline, stream,
+                    reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
+                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
+
+    CUDA_SYNC_CHECK();
+    CUDA_CHECK(cudaStreamDestroy(stream));
+  }
+
  private:
   uint32_t m_width = 0;
   uint32_t m_height = 0;
@@ -288,6 +330,8 @@ class Renderer
   std::unique_ptr<DeviceBuffer<HitGroupSbtRecord>> m_hit_group_records =
       nullptr;
   OptixShaderBindingTable m_sbt = {};
+
+  Texture2D<float4> m_framebuffer;
 
   static void context_log_callback(unsigned int level, const char* tag,
                                    const char* message, void* cbdata)
