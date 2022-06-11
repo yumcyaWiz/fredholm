@@ -32,6 +32,7 @@ add_subdirectory("externals/")
 # compile modules into PTX
 add_library(modules OBJECT
     "modules/white.cu"
+    "modules/triangle.cu"
 )
 set_target_properties(modules PROPERTIES 
     CUDA_SEPARABLE_COMPILATION ON
@@ -40,6 +41,9 @@ set_target_properties(modules PROPERTIES
 target_include_directories(modules PRIVATE 
     ${OptiX_INCLUDE}
     "src"
+)
+target_link_libraries(modules PRIVATE
+    sutil
 )
 
 # main
