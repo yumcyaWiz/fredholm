@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 #include "device/types.h"
 #include "device/util.h"
@@ -43,6 +44,14 @@ class Buffer : public DeviceAndHostObject<T>
     // allocate on device
     CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&m_device_ptr),
                           m_buffer_size * sizeof(T)));
+  }
+
+  Buffer(const std::vector<T>& values) : Buffer(values.size())
+  {
+    // copy values to host buffer
+    memcpy(m_host_ptr, values.data(), values.size() * sizeof(T));
+
+    copy_from_host_to_device();
   }
 
   ~Buffer() noexcept(false)
