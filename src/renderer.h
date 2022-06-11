@@ -26,6 +26,8 @@ class Renderer
 
   ~Renderer() noexcept(false)
   {
+    if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
+
     if (m_raygen_records) { m_raygen_records.reset(); }
     if (m_miss_records) { m_miss_records.reset(); }
     if (m_hit_group_records) { m_hit_group_records.reset(); }
@@ -220,6 +222,46 @@ class Renderer
         reinterpret_cast<CUdeviceptr>(m_hit_group_records->get_device_ptr());
     m_sbt.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
     m_sbt.hitgroupRecordCount = hit_group_sbt_records.size();
+  }
+
+  void load_scene(const Scene& scene)
+  {
+    // GAS build option
+    OptixAccelBuildOptions options = {};
+    options.buildFlags = OPTIX_BUILD_FLAG_NONE;
+    options.operation = OPTIX_BUILD_OPERATION_BUILD;
+
+    // GAS input
+    // TODO: use indices
+    OptixBuildInput input = {};
+    input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+    input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+    input.triangleArray.numVertices = scene.get_vertices_size();
+    input.triangleArray.vertexStrideInBytes = sizeof(float3);
+    CUdeviceptr d_vertices =
+        reinterpret_cast<CUdeviceptr>(scene.get_vertices_device_ptr());
+    input.triangleArray.vertexBuffers = &d_vertices;
+
+    // TODO: set SBT records
+    const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
+    input.triangleArray.flags = flags;
+    input.triangleArray.numSbtRecords = 1;
+
+    // compute GAS buffer size
+    OptixAccelBufferSizes gas_buffer_sizes;
+    OPTIX_CHECK(optixAccelComputeMemoryUsage(m_context, &options, &input, 1,
+                                             &gas_buffer_sizes));
+
+    // build GAS
+    DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
+    m_gas_output_buffer = std::make_unique<DeviceBuffer<uint8_t>>(
+        gas_buffer_sizes.outputSizeInBytes);
+    OPTIX_CHECK(optixAccelBuild(
+        m_context, 0, &options, &input, 1,
+        reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
+        gas_buffer_sizes.tempSizeInBytes,
+        reinterpret_cast<CUdeviceptr>(m_gas_output_buffer->get_device_ptr()),
+        gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
  private:
