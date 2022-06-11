@@ -3,6 +3,7 @@
 #include "device/types.h"
 #include "device/util.h"
 
+// RAII buffer object which is on device
 template <typename T>
 class DeviceBuffer
 {
@@ -29,6 +30,7 @@ class DeviceBuffer
   T* m_device_ptr;
 };
 
+// RAII buffer object which is both on host and device
 template <typename T>
 class Buffer : public DeviceAndHostObject<T>
 {

@@ -104,9 +104,14 @@ class App
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
 
     OPTIX_CHECK(optixPipelineDestroy(pipeline));
+
     OPTIX_CHECK(optixProgramGroupDestroy(raygen_program_group));
     OPTIX_CHECK(optixProgramGroupDestroy(miss_program_group));
+
     OPTIX_CHECK(optixModuleDestroy(module));
+
+    gas_output_buffer.reset();
+
     OPTIX_CHECK(optixDeviceContextDestroy(context));
   }
 
@@ -118,6 +123,7 @@ class App
   OptixDeviceContext context = nullptr;
 
   OptixTraversableHandle gas_handle;
+  std::unique_ptr<DeviceBuffer<uint8_t>> gas_output_buffer = nullptr;
 
   OptixPipelineCompileOptions pipeline_compile_options = {};
   OptixModule module = nullptr;
@@ -177,12 +183,13 @@ class App
 
     // build GAS
     DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
-    DeviceBuffer<uint8_t> gas_output_buffer(gas_buffer_sizes.outputSizeInBytes);
+    gas_output_buffer = std::make_unique<DeviceBuffer<uint8_t>>(
+        gas_buffer_sizes.outputSizeInBytes);
     OPTIX_CHECK(optixAccelBuild(
         context, 0, &options, &input, 1,
         reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
         gas_buffer_sizes.tempSizeInBytes,
-        reinterpret_cast<CUdeviceptr>(gas_output_buffer.get_device_ptr()),
+        reinterpret_cast<CUdeviceptr>(gas_output_buffer->get_device_ptr()),
         gas_buffer_sizes.outputSizeInBytes, &gas_handle, nullptr, 0));
   }
 
