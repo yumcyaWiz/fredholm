@@ -14,6 +14,17 @@ static __forceinline__ __device__ void set_payload(float3 p)
   optixSetPayload_2(__float_as_int(p.z));
 }
 
+static __forceinline__ __device__ void sample_ray_pinhole_camera(
+    float2 uv, float3& origin, float3& direction)
+{
+  const float3 p_sensor =
+      params.cam_origin + uv.x * params.cam_right + uv.y * params.cam_up;
+  const float3 p_pinhole = params.cam_origin + params.cam_forward;
+
+  origin = params.cam_origin;
+  direction = normalize(p_pinhole - p_sensor);
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -21,9 +32,8 @@ extern "C" __global__ void __raygen__rg()
 
   const float2 uv = make_float2((2.0f * idx.x - dim.x) / dim.x,
                                 (2.0f * idx.y - dim.y) / dim.y);
-  const float3 ray_origin = params.cam_origin;
-  const float3 ray_direction = normalize(
-      uv.x * params.cam_right + uv.y * params.cam_up + params.cam_forward);
+  float3 ray_origin, ray_direction;
+  sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
 
   unsigned int p0, p1, p2;
   optixTrace(params.handle, ray_origin, ray_direction, 0.0f, 1e9f, 0.0f,

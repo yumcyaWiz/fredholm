@@ -46,6 +46,7 @@ struct SbtRecord {
 
 using RayGenSbtRecord = SbtRecord<int>;
 using MissSbtRecord = SbtRecord<int>;
+using HitGroupSbtRecord = SbtRecord<int>;
 
 class App
 {
@@ -81,6 +82,11 @@ class App
     params.image = image.get_device_ptr();
     params.image_width = width;
     params.image_height = height;
+    params.cam_origin = make_float3(0.0f, 0.0f, 1.0f);
+    params.cam_forward = make_float3(0.0f, 0.0f, -1.0f);
+    params.cam_right = make_float3(1.0f, 0.0f, 0.0f);
+    params.cam_up = make_float3(0.0f, 1.0f, 0.0f);
+    params.handle = gas_handle;
 
     DeviceObject d_params(params);
 
@@ -102,11 +108,13 @@ class App
   {
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
+    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
 
     OPTIX_CHECK(optixPipelineDestroy(pipeline));
 
     OPTIX_CHECK(optixProgramGroupDestroy(raygen_program_group));
     OPTIX_CHECK(optixProgramGroupDestroy(miss_program_group));
+    OPTIX_CHECK(optixProgramGroupDestroy(hitgroup_program_group));
 
     OPTIX_CHECK(optixModuleDestroy(module));
 
@@ -199,7 +207,7 @@ class App
     pipeline_compile_options.usesMotionBlur = false;
 
     pipeline_compile_options.traversableGraphFlags =
-        OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
+        OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
 
     pipeline_compile_options.numPayloadValues = 3;
     pipeline_compile_options.numAttributeValues = 3;
@@ -231,7 +239,7 @@ class App
       module_compile_options.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
     }
 
-    std::vector<char> ptx = read_file(ptx_filepath);
+    const std::vector<char> ptx = read_file(ptx_filepath);
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
@@ -280,10 +288,13 @@ class App
 
   void create_pipeline()
   {
-    const uint32_t max_trace_depth = 0;
+    const uint32_t max_trace_depth = 1;
+    const uint32_t max_traversable_depth = 1;
 
-    OptixProgramGroup program_groups[] = {raygen_program_group};
+    OptixProgramGroup program_groups[] = {
+        raygen_program_group, miss_program_group, hitgroup_program_group};
 
+    // create pipeline
     OptixPipelineLinkOptions pipeline_link_options = {};
     pipeline_link_options.maxTraceDepth = max_trace_depth;
     pipeline_link_options.debugLevel = enable_validation_mode
@@ -297,6 +308,7 @@ class App
         program_groups, sizeof(program_groups) / sizeof(program_groups[0]), log,
         &sizeof_log, &pipeline));
 
+    // set pipeline stack size
     OptixStackSizes stack_sizes = {};
     for (auto& program_group : program_groups) {
       OPTIX_CHECK(optixUtilAccumulateStackSizes(program_group, &stack_sizes));
@@ -312,7 +324,8 @@ class App
 
     OPTIX_CHECK(optixPipelineSetStackSize(
         pipeline, direct_callable_stack_size_from_traversal,
-        direct_callable_stack_size_from_state, continuation_stack_size, 2));
+        direct_callable_stack_size_from_state, continuation_stack_size,
+        max_traversable_depth));
   }
 
   void create_shader_binding_table()
@@ -325,10 +338,20 @@ class App
     OPTIX_CHECK(optixSbtRecordPackHeader(miss_program_group, &miss_sbt));
     CUdeviceptr miss_record = alloc_and_copy_to_device(miss_sbt);
 
+    HitGroupSbtRecord hitgroup_sbt;
+    OPTIX_CHECK(
+        optixSbtRecordPackHeader(hitgroup_program_group, &hitgroup_sbt));
+    CUdeviceptr hitgroup_record = alloc_and_copy_to_device(hitgroup_sbt);
+
     sbt.raygenRecord = raygen_record;
+
     sbt.missRecordBase = miss_record;
     sbt.missRecordStrideInBytes = sizeof(MissSbtRecord);
     sbt.missRecordCount = 1;
+
+    sbt.hitgroupRecordBase = hitgroup_record;
+    sbt.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
+    sbt.hitgroupRecordCount = 1;
   }
 
   static void context_log_callback(unsigned int level, const char* tag,
