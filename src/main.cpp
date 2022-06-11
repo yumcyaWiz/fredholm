@@ -64,7 +64,7 @@ class App
     create_context();
     create_accel_structure();
     init_pipeline_compile_options();
-    create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "white.ptx");
+    create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "triangle.ptx");
     create_program_group();
     create_pipeline();
     create_shader_binding_table();
@@ -130,6 +130,7 @@ class App
 
   OptixProgramGroup raygen_program_group = nullptr;
   OptixProgramGroup miss_program_group = nullptr;
+  OptixProgramGroup hitgroup_program_group = nullptr;
 
   OptixPipeline pipeline = nullptr;
 
@@ -196,11 +197,24 @@ class App
   void init_pipeline_compile_options()
   {
     pipeline_compile_options.usesMotionBlur = false;
+
     pipeline_compile_options.traversableGraphFlags =
         OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
-    pipeline_compile_options.numPayloadValues = 2;
-    pipeline_compile_options.numAttributeValues = 2;
-    pipeline_compile_options.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
+
+    pipeline_compile_options.numPayloadValues = 3;
+    pipeline_compile_options.numAttributeValues = 3;
+
+    if (enable_validation_mode) {
+      pipeline_compile_options.exceptionFlags =
+          OPTIX_EXCEPTION_FLAG_DEBUG | OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
+          OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW;
+    } else {
+      pipeline_compile_options.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
+    }
+
+    pipeline_compile_options.usesPrimitiveTypeFlags =
+        OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE;
+
     pipeline_compile_options.pipelineLaunchParamsVariableName = "params";
   }
 
@@ -230,10 +244,11 @@ class App
   {
     OptixProgramGroupOptions program_group_options = {};
 
+    // create raygen program group
     OptixProgramGroupDesc raygen_program_group_desc = {};
     raygen_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
     raygen_program_group_desc.raygen.module = module;
-    raygen_program_group_desc.raygen.entryFunctionName = "__raygen__white";
+    raygen_program_group_desc.raygen.entryFunctionName = "__raygen__rg";
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
@@ -241,12 +256,26 @@ class App
         context, &raygen_program_group_desc, 1, &program_group_options, log,
         &sizeof_log, &raygen_program_group));
 
+    // create miss program group
     OptixProgramGroupDesc miss_program_group_desc = {};
     miss_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
+    miss_program_group_desc.miss.module = module;
+    miss_program_group_desc.miss.entryFunctionName = "__miss__ms";
     sizeof_log = sizeof(log);
     OPTIX_CHECK_LOG(optixProgramGroupCreate(context, &miss_program_group_desc,
                                             1, &program_group_options, log,
                                             &sizeof_log, &miss_program_group));
+
+    // create hitgroup program group
+    OptixProgramGroupDesc hitgroup_program_group_desc = {};
+    hitgroup_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
+    hitgroup_program_group_desc.hitgroup.moduleCH = module;
+    hitgroup_program_group_desc.hitgroup.entryFunctionNameCH =
+        "__closesthit__ch";
+    sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(
+        context, &hitgroup_program_group_desc, 1, &program_group_options, log,
+        &sizeof_log, &hitgroup_program_group));
   }
 
   void create_pipeline()
