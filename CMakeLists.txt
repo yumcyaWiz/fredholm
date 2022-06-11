@@ -52,7 +52,10 @@ target_include_directories(main PRIVATE
     ${OptiX_INCLUDE}
     "src/"
 )
-target_link_libraries(main PRIVATE CUDA::cudart)
+target_link_libraries(main PRIVATE 
+    CUDA::cudart
+    tinyobjloader
+)
 
 # set modules source dir macro
 target_compile_definitions(main PRIVATE MODULES_SOURCE_DIR="${CMAKE_BINARY_DIR}/CMakeFiles/modules.dir/modules")
