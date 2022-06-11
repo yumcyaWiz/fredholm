@@ -5,6 +5,7 @@
 #include <optix_stack_size.h>
 #include <optix_stubs.h>
 
+#include <array>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -14,10 +15,10 @@
 #include <stdexcept>
 #include <vector>
 
+#include "device/texture.h"
+#include "device/util.h"
 #include "io.h"
 #include "shared.h"
-#include "texture.h"
-#include "util.h"
 
 std::vector<char> read_file(const std::filesystem::path& filepath)
 {
@@ -115,6 +116,8 @@ class App
 
   OptixDeviceContext context = nullptr;
 
+  OptixTraversableHandle gas_handle;
+
   OptixPipelineCompileOptions pipeline_compile_options = {};
   OptixModule module = nullptr;
 
@@ -138,6 +141,15 @@ class App
     options.logCallbackFunction = &context_log_callback;
     options.logCallbackLevel = 4;
     OPTIX_CHECK(optixDeviceContextCreate(cu_cxt, &options, &context));
+  }
+
+  void create_accel()
+  {
+    OptixAccelBuildOptions options = {};
+    options.buildFlags = OPTIX_BUILD_FLAG_NONE;
+    options.operation = OPTIX_BUILD_OPERATION_BUILD;
+
+    Buffer<float3> vertices(3);
   }
 
   void init_pipeline_compile_options()

@@ -41,7 +41,10 @@ target_include_directories(modules PRIVATE
 
 # main
 add_executable(main "src/main.cpp")
-target_include_directories(main PRIVATE ${OptiX_INCLUDE})
+target_include_directories(main PRIVATE 
+    ${OptiX_INCLUDE}
+    "src/"
+)
 target_link_libraries(main PRIVATE CUDA::cudart)
 
 # set modules source dir macro

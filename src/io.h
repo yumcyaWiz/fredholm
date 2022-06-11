@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "texture.h"
+#include "device/texture.h"
 
 inline void write_ppm(const Texture2D<float4>& texture,
                       const std::filesystem::path& filepath)

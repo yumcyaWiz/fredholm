@@ -1,7 +1,7 @@
 #pragma once
-#include "buffer.h"
-#include "types.h"
-#include "util.h"
+#include "device/buffer.h"
+#include "device/types.h"
+#include "device/util.h"
 
 template <typename T>
 class Texture2D : public DeviceAndHostObject<T>
@@ -11,8 +11,6 @@ class Texture2D : public DeviceAndHostObject<T>
       : m_width(width), m_height(height), m_buffer(width * height)
   {
   }
-
-  ~Texture2D() = default;
 
   uint32_t get_width() const { return m_width; }
 
