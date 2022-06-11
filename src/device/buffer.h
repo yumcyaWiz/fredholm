@@ -4,6 +4,32 @@
 #include "device/util.h"
 
 template <typename T>
+class DeviceBuffer
+{
+ public:
+  DeviceBuffer(uint32_t buffer_size) : m_buffer_size(buffer_size)
+  {
+    CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&m_device_ptr),
+                          m_buffer_size * sizeof(T)));
+  }
+
+  ~DeviceBuffer() noexcept(false)
+  {
+    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_device_ptr)));
+  }
+
+  T* get_device_ptr() const { return m_device_ptr; }
+
+  uint32_t get_size() const { return m_buffer_size; }
+
+  uint32_t get_size_in_bytes() const { return m_buffer_size * sizeof(T); }
+
+ private:
+  uint32_t m_buffer_size;
+  T* m_device_ptr;
+};
+
+template <typename T>
 class Buffer : public DeviceAndHostObject<T>
 {
  public:

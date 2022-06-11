@@ -176,8 +176,8 @@ class App
                                              &gas_buffer_sizes));
 
     // build GAS
-    Buffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
-    Buffer<uint8_t> gas_output_buffer(gas_buffer_sizes.outputSizeInBytes);
+    DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
+    DeviceBuffer<uint8_t> gas_output_buffer(gas_buffer_sizes.outputSizeInBytes);
     OPTIX_CHECK(optixAccelBuild(
         context, 0, &options, &input, 1,
         reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
