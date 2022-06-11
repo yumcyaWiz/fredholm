@@ -1,4 +1,3 @@
-
 #include <cuda_runtime.h>
 #include <optix.h>
 #include <optix_function_table_definition.h>
@@ -106,9 +105,9 @@ class App
 
   void cleanup()
   {
-    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.raygenRecord)));
-    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.missRecordBase)));
-    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase)));
+    raygen_records.reset();
+    miss_records.reset();
+    hitgroup_records.reset();
 
     OPTIX_CHECK(optixPipelineDestroy(pipeline));
 
@@ -143,6 +142,9 @@ class App
   OptixPipeline pipeline = nullptr;
 
   OptixShaderBindingTable sbt = {};
+  std::unique_ptr<Buffer<RayGenSbtRecord>> raygen_records = nullptr;
+  std::unique_ptr<Buffer<MissSbtRecord>> miss_records = nullptr;
+  std::unique_ptr<Buffer<HitGroupSbtRecord>> hitgroup_records = nullptr;
 
   void create_context()
   {
@@ -330,26 +332,36 @@ class App
 
   void create_shader_binding_table()
   {
+    raygen_records = std::make_unique<Buffer<RayGenSbtRecord>>(1);
+    miss_records = std::make_unique<Buffer<MissSbtRecord>>(1);
+    hitgroup_records = std::make_unique<Buffer<HitGroupSbtRecord>>(1);
+
     RayGenSbtRecord raygen_sbt;
     OPTIX_CHECK(optixSbtRecordPackHeader(raygen_program_group, &raygen_sbt));
-    CUdeviceptr raygen_record = alloc_and_copy_to_device(raygen_sbt);
+    raygen_records->set_value(0, raygen_sbt);
+    raygen_records->copy_from_host_to_device();
 
     MissSbtRecord miss_sbt;
     OPTIX_CHECK(optixSbtRecordPackHeader(miss_program_group, &miss_sbt));
-    CUdeviceptr miss_record = alloc_and_copy_to_device(miss_sbt);
+    miss_records->set_value(0, miss_sbt);
+    miss_records->copy_from_host_to_device();
 
     HitGroupSbtRecord hitgroup_sbt;
     OPTIX_CHECK(
         optixSbtRecordPackHeader(hitgroup_program_group, &hitgroup_sbt));
-    CUdeviceptr hitgroup_record = alloc_and_copy_to_device(hitgroup_sbt);
+    hitgroup_records->set_value(0, hitgroup_sbt);
+    hitgroup_records->copy_from_host_to_device();
 
-    sbt.raygenRecord = raygen_record;
+    sbt.raygenRecord =
+        reinterpret_cast<CUdeviceptr>(raygen_records->get_device_ptr());
 
-    sbt.missRecordBase = miss_record;
+    sbt.missRecordBase =
+        reinterpret_cast<CUdeviceptr>(miss_records->get_device_ptr());
     sbt.missRecordStrideInBytes = sizeof(MissSbtRecord);
     sbt.missRecordCount = 1;
 
-    sbt.hitgroupRecordBase = hitgroup_record;
+    sbt.hitgroupRecordBase =
+        reinterpret_cast<CUdeviceptr>(hitgroup_records->get_device_ptr());
     sbt.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
     sbt.hitgroupRecordCount = 1;
   }

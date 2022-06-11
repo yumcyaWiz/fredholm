@@ -47,7 +47,10 @@ extern "C" __global__ void __raygen__rg()
   params.image[idx.x + idx.y * params.image_width] = color;
 }
 
-extern "C" __global__ void __miss__ms() {}
+extern "C" __global__ void __miss__ms()
+{
+  set_payload(make_float3(0.0f, 0.0f, 0.0f));
+}
 
 extern "C" __global__ void __closesthit__ch()
 {
