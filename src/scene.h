@@ -119,6 +119,8 @@ struct Scene {
         // fill indices buffer
         indices.push_back(make_uint3(3 * indices.size(), 3 * indices.size() + 1,
                                      3 * indices.size() + 2));
+
+        index_offset += fv;
       }
     }
 

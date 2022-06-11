@@ -82,7 +82,7 @@ class App
     params.image = image.get_device_ptr();
     params.image_width = m_width;
     params.image_height = m_height;
-    params.cam_origin = make_float3(0.0f, 0.0f, 1.0f);
+    params.cam_origin = make_float3(0.0f, 1.0f, 3.0f);
     params.cam_forward = make_float3(0.0f, 0.0f, -1.0f);
     params.cam_right = make_float3(1.0f, 0.0f, 0.0f);
     params.cam_up = make_float3(0.0f, 1.0f, 0.0f);
@@ -192,12 +192,12 @@ class App
         reinterpret_cast<CUdeviceptr>(m_scene.get_vertices_device_ptr());
     input.triangleArray.vertexBuffers = &d_vertices;
 
-    input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
-    input.triangleArray.numIndexTriplets = m_scene.get_indices_size();
-    input.triangleArray.indexStrideInBytes = sizeof(uint3);
-    CUdeviceptr d_indices =
-        reinterpret_cast<CUdeviceptr>(m_scene.get_indices_device_ptr());
-    input.triangleArray.indexBuffer = d_indices;
+    // input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+    // input.triangleArray.numIndexTriplets = m_scene.get_indices_size();
+    // input.triangleArray.indexStrideInBytes = sizeof(uint3);
+    // CUdeviceptr d_indices =
+    //     reinterpret_cast<CUdeviceptr>(m_scene.get_indices_device_ptr());
+    // input.triangleArray.indexBuffer = d_indices;
 
     const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
     input.triangleArray.flags = flags;
