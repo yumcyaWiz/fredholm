@@ -13,13 +13,36 @@ struct Scene {
  public:
   Scene() {}
 
-  float3* get_vertex_device_ptr() const { return m_vertices->get_device_ptr(); }
+  uint32_t get_vertices_size() const { return m_vertices->get_size(); }
+
+  uint32_t get_indices_size() const { return m_indices->get_size(); }
+
+  void copy_from_host_to_device()
+  {
+    m_vertices->copy_from_host_to_device();
+
+    m_indices->copy_from_host_to_device();
+
+    if (m_normals) { m_normals->copy_from_host_to_device(); }
+
+    if (m_texcoords) { m_texcoords->copy_from_host_to_device(); }
+  }
+
+  float3* get_vertices_device_ptr() const
+  {
+    if (!m_vertices) { throw std::runtime_error("vertex buffer is empty"); }
+    return m_vertices->get_device_ptr();
+  }
+
+  uint3* get_indices_device_ptr() const
+  {
+    if (!m_indices) { throw std::runtime_error("index buffer is empty"); }
+    return m_indices->get_device_ptr();
+  }
 
   float3* get_normal_device_ptr() const
   {
-    if (!m_normals) {
-      throw std::runtime_error("vertex normal buffer is empty");
-    }
+    if (!m_normals) { throw std::runtime_error("normal buffer is empty"); }
     return m_normals->get_device_ptr();
   }
 
@@ -29,7 +52,7 @@ struct Scene {
     return m_texcoords->get_device_ptr();
   }
 
-  void load_obj(std::filesystem::path& filepath)
+  void load_obj(const std::filesystem::path& filepath)
   {
     tinyobj::ObjReaderConfig reader_config;
 
@@ -50,6 +73,7 @@ struct Scene {
     const auto& materials = reader.GetMaterials();
 
     std::vector<float3> vertices;
+    std::vector<uint3> indices;
     std::vector<float3> normals;
     std::vector<float2> texcoords;
 
@@ -91,10 +115,16 @@ struct Scene {
             texcoords.push_back(make_float2(tx, ty));
           }
         }
+
+        // fill indices buffer
+        indices.push_back(make_uint3(3 * indices.size(), 3 * indices.size() + 1,
+                                     3 * indices.size() + 2));
       }
     }
 
     m_vertices = std::make_unique<Buffer<float3>>(vertices);
+
+    m_indices = std::make_unique<Buffer<uint3>>(indices);
 
     if (normals.size() > 0) {
       m_normals = std::make_unique<Buffer<float3>>(normals);
@@ -107,7 +137,7 @@ struct Scene {
 
  private:
   std::unique_ptr<Buffer<float3>> m_vertices = nullptr;
-  std::unique_ptr<Buffer<float3>> m_indices = nullptr;
+  std::unique_ptr<Buffer<uint3>> m_indices = nullptr;
   std::unique_ptr<Buffer<float2>> m_texcoords = nullptr;
   std::unique_ptr<Buffer<float3>> m_normals = nullptr;
   std::unique_ptr<Buffer<float3>> m_tangents = nullptr;

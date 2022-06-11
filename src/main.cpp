@@ -147,6 +147,8 @@ class App
   std::unique_ptr<Buffer<MissSbtRecord>> m_miss_records = nullptr;
   std::unique_ptr<Buffer<HitGroupSbtRecord>> m_hitgroup_records = nullptr;
 
+  Scene m_scene;
+
   void create_context()
   {
     CUDA_CHECK(cudaFree(0));
@@ -170,20 +172,33 @@ class App
     options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
     // Vertex buffer
-    Buffer<float3> vertices(3);
-    vertices.set_value(0, {-0.5f, -0.5f, 0.0f});
-    vertices.set_value(1, {0.5f, -0.5f, 0.0f});
-    vertices.set_value(2, {0.0f, 0.5f, 0.0f});
-    vertices.copy_from_host_to_device();
+    // Buffer<float3> vertices(3);
+    // vertices.set_value(0, {-0.5f, -0.5f, 0.0f});
+    // vertices.set_value(1, {0.5f, -0.5f, 0.0f});
+    // vertices.set_value(2, {0.0f, 0.5f, 0.0f});
+    // vertices.copy_from_host_to_device();
+
+    m_scene.load_obj(std::filesystem::path("CornellBox-Original.obj"));
+    m_scene.copy_from_host_to_device();
 
     // GAS input
     OptixBuildInput input = {};
     input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+
     input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-    input.triangleArray.numVertices = vertices.get_size();
+    input.triangleArray.numVertices = m_scene.get_vertices_size();
+    input.triangleArray.vertexStrideInBytes = sizeof(float3);
     CUdeviceptr d_vertices =
-        reinterpret_cast<CUdeviceptr>(vertices.get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_scene.get_vertices_device_ptr());
     input.triangleArray.vertexBuffers = &d_vertices;
+
+    input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+    input.triangleArray.numIndexTriplets = m_scene.get_indices_size();
+    input.triangleArray.indexStrideInBytes = sizeof(uint3);
+    CUdeviceptr d_indices =
+        reinterpret_cast<CUdeviceptr>(m_scene.get_indices_device_ptr());
+    input.triangleArray.indexBuffer = d_indices;
+
     const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
     input.triangleArray.flags = flags;
     input.triangleArray.numSbtRecords = 1;
