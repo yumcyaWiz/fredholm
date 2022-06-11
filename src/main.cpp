@@ -62,6 +62,7 @@ class App
   void init()
   {
     create_context();
+    create_accel_structure();
     init_pipeline_compile_options();
     create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "white.ptx");
     create_program_group();
@@ -143,13 +144,46 @@ class App
     OPTIX_CHECK(optixDeviceContextCreate(cu_cxt, &options, &context));
   }
 
-  void create_accel()
+  void create_accel_structure()
   {
+    // GAS build option
     OptixAccelBuildOptions options = {};
     options.buildFlags = OPTIX_BUILD_FLAG_NONE;
     options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
+    // Vertex buffer
     Buffer<float3> vertices(3);
+    vertices.set_value(0, {-0.5f, -0.5f, 0.0f});
+    vertices.set_value(1, {0.5f, -0.5f, 0.0f});
+    vertices.set_value(2, {0.0f, 0.5f, 0.0f});
+    vertices.copy_from_host_to_device();
+
+    // GAS input
+    OptixBuildInput input = {};
+    input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+    input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+    input.triangleArray.numVertices = vertices.get_size();
+    CUdeviceptr d_vertices =
+        reinterpret_cast<CUdeviceptr>(vertices.get_device_ptr());
+    input.triangleArray.vertexBuffers = &d_vertices;
+    const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
+    input.triangleArray.flags = flags;
+    input.triangleArray.numSbtRecords = 1;
+
+    // compute GAS buffer size
+    OptixAccelBufferSizes gas_buffer_sizes;
+    OPTIX_CHECK(optixAccelComputeMemoryUsage(context, &options, &input, 1,
+                                             &gas_buffer_sizes));
+
+    // build GAS
+    Buffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
+    Buffer<uint8_t> gas_output_buffer(gas_buffer_sizes.outputSizeInBytes);
+    OPTIX_CHECK(optixAccelBuild(
+        context, 0, &options, &input, 1,
+        reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
+        gas_buffer_sizes.tempSizeInBytes,
+        reinterpret_cast<CUdeviceptr>(gas_output_buffer.get_device_ptr()),
+        gas_buffer_sizes.outputSizeInBytes, &gas_handle, nullptr, 0));
   }
 
   void init_pipeline_compile_options()
