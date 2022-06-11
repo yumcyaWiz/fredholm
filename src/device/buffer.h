@@ -20,6 +20,12 @@ class DeviceBuffer
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_device_ptr)));
   }
 
+  void copy_from_host_to_device(const std::vector<T>& value)
+  {
+    CUDA_CHECK(cudaMemcpy(m_device_ptr, value.data(), value.size() * sizeof(T),
+                          cudaMemcpyHostToDevice));
+  }
+
   T* get_device_ptr() const { return m_device_ptr; }
 
   uint32_t get_size() const { return m_buffer_size; }
