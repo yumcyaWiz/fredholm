@@ -61,7 +61,6 @@ int main()
 
     Scene scene;
     scene.load_obj("CornellBox-Original.obj");
-    scene.copy_from_host_to_device();
     renderer.load_scene(scene);
 
     renderer.render();

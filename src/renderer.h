@@ -14,7 +14,6 @@
 #include "io.h"
 #include "scene.h"
 
-// TODO: use concept to constraint LaunchParams
 template <typename T>
 concept CLaunchParams = requires
 {
@@ -287,6 +286,7 @@ class Renderer
     CUstream stream;
     CUDA_CHECK(cudaStreamCreate(&stream));
 
+    // TODO: use concept to constraint LaunchParams
     LaunchParams params;
     params.framebuffer = m_framebuffer.get_device_ptr();
     params.width = m_width;

@@ -9,7 +9,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
-// TODO: use DeviceBuffer, no need to store data on host
 struct Scene {
  public:
   Scene() {}
@@ -17,17 +16,6 @@ struct Scene {
   uint32_t get_vertices_size() const { return m_vertices->get_size(); }
 
   uint32_t get_indices_size() const { return m_indices->get_size(); }
-
-  void copy_from_host_to_device()
-  {
-    m_vertices->copy_from_host_to_device();
-
-    m_indices->copy_from_host_to_device();
-
-    if (m_normals) { m_normals->copy_from_host_to_device(); }
-
-    if (m_texcoords) { m_texcoords->copy_from_host_to_device(); }
-  }
 
   float3* get_vertices_device_ptr() const
   {
@@ -125,23 +113,27 @@ struct Scene {
       }
     }
 
-    m_vertices = std::make_unique<Buffer<float3>>(vertices);
+    // allocate and copy buffer from host to device
+    m_vertices = std::make_unique<DeviceBuffer<float3>>(vertices.size());
+    m_vertices->copy_from_host_to_device(vertices);
 
-    m_indices = std::make_unique<Buffer<uint3>>(indices);
+    m_indices = std::make_unique<DeviceBuffer<uint3>>(indices.size());
+    m_indices->copy_from_host_to_device(indices);
 
     if (normals.size() > 0) {
-      m_normals = std::make_unique<Buffer<float3>>(normals);
+      m_normals = std::make_unique<DeviceBuffer<float3>>(normals.size());
+      m_normals->copy_from_host_to_device(normals);
     }
-
     if (texcoords.size() > 0) {
-      m_texcoords = std::make_unique<Buffer<float2>>(texcoords);
+      m_texcoords = std::make_unique<DeviceBuffer<float2>>(texcoords.size());
+      m_texcoords->copy_from_host_to_device(texcoords);
     }
   }
 
  private:
-  std::unique_ptr<Buffer<float3>> m_vertices = nullptr;
-  std::unique_ptr<Buffer<uint3>> m_indices = nullptr;
-  std::unique_ptr<Buffer<float2>> m_texcoords = nullptr;
-  std::unique_ptr<Buffer<float3>> m_normals = nullptr;
-  std::unique_ptr<Buffer<float3>> m_tangents = nullptr;
+  std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
+  std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
+  std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
+  std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
+  std::unique_ptr<DeviceBuffer<float3>> m_tangents = nullptr;
 };
