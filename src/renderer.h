@@ -17,21 +17,21 @@
 #include "scene.h"
 
 template <typename T>
-concept CLaunchParams = requires
+concept CLaunchParams = requires(T x)
 {
-  typename T::framebuffer;
-  typename T::width;
-  typename T::height;
+  x.framebuffer;
+  x.width;
+  x.height;
 
-  typename T::cam_origin;
-  typename T::cam_forward;
-  typename T::cam_up;
+  x.cam_origin;
+  x.cam_forward;
+  x.cam_up;
 
-  typename T::gas_handle;
+  x.gas_handle;
 };
 
 template <typename RayGenSbtRecord, typename MissSbtRecord,
-          typename HitGroupSbtRecord, typename LaunchParams>
+          typename HitGroupSbtRecord, CLaunchParams LaunchParams>
 class Renderer
 {
  public:
@@ -288,7 +288,6 @@ class Renderer
     CUstream stream;
     CUDA_CHECK(cudaStreamCreate(&stream));
 
-    // TODO: use concept to constraint LaunchParams
     LaunchParams params;
     params.framebuffer = m_framebuffer.get_device_ptr();
     params.width = m_width;
