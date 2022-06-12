@@ -1,19 +1,3 @@
-#include <cuda_runtime.h>
-#include <optix.h>
-#include <optix_function_table_definition.h>
-#include <optix_stack_size.h>
-#include <optix_stubs.h>
-
-#include <array>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <vector>
-
 #include "camera.h"
 #include "device/texture.h"
 #include "device/util.h"
