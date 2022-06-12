@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 
+#include "camera.h"
 #include "device/buffer.h"
 #include "device/texture.h"
 #include "device/util.h"
@@ -281,7 +282,7 @@ class Renderer
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
-  void render()
+  void render(const Camera& camera)
   {
     CUstream stream;
     CUDA_CHECK(cudaStreamCreate(&stream));
@@ -292,11 +293,10 @@ class Renderer
     params.width = m_width;
     params.height = m_height;
 
-    // TODO: read camera params from given Camera struct
-    params.cam_origin = make_float3(0.0f, 1.0f, 3.0f);
-    params.cam_forward = make_float3(0.0f, 0.0f, -1.0f);
-    params.cam_right = make_float3(1.0f, 0.0f, 0.0f);
-    params.cam_up = make_float3(0.0f, 1.0f, 0.0f);
+    params.cam_origin = camera.m_origin;
+    params.cam_forward = camera.m_forward;
+    params.cam_right = camera.m_right;
+    params.cam_up = camera.m_up;
 
     params.gas_handle = m_gas_handle;
 

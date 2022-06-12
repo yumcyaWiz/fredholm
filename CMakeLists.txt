@@ -55,6 +55,7 @@ target_include_directories(main PRIVATE
 target_link_libraries(main PRIVATE 
     CUDA::cudart
     tinyobjloader
+    sutil
 )
 
 # set modules source dir macro

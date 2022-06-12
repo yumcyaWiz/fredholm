@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "camera.h"
 #include "device/texture.h"
 #include "device/util.h"
 #include "io.h"
@@ -36,6 +37,11 @@ int main()
 {
   uint32_t width = 512;
   uint32_t height = 512;
+
+  float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
+  float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
+  Camera camera(cam_origin, cam_forward);
+
 #ifdef NDEBUG
   bool enable_validation_mode = false;
 #else
@@ -63,7 +69,7 @@ int main()
     scene.load_obj("CornellBox-Original.obj");
     renderer.load_scene(scene);
 
-    renderer.render();
+    renderer.render(camera);
 
     renderer.write_framebuffer_as_ppm("output.ppm");
   } catch (const std::exception &e) {
