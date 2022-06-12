@@ -11,8 +11,10 @@
 #include "device/buffer.h"
 #include "device/texture.h"
 #include "device/util.h"
+#include "io.h"
 #include "scene.h"
 
+// TODO: use concept to constraint LaunchParams
 template <typename T>
 concept CLaunchParams = requires
 {
@@ -28,7 +30,7 @@ concept CLaunchParams = requires
 };
 
 template <typename RayGenSbtRecord, typename MissSbtRecord,
-          typename HitGroupSbtRecord, CLaunchParams LaunchParams>
+          typename HitGroupSbtRecord, typename LaunchParams>
 class Renderer
 {
  public:
@@ -196,9 +198,9 @@ class Renderer
         max_traversable_depth));
   }
 
-  void create_sbt(const RayGenSbtRecord& raygen_sbt_record,
-                  const std::vector<MissSbtRecord>& miss_sbt_records,
-                  const std::vector<HitGroupSbtRecord>& hit_group_sbt_records)
+  void create_sbt(RayGenSbtRecord& raygen_sbt_record,
+                  std::vector<MissSbtRecord>& miss_sbt_records,
+                  std::vector<HitGroupSbtRecord>& hit_group_sbt_records)
   {
     // allocate records on device
     m_raygen_records = std::make_unique<DeviceBuffer<RayGenSbtRecord>>(1);
@@ -289,9 +291,13 @@ class Renderer
     params.framebuffer = m_framebuffer.get_device_ptr();
     params.width = m_width;
     params.height = m_height;
+
+    // TODO: read camera params from given Camera struct
     params.cam_origin = make_float3(0.0f, 1.0f, 3.0f);
-    params.cam_right = make_float3(0.0f, 0.0f, -1.0f);
+    params.cam_forward = make_float3(0.0f, 0.0f, -1.0f);
+    params.cam_right = make_float3(1.0f, 0.0f, 0.0f);
     params.cam_up = make_float3(0.0f, 1.0f, 0.0f);
+
     params.gas_handle = m_gas_handle;
 
     DeviceObject d_params(params);
@@ -304,6 +310,12 @@ class Renderer
 
     CUDA_SYNC_CHECK();
     CUDA_CHECK(cudaStreamDestroy(stream));
+  }
+
+  void write_framebuffer_as_ppm(const std::filesystem::path& filepath)
+  {
+    m_framebuffer.copy_from_device_to_host();
+    write_ppm(m_framebuffer, filepath);
   }
 
  private:

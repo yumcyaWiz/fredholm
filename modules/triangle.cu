@@ -36,7 +36,7 @@ extern "C" __global__ void __raygen__rg()
   sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
 
   unsigned int p0, p1, p2;
-  optixTrace(params.handle, ray_origin, ray_direction, 0.0f, 1e9f, 0.0f,
+  optixTrace(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f, 0.0f,
              OptixVisibilityMask(255), OPTIX_RAY_FLAG_NONE, 0, 1, 0, p0, p1,
              p2);
   float4 color;
@@ -44,7 +44,7 @@ extern "C" __global__ void __raygen__rg()
   color.y = __int_as_float(p1);
   color.z = __int_as_float(p2);
 
-  params.image[idx.x + idx.y * params.image_width] = color;
+  params.framebuffer[idx.x + idx.y * params.width] = color;
 }
 
 extern "C" __global__ void __miss__ms()

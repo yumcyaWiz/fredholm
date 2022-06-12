@@ -9,6 +9,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+// TODO: use DeviceBuffer, no need to store data on host
 struct Scene {
  public:
   Scene() {}
