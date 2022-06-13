@@ -15,6 +15,11 @@ class DeviceBuffer
                           m_buffer_size * sizeof(T)));
   }
 
+  DeviceBuffer(const std::vector<T>& values) : DeviceBuffer<T>(values.size())
+  {
+    copy_from_host_to_device(values);
+  }
+
   ~DeviceBuffer() noexcept(false)
   {
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_device_ptr)));
@@ -22,7 +27,7 @@ class DeviceBuffer
 
   void copy_from_host_to_device(const std::vector<T>& value)
   {
-    CUDA_CHECK(cudaMemcpy(m_device_ptr, value.data(), value.size() * sizeof(T),
+    CUDA_CHECK(cudaMemcpy(m_device_ptr, value.data(), m_buffer_size * sizeof(T),
                           cudaMemcpyHostToDevice));
   }
 
