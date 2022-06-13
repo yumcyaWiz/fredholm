@@ -55,6 +55,5 @@ extern "C" __global__ void __miss__ms()
 extern "C" __global__ void __closesthit__ch()
 {
   const float2 barycentrics = optixGetTriangleBarycentrics();
-
   set_payload(make_float3(barycentrics, 1.0f));
 }

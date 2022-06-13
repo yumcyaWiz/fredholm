@@ -2,34 +2,6 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 
-struct LaunchParams {
-  float4* framebuffer;
-  unsigned int width;
-  unsigned int height;
-
-  float3 cam_origin;
-  float3 cam_forward;
-  float3 cam_right;
-  float3 cam_up;
-
-  OptixTraversableHandle gas_handle;
-};
-
-struct RayGenSbtRecord {
-  __align__(
-      OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-};
-
-struct MissSbtRecord {
-  __align__(
-      OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-};
-
-struct HitGroupSbtRecord {
-  __align__(
-      OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-};
-
 // similar to arnold standard surface
 // https://autodesk.github.io/standard-surface/
 // TODO: support texture input
@@ -63,3 +35,37 @@ struct Material {
   float3 sheen_color = make_float3(1, 1, 1);
   float sheen_roughness = 0.3;
 };
+
+struct LaunchParams {
+  float4* framebuffer;
+  unsigned int width;
+  unsigned int height;
+
+  float3 cam_origin;
+  float3 cam_forward;
+  float3 cam_right;
+  float3 cam_up;
+
+  OptixTraversableHandle gas_handle;
+};
+
+struct RayGenSbtRecordData {
+};
+
+struct MissSbtRecordData {
+};
+
+struct HitGroupSbtRecordData {
+  Material material;
+};
+
+template <typename T>
+struct SbtRecord {
+  __align__(
+      OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+  T data;
+};
+
+using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
+using MissSbtRecord = SbtRecord<MissSbtRecordData>;
+using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;

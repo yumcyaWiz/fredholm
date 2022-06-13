@@ -274,6 +274,18 @@ class Renderer
         gas_buffer_sizes.tempSizeInBytes,
         reinterpret_cast<CUdeviceptr>(m_gas_output_buffer->get_device_ptr()),
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
+
+    // add HitGroupSbtRecord
+    // TODO: use per-material GAS and single IAS, to reduce the number of SBT
+    // records
+    for (const uint material_id : scene.m_material_ids) {
+      const Material& material = scene.m_materials[material_id];
+
+      HitGroupSbtRecord record = {};
+      record.data.material = material;
+
+      m_hit_group_records.push_back(record);
+    }
   }
 
   void render(const Camera& camera)

@@ -11,7 +11,16 @@
 #include "tiny_obj_loader.h"
 
 struct Scene {
- public:
+  std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
+  std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
+  std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
+  std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
+
+  // per-face material
+  std::vector<Material> m_materials;
+  std::vector<uint> m_material_ids;
+  std::unique_ptr<DeviceBuffer<float3>> m_tangents = nullptr;
+
   Scene() {}
 
   uint32_t get_vertices_size() const { return m_vertices->get_size(); }
@@ -140,15 +149,4 @@ struct Scene {
       m_texcoords = std::make_unique<DeviceBuffer<float2>>(texcoords);
     }
   }
-
- private:
-  std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
-  std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
-  std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
-  std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
-  std::unique_ptr<DeviceBuffer<float3>> m_tangents = nullptr;
-
-  // per-face material
-  std::vector<Material> m_materials;
-  std::vector<uint> m_material_ids;
 };
