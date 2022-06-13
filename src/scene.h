@@ -9,6 +9,43 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+// similar to arnold standard surface
+// https://autodesk.github.io/standard-surface/
+// TODO: support texture input
+struct Material {
+  float base = 0.8;
+  float3 base_color = make_float3(1, 1, 1);
+  float diffuse_roughness = 0;
+
+  float specular = 0;
+  float metalness = 0;
+  float3 specular_color = make_float3(0.2, 0.2, 0.2);
+  float specular_roughness = 0.2;
+  float specular_anisotropy = 0;
+  float specular_rotation = 0;
+  float specular_IOR = 1.5;
+
+  float thin_film_thickness = 0;
+  float thin_film_IOR = 1.5;
+
+  float coat = 0;
+  float3 coat_color = make_float3(1, 1, 1);
+  float coat_roughness = 0.1;
+  float coat_anisotropy = 0;
+  float coat_rotation = 0;
+  float coat_IOR = 1.5;
+
+  float emission;
+  float3 emission_color;
+
+  float roughness;
+  float anisotropy;
+
+  float sheen;
+  float3 sheen_color;
+  float sheen_roughness;
+};
+
 struct Scene {
  public:
   Scene() {}
@@ -59,12 +96,23 @@ struct Scene {
 
     const auto& attrib = reader.GetAttrib();
     const auto& shapes = reader.GetShapes();
-    const auto& materials = reader.GetMaterials();
+    const auto& tinyobj_materials = reader.GetMaterials();
 
+    // load material
+    std::vector<Material> materials(tinyobj_materials.size());
+    // TODO: load more parameters
+    for (int i = 0; i < materials.size(); ++i) {
+      const auto& m = tinyobj_materials[i];
+      materials[i].base_color =
+          make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+    }
+
+    // load vertices, indices, normals, texcoords, material_ids
     std::vector<float3> vertices;
     std::vector<uint3> indices;
     std::vector<float3> normals;
     std::vector<float2> texcoords;
+    std::vector<uint> material_ids;
 
     // TODO: remove vertex duplication, use index buffer instead.
     for (size_t s = 0; s < shapes.size(); ++s) {
@@ -110,23 +158,28 @@ struct Scene {
                                      3 * indices.size() + 2));
 
         index_offset += fv;
+
+        // load per-face material id
+        const int material_id = shapes[s].mesh.material_ids[f];
+        material_ids.push_back(material_id);
       }
     }
 
     // allocate and copy buffer from host to device
-    m_vertices = std::make_unique<DeviceBuffer<float3>>(vertices.size());
-    m_vertices->copy_from_host_to_device(vertices);
+    m_vertices = std::make_unique<DeviceBuffer<float3>>(vertices);
 
-    m_indices = std::make_unique<DeviceBuffer<uint3>>(indices.size());
-    m_indices->copy_from_host_to_device(indices);
+    m_indices = std::make_unique<DeviceBuffer<uint3>>(indices);
 
     if (normals.size() > 0) {
-      m_normals = std::make_unique<DeviceBuffer<float3>>(normals.size());
-      m_normals->copy_from_host_to_device(normals);
+      m_normals = std::make_unique<DeviceBuffer<float3>>(normals);
     }
     if (texcoords.size() > 0) {
-      m_texcoords = std::make_unique<DeviceBuffer<float2>>(texcoords.size());
-      m_texcoords->copy_from_host_to_device(texcoords);
+      m_texcoords = std::make_unique<DeviceBuffer<float2>>(texcoords);
+    }
+
+    if (material_ids.size() > 0) {
+      m_materials = std::make_unique<DeviceBuffer<Material>>(materials);
+      m_material_ids = std::make_unique<DeviceBuffer<uint>>(material_ids);
     }
   }
 
@@ -136,4 +189,8 @@ struct Scene {
   std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
   std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
   std::unique_ptr<DeviceBuffer<float3>> m_tangents = nullptr;
+
+  std::unique_ptr<DeviceBuffer<Material>> m_materials = nullptr;
+  // per-face material
+  std::unique_ptr<DeviceBuffer<uint>> m_material_ids = nullptr;
 };
