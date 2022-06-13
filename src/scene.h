@@ -63,11 +63,11 @@ struct Scene {
     const auto& tinyobj_materials = reader.GetMaterials();
 
     // load material
-    std::vector<Material> materials(tinyobj_materials.size());
+    m_materials.resize(tinyobj_materials.size());
     // TODO: load more parameters
-    for (int i = 0; i < materials.size(); ++i) {
+    for (int i = 0; i < m_materials.size(); ++i) {
       const auto& m = tinyobj_materials[i];
-      materials[i].base_color =
+      m_materials[i].base_color =
           make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
     }
 
@@ -76,7 +76,6 @@ struct Scene {
     std::vector<uint3> indices;
     std::vector<float3> normals;
     std::vector<float2> texcoords;
-    std::vector<uint> material_ids;
 
     // TODO: remove vertex duplication, use index buffer instead.
     for (size_t s = 0; s < shapes.size(); ++s) {
@@ -125,7 +124,7 @@ struct Scene {
 
         // load per-face material id
         const int material_id = shapes[s].mesh.material_ids[f];
-        material_ids.push_back(material_id);
+        m_material_ids.push_back(material_id);
       }
     }
 
@@ -140,11 +139,6 @@ struct Scene {
     if (texcoords.size() > 0) {
       m_texcoords = std::make_unique<DeviceBuffer<float2>>(texcoords);
     }
-
-    if (material_ids.size() > 0) {
-      m_materials = std::make_unique<DeviceBuffer<Material>>(materials);
-      m_material_ids = std::make_unique<DeviceBuffer<uint>>(material_ids);
-    }
   }
 
  private:
@@ -154,7 +148,7 @@ struct Scene {
   std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
   std::unique_ptr<DeviceBuffer<float3>> m_tangents = nullptr;
 
-  std::unique_ptr<DeviceBuffer<Material>> m_materials = nullptr;
   // per-face material
-  std::unique_ptr<DeviceBuffer<uint>> m_material_ids = nullptr;
+  std::vector<Material> m_materials;
+  std::vector<uint> m_material_ids;
 };
