@@ -3,7 +3,7 @@
 #include "shared.h"
 
 extern "C" {
-__constant__ Params params;
+__constant__ LaunchParams params;
 }
 
 extern "C" __global__ void __raygen__white()

@@ -4,7 +4,7 @@
 #include "sutil/vec_math.h"
 
 extern "C" {
-__constant__ Params params;
+__constant__ LaunchParams params;
 }
 
 static __forceinline__ __device__ void set_payload(float3 p)

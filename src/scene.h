@@ -5,46 +5,10 @@
 #include <stdexcept>
 
 #include "device/buffer.h"
+#include "shared.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
-
-// similar to arnold standard surface
-// https://autodesk.github.io/standard-surface/
-// TODO: support texture input
-struct Material {
-  float base = 0.8;
-  float3 base_color = make_float3(1, 1, 1);
-  float diffuse_roughness = 0;
-
-  float specular = 0;
-  float metalness = 0;
-  float3 specular_color = make_float3(0.2, 0.2, 0.2);
-  float specular_roughness = 0.2;
-  float specular_anisotropy = 0;
-  float specular_rotation = 0;
-  float specular_IOR = 1.5;
-
-  float thin_film_thickness = 0;
-  float thin_film_IOR = 1.5;
-
-  float coat = 0;
-  float3 coat_color = make_float3(1, 1, 1);
-  float coat_roughness = 0.1;
-  float coat_anisotropy = 0;
-  float coat_rotation = 0;
-  float coat_IOR = 1.5;
-
-  float emission;
-  float3 emission_color;
-
-  float roughness;
-  float anisotropy;
-
-  float sheen;
-  float3 sheen_color;
-  float sheen_roughness;
-};
 
 struct Scene {
  public:

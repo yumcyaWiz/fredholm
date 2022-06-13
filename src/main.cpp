@@ -6,17 +6,6 @@
 #include "scene.h"
 #include "shared.h"
 
-template <typename T>
-struct SbtRecord {
-  __align__(
-      OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-  T data;
-};
-
-using RayGenSbtRecord = SbtRecord<int>;
-using MissSbtRecord = SbtRecord<int>;
-using HitGroupSbtRecord = SbtRecord<int>;
-
 int main()
 {
   uint32_t width = 512;
@@ -33,8 +22,7 @@ int main()
 #endif
 
   try {
-    Renderer<RayGenSbtRecord, MissSbtRecord, HitGroupSbtRecord, Params>
-        renderer(512, 512, enable_validation_mode);
+    Renderer renderer(512, 512, enable_validation_mode);
 
     renderer.create_context();
     renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /

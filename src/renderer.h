@@ -15,23 +15,8 @@
 #include "device/util.h"
 #include "io.h"
 #include "scene.h"
+#include "shared.h"
 
-template <typename T>
-concept CLaunchParams = requires(T x)
-{
-  x.framebuffer;
-  x.width;
-  x.height;
-
-  x.cam_origin;
-  x.cam_forward;
-  x.cam_up;
-
-  x.gas_handle;
-};
-
-template <typename RayGenSbtRecord, typename MissSbtRecord,
-          typename HitGroupSbtRecord, CLaunchParams LaunchParams>
 class Renderer
 {
  public:
