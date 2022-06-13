@@ -7,11 +7,35 @@ extern "C" {
 __constant__ LaunchParams params;
 }
 
-static __forceinline__ __device__ void set_payload(float3 p)
+struct Payload {
+  float3 radiance;
+};
+
+// upper-32bit + lower-32bit -> 64bit
+static __forceinline__ __device__ void* unpack_ptr(unsigned int i0,
+                                                   unsigned int i1)
 {
-  optixSetPayload_0(__float_as_int(p.x));
-  optixSetPayload_1(__float_as_int(p.y));
-  optixSetPayload_2(__float_as_int(p.z));
+  const unsigned long long uptr =
+      static_cast<unsigned long long>(i0) << 32 | i1;
+  void* ptr = reinterpret_cast<void*>(uptr);
+  return ptr;
+}
+
+// 64bit -> upper-32bit + lower-32bit
+static __forceinline__ __device__ void pack_ptr(void* ptr, unsigned int& i0,
+                                                unsigned int& i1)
+{
+  const unsigned long long uptr = reinterpret_cast<unsigned long long>(ptr);
+  i0 = uptr >> 32;
+  i1 = uptr & 0x00000000ffffffff;
+}
+
+// u0, u1 is upper-32bit, lower-32bit of ptr of Payload
+static __forceinline__ __device__ Payload* get_payload_ptr()
+{
+  const unsigned int u0 = optixGetPayload_0();
+  const unsigned int u1 = optixGetPayload_1();
+  return reinterpret_cast<Payload*>(unpack_ptr(u0, u1));
 }
 
 static __forceinline__ __device__ void sample_ray_pinhole_camera(
@@ -35,26 +59,29 @@ extern "C" __global__ void __raygen__rg()
   float3 ray_origin, ray_direction;
   sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
 
-  unsigned int p0, p1, p2;
-  optixTrace(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f, 0.0f,
-             OptixVisibilityMask(255), OPTIX_RAY_FLAG_NONE, 0, 1, 0, p0, p1,
-             p2);
-  float4 color;
-  color.x = __int_as_float(p0);
-  color.y = __int_as_float(p1);
-  color.z = __int_as_float(p2);
+  Payload payload;
+  payload.radiance = make_float3(0.0f);
 
-  params.framebuffer[idx.x + idx.y * params.width] = color;
+  unsigned int u0, u1;
+  pack_ptr(&payload, u0, u1);
+  optixTrace(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f, 0.0f,
+             OptixVisibilityMask(255), OPTIX_RAY_FLAG_NONE, 0, 1, 0, u0, u1);
+
+  params.framebuffer[idx.x + idx.y * params.width] =
+      make_float4(payload.radiance, 1.0f);
 }
 
 extern "C" __global__ void __miss__ms()
 {
-  set_payload(make_float3(0.0f, 0.0f, 0.0f));
+  Payload* payload = get_payload_ptr();
+  payload->radiance = make_float3(0.0f);
 }
 
 extern "C" __global__ void __closesthit__ch()
 {
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
-  set_payload(sbt->material.base_color);
+
+  Payload* payload = get_payload_ptr();
+  payload->radiance = sbt->material.base_color;
 }
