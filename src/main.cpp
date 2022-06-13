@@ -30,16 +30,11 @@ int main()
     renderer.create_program_group();
     renderer.create_pipeline(1, 1);
 
-    RayGenSbtRecord raygen_sbt_record;
-    std::vector<MissSbtRecord> miss_sbt_records = {MissSbtRecord{}};
-    std::vector<HitGroupSbtRecord> hit_group_sbt_records = {
-        HitGroupSbtRecord{}};
-    renderer.create_sbt(raygen_sbt_record, miss_sbt_records,
-                        hit_group_sbt_records);
-
     Scene scene;
     scene.load_obj("CornellBox-Original.obj");
     renderer.load_scene(scene);
+
+    renderer.create_sbt();
 
     renderer.render(camera);
 

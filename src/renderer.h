@@ -32,9 +32,9 @@ class Renderer
   {
     if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
 
-    if (m_raygen_records) { m_raygen_records.reset(); }
-    if (m_miss_records) { m_miss_records.reset(); }
-    if (m_hit_group_records) { m_hit_group_records.reset(); }
+    if (m_raygen_records_d) { m_raygen_records_d.reset(); }
+    if (m_miss_records_d) { m_miss_records_d.reset(); }
+    if (m_hit_group_records_d) { m_hit_group_records_d.reset(); }
 
     if (m_pipeline) { OPTIX_CHECK(optixPipelineDestroy(m_pipeline)); }
 
@@ -184,48 +184,56 @@ class Renderer
         max_traversable_depth));
   }
 
-  void create_sbt(RayGenSbtRecord& raygen_sbt_record,
-                  std::vector<MissSbtRecord>& miss_sbt_records,
-                  std::vector<HitGroupSbtRecord>& hit_group_sbt_records)
+  void create_sbt()
   {
+    // if there is no miss record, add empty one
+    if (m_miss_records.size() == 0) {
+      m_miss_records.push_back(MissSbtRecord{});
+    }
+
+    // if there is no hit group record, add empty one
+    if (m_hit_group_records.size() == 0) {
+      m_hit_group_records.push_back(HitGroupSbtRecord{});
+    }
+
     // allocate records on device
-    m_raygen_records = std::make_unique<DeviceBuffer<RayGenSbtRecord>>(1);
-    m_miss_records =
-        std::make_unique<DeviceBuffer<MissSbtRecord>>(miss_sbt_records.size());
-    m_hit_group_records = std::make_unique<DeviceBuffer<HitGroupSbtRecord>>(
-        hit_group_sbt_records.size());
+    m_raygen_records_d = std::make_unique<DeviceBuffer<RayGenSbtRecord>>(1);
+    m_miss_records_d =
+        std::make_unique<DeviceBuffer<MissSbtRecord>>(m_miss_records.size());
+    m_hit_group_records_d = std::make_unique<DeviceBuffer<HitGroupSbtRecord>>(
+        m_hit_group_records.size());
 
     // copy raygen records to device
     OPTIX_CHECK(
-        optixSbtRecordPackHeader(m_raygen_prog_group, &raygen_sbt_record));
-    std::vector<RayGenSbtRecord> raygen_records_host = {raygen_sbt_record};
-    m_raygen_records->copy_from_host_to_device(raygen_records_host);
+        optixSbtRecordPackHeader(m_raygen_prog_group, &m_raygen_record));
+    std::vector<RayGenSbtRecord> raygen_records_host = {m_raygen_record};
+    m_raygen_records_d->copy_from_host_to_device(raygen_records_host);
 
     // copy miss records to device
-    for (auto& record : miss_sbt_records) {
+    for (auto& record : m_miss_records) {
       OPTIX_CHECK(optixSbtRecordPackHeader(m_miss_prog_group, &record));
     }
-    m_miss_records->copy_from_host_to_device(miss_sbt_records);
+    m_miss_records_d->copy_from_host_to_device(m_miss_records);
 
     // copy hit group records to device
-    for (auto& record : hit_group_sbt_records) {
+    for (auto& record : m_hit_group_records) {
       OPTIX_CHECK(optixSbtRecordPackHeader(m_hit_prog_group, &record));
     }
-    m_hit_group_records->copy_from_host_to_device(hit_group_sbt_records);
+    m_hit_group_records_d->copy_from_host_to_device(m_hit_group_records);
 
     // fill sbt
     m_sbt.raygenRecord =
-        reinterpret_cast<CUdeviceptr>(m_raygen_records->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_raygen_records_d->get_device_ptr());
 
     m_sbt.missRecordBase =
-        reinterpret_cast<CUdeviceptr>(m_miss_records->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_miss_records_d->get_device_ptr());
     m_sbt.missRecordStrideInBytes = sizeof(MissSbtRecord);
-    m_sbt.missRecordCount = miss_sbt_records.size();
+    m_sbt.missRecordCount = m_miss_records.size();
 
     m_sbt.hitgroupRecordBase =
-        reinterpret_cast<CUdeviceptr>(m_hit_group_records->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_hit_group_records_d->get_device_ptr());
     m_sbt.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
-    m_sbt.hitgroupRecordCount = hit_group_sbt_records.size();
+    m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
 
   void load_scene(const Scene& scene)
@@ -322,9 +330,12 @@ class Renderer
   OptixPipelineCompileOptions m_pipeline_compile_options = {};
   OptixPipeline m_pipeline = 0;
 
-  std::unique_ptr<DeviceBuffer<RayGenSbtRecord>> m_raygen_records = nullptr;
-  std::unique_ptr<DeviceBuffer<MissSbtRecord>> m_miss_records = nullptr;
-  std::unique_ptr<DeviceBuffer<HitGroupSbtRecord>> m_hit_group_records =
+  RayGenSbtRecord m_raygen_record = {};
+  std::vector<MissSbtRecord> m_miss_records = {};
+  std::vector<HitGroupSbtRecord> m_hit_group_records = {};
+  std::unique_ptr<DeviceBuffer<RayGenSbtRecord>> m_raygen_records_d = nullptr;
+  std::unique_ptr<DeviceBuffer<MissSbtRecord>> m_miss_records_d = nullptr;
+  std::unique_ptr<DeviceBuffer<HitGroupSbtRecord>> m_hit_group_records_d =
       nullptr;
   OptixShaderBindingTable m_sbt = {};
 
