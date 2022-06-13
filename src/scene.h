@@ -10,6 +10,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+// TODO: make scene hold host-side buffer only. Hold device buffer in Renderer
 struct Scene {
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
   std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
