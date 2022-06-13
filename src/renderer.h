@@ -238,44 +238,7 @@ class Renderer
 
   void load_scene(const Scene& scene)
   {
-    // GAS build option
-    OptixAccelBuildOptions options = {};
-    options.buildFlags = OPTIX_BUILD_FLAG_NONE;
-    options.operation = OPTIX_BUILD_OPERATION_BUILD;
-
-    // GAS input
-    // TODO: use indices
-    OptixBuildInput input = {};
-    input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-    input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-    input.triangleArray.numVertices = scene.get_vertices_size();
-    input.triangleArray.vertexStrideInBytes = sizeof(float3);
-    CUdeviceptr d_vertices =
-        reinterpret_cast<CUdeviceptr>(scene.get_vertices_device_ptr());
-    input.triangleArray.vertexBuffers = &d_vertices;
-
-    // TODO: set SBT records
-    const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
-    input.triangleArray.flags = flags;
-    input.triangleArray.numSbtRecords = 1;
-
-    // compute GAS buffer size
-    OptixAccelBufferSizes gas_buffer_sizes;
-    OPTIX_CHECK(optixAccelComputeMemoryUsage(m_context, &options, &input, 1,
-                                             &gas_buffer_sizes));
-
-    // build GAS
-    DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
-    m_gas_output_buffer = std::make_unique<DeviceBuffer<uint8_t>>(
-        gas_buffer_sizes.outputSizeInBytes);
-    OPTIX_CHECK(optixAccelBuild(
-        m_context, 0, &options, &input, 1,
-        reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
-        gas_buffer_sizes.tempSizeInBytes,
-        reinterpret_cast<CUdeviceptr>(m_gas_output_buffer->get_device_ptr()),
-        gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
-
-    // add HitGroupSbtRecord
+    // load material info into HitGroupSbtRecord
     // TODO: use per-material GAS and single IAS, to reduce the number of SBT
     // records
     for (const uint material_id : scene.m_material_ids) {
@@ -286,6 +249,54 @@ class Renderer
 
       m_hit_group_records.push_back(record);
     }
+
+    // GAS build option
+    OptixAccelBuildOptions options = {};
+    options.buildFlags = OPTIX_BUILD_FLAG_NONE;
+    options.operation = OPTIX_BUILD_OPERATION_BUILD;
+
+    // GAS input
+    // TODO: use indices
+    uint32_t num_faces = scene.get_vertices_size() / 3;
+    std::vector<OptixBuildInput> inputs(num_faces);
+    // NOTE: need this, since vertexBuffers take a pointer to array of device
+    // pointers
+    std::vector<CUdeviceptr> per_face_vertex_buffers(num_faces);
+
+    for (int f = 0; f < num_faces; ++f) {
+      OptixBuildInput input = {};
+      input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+      input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+      input.triangleArray.numVertices = 3;
+      input.triangleArray.vertexStrideInBytes = sizeof(float3);
+
+      per_face_vertex_buffers[f] = reinterpret_cast<CUdeviceptr>(
+          scene.get_vertices_device_ptr() + 3 * f);
+      input.triangleArray.vertexBuffers = &per_face_vertex_buffers[f];
+
+      const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
+      input.triangleArray.flags = flags;
+
+      input.triangleArray.numSbtRecords = 1;
+
+      inputs[f] = input;
+    }
+
+    // compute GAS buffer size
+    OptixAccelBufferSizes gas_buffer_sizes;
+    OPTIX_CHECK(optixAccelComputeMemoryUsage(m_context, &options, inputs.data(),
+                                             inputs.size(), &gas_buffer_sizes));
+
+    // build GAS
+    DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
+    m_gas_output_buffer = std::make_unique<DeviceBuffer<uint8_t>>(
+        gas_buffer_sizes.outputSizeInBytes);
+    OPTIX_CHECK(optixAccelBuild(
+        m_context, 0, &options, inputs.data(), inputs.size(),
+        reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
+        gas_buffer_sizes.tempSizeInBytes,
+        reinterpret_cast<CUdeviceptr>(m_gas_output_buffer->get_device_ptr()),
+        gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
   void render(const Camera& camera)
