@@ -32,7 +32,8 @@ int main()
 
     Scene scene;
     scene.load_obj("CornellBox-Original.obj");
-    renderer.build_accel(scene);
+    renderer.load_scene(scene);
+    renderer.build_accel();
 
     renderer.create_sbt(scene);
 

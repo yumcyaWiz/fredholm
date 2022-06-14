@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 
 #include "camera.h"
 #include "device/buffer.h"
@@ -30,6 +31,8 @@ class Renderer
 
   ~Renderer() noexcept(false)
   {
+    if (m_vertices) { m_vertices.reset(); }
+
     if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
 
     if (m_raygen_records_d) { m_raygen_records_d.reset(); }
@@ -263,7 +266,14 @@ class Renderer
     m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
 
-  void build_accel(const Scene& scene)
+  void load_scene(const Scene& scene)
+  {
+    if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
+
+    m_vertices = std::make_unique<DeviceBuffer<float3>>(scene.m_vertices);
+  }
+
+  void build_accel()
   {
     // GAS build option
     OptixAccelBuildOptions options = {};
@@ -272,7 +282,7 @@ class Renderer
 
     // GAS input
     // TODO: use indices
-    uint32_t num_faces = scene.get_vertices_size() / 3;
+    uint32_t num_faces = m_vertices->get_size() / 3;
     std::vector<OptixBuildInput> inputs(num_faces);
     // NOTE: need this, since vertexBuffers take a pointer to array of device
     // pointers
@@ -285,8 +295,8 @@ class Renderer
       input.triangleArray.numVertices = 3;
       input.triangleArray.vertexStrideInBytes = sizeof(float3);
 
-      per_face_vertex_buffers[f] = reinterpret_cast<CUdeviceptr>(
-          scene.get_vertices_device_ptr() + 3 * f);
+      per_face_vertex_buffers[f] =
+          reinterpret_cast<CUdeviceptr>(m_vertices->get_device_ptr() + 3 * f);
       input.triangleArray.vertexBuffers = &per_face_vertex_buffers[f];
 
       const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
@@ -353,6 +363,8 @@ class Renderer
   uint32_t m_width = 0;
   uint32_t m_height = 0;
   bool m_enable_validation_mode = false;
+
+  std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
 
   OptixDeviceContext m_context = 0;
 
