@@ -21,16 +21,18 @@ static __forceinline__ __device__ float frandom(RNGState* rng)
   return pcg32_random_r(rng) / static_cast<float>(0xffffffff);
 }
 
-static __forceinline__ __device__ void cosine_sample_hemisphere(const float u1,
-                                                                const float u2,
-                                                                float3& p)
+static __forceinline__ __device__ float3
+sample_cosine_weighted_hemisphere(const float u1, const float u2)
 {
   // Uniformly sample disk.
   const float r = sqrtf(u1);
   const float phi = 2.0f * M_PIf * u2;
+
+  float3 p;
   p.x = r * cosf(phi);
   p.y = r * sinf(phi);
-
   // Project up to hemisphere.
   p.z = sqrtf(fmaxf(0.0f, 1.0f - p.x * p.x - p.y * p.y));
+
+  return p;
 }

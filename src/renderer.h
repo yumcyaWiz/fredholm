@@ -337,7 +337,7 @@ class Renderer
     OPTIX_CHECK(
         optixLaunch(m_pipeline, stream,
                     reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
-                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
+                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 2));
 
     CUDA_SYNC_CHECK();
     CUDA_CHECK(cudaStreamDestroy(stream));

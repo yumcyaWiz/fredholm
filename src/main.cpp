@@ -28,7 +28,7 @@ int main()
     renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
                            "ao.ptx");
     renderer.create_program_group();
-    renderer.create_pipeline(1, 1);
+    renderer.create_pipeline(2, 1);
 
     Scene scene;
     scene.load_obj("CornellBox-Original.obj");

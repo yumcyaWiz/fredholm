@@ -4,6 +4,37 @@
 #include "shared.h"
 #include "sutil/vec_math.h"
 
+#define RAY_EPS 0.01
+
+static __forceinline__ __device__ void orthonormal_basis(const float3& n,
+                                                         float3& t, float3& b)
+{
+  if (abs(n.y) < 0.9f) {
+    t = normalize(cross(n, make_float3(0, 1, 0)));
+  } else {
+    t = normalize(cross(n, make_float3(0, 0, -1)));
+  }
+  b = normalize(cross(t, n));
+}
+
+static __forceinline__ __device__ float3 world_to_local(const float3& v,
+                                                        const float3& t,
+                                                        const float3& n,
+                                                        const float3& b)
+{
+  return make_float3(dot(v, t), dot(v, n), dot(v, b));
+}
+
+static __forceinline__ __device__ float3 local_to_world(const float3& v,
+                                                        const float3& t,
+                                                        const float3& n,
+                                                        const float3& b)
+{
+  return make_float3(v.x * t.x + v.y * n.x + v.z * b.x,
+                     v.x * t.y + v.y * n.y + v.z * b.y,
+                     v.x * t.z + v.y * n.z + v.z * b.z);
+}
+
 extern "C" {
 __constant__ LaunchParams params;
 }
@@ -145,11 +176,34 @@ extern "C" __global__ void __miss__shadow()
 
 extern "C" __global__ void __closesthit__radiance()
 {
+  RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
 
-  RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
-  payload->throughput *= sbt->material.base_color;
+  // compute tangent space basis
+  // TODO: compute normal
+  // const float3 n = make_float3(0, 1, 0);
+  // float3 t, b;
+  // orthonormal_basis(n, t, b);
+
+  // sample shadow ray direction
+  // const float3 wi = sample_cosine_weighted_hemisphere(frandom(&payload->rng),
+  //                                                     frandom(&payload->rng));
+  // const float3 wi_world = local_to_world(wi, t, n, b);
+  const float3 wi_world = make_float3(0, 1, 0);
+
+  // trace shadow ray
+  const float3 shadow_ray_origin =
+      optixGetWorldRayOrigin() +
+      optixGetRayTmax() * optixGetWorldRayDirection();
+  const float3 shadow_ray_direction = wi_world;
+  ShadowPayload shadow_payload;
+  trace_shadow(params.gas_handle, shadow_ray_origin, shadow_ray_direction,
+               RAY_EPS, 1e9f, &shadow_payload);
+
+  // multiply visibility
+  payload->throughput *= shadow_payload.visibility;
+  payload->done = true;
 }
 
 extern "C" __global__ void __closesthit__shadow()
