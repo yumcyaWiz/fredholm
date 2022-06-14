@@ -59,8 +59,9 @@ static __forceinline__ __device__ Payload* get_payload_ptr()
 
 // trace radiance ray
 static __forceinline__ __device__ void trace_radiance(
-    OptixTraversableHandle handle, float3 ray_origin, float3 ray_direction,
-    float tmin, float tmax, RadiancePayload* payload_ptr)
+    OptixTraversableHandle& handle, const float3& ray_origin,
+    const float3& ray_direction, float tmin, float tmax,
+    RadiancePayload* payload_ptr)
 {
   unsigned int u0, u1;
   pack_ptr(payload_ptr, u0, u1);
@@ -78,7 +79,7 @@ static __forceinline__ __device__ bool has_emission(const Material& material)
 }
 
 static __forceinline__ __device__ void sample_ray_pinhole_camera(
-    float2 uv, float3& origin, float3& direction)
+    const float2& uv, float3& origin, float3& direction)
 {
   const float3 p_sensor =
       params.cam_origin + uv.x * params.cam_right + uv.y * params.cam_up;
@@ -101,19 +102,16 @@ extern "C" __global__ void __raygen__rg()
   payload.rng.state = idx.x + params.width * idx.y;
   for (int i = 0; i < 10; ++i) { frandom(payload.rng); }
 
-  for (int idx_sample = 0; idx_sample < params.n_samples; ++idx_sample) {
+  for (int spp = 0; spp < params.n_samples; ++spp) {
     // generate initial ray from camera
     const float2 uv =
         make_float2((2.0f * (idx.x + frandom(payload.rng)) - dim.x) / dim.x,
                     (2.0f * (idx.y + frandom(payload.rng)) - dim.y) / dim.y);
-    float3 ray_origin, ray_direction;
-    sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
+    sample_ray_pinhole_camera(uv, payload.origin, payload.direction);
 
     // start ray tracing from the camera
     payload.radiance = make_float3(0);
     payload.throughput = make_float3(1);
-    payload.origin = ray_origin;
-    payload.direction = ray_direction;
     payload.done = false;
     for (int depth = 0; depth < params.max_depth; ++depth) {
       trace_radiance(params.gas_handle, payload.origin, payload.direction, 0.0f,
