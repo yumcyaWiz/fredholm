@@ -29,7 +29,7 @@ struct Material {
   float coat_IOR = 1.5;
 
   float emission = 0;
-  float3 emission_color = make_float3(1, 1, 1);
+  float3 emission_color = make_float3(0, 0, 0);
 
   float sheen = 0.8;
   float3 sheen_color = make_float3(1, 1, 1);

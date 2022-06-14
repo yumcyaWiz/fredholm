@@ -11,7 +11,7 @@ int main()
   uint32_t width = 512;
   uint32_t height = 512;
   uint32_t n_samples = 1000;
-  uint32_t max_depth = 10;
+  uint32_t max_depth = 100;
 
   float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
   float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
@@ -24,11 +24,11 @@ int main()
 #endif
 
   try {
-    Renderer renderer(512, 512, enable_validation_mode);
+    Renderer renderer(width, height, enable_validation_mode);
 
     renderer.create_context();
     renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
-                           "ao.ptx");
+                           "pt.ptx");
     renderer.create_program_group();
     renderer.create_pipeline();
 

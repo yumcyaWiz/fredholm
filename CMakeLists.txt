@@ -31,7 +31,7 @@ add_subdirectory("externals/")
 
 # compile modules into PTX
 add_library(modules OBJECT
-    "modules/ao.cu"
+    "modules/pt.cu"
 )
 set_target_properties(modules PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
