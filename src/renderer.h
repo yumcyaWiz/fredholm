@@ -31,27 +31,30 @@ class Renderer
 
   ~Renderer() noexcept(false)
   {
+    // release scene data
     if (m_vertices) { m_vertices.reset(); }
 
+    // release GAS
     if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
 
+    // release SBT records
     if (m_raygen_records_d) { m_raygen_records_d.reset(); }
     if (m_miss_records_d) { m_miss_records_d.reset(); }
     if (m_hit_group_records_d) { m_hit_group_records_d.reset(); }
 
+    // release pipeline
     if (m_pipeline) { OPTIX_CHECK(optixPipelineDestroy(m_pipeline)); }
 
+    // release program groups
     if (m_raygen_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_raygen_group));
     }
-
     if (m_radiance_miss_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_radiance_miss_group));
     }
     if (m_shadow_miss_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_shadow_miss_group));
     }
-
     if (m_radiance_hit_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_radiance_hit_group));
     }
@@ -59,8 +62,10 @@ class Renderer
       OPTIX_CHECK(optixProgramGroupDestroy(m_shadow_hit_group));
     }
 
+    // release module
     if (m_module) { OPTIX_CHECK(optixModuleDestroy(m_module)); }
 
+    // release context
     if (m_context) { OPTIX_CHECK(optixDeviceContextDestroy(m_context)); }
   }
 
@@ -227,12 +232,15 @@ class Renderer
     // fill hitgroup record
     // TODO: use per-material GAS and single IAS, to reduce the number of SBT
     // records
-    for (const uint material_id : scene.m_material_ids) {
+    // TODO: move this inside load_scene?
+    for (size_t f = 0; f < scene.n_faces(); ++f) {
+      const uint material_id = scene.m_material_ids[f];
       const Material& material = scene.m_materials[material_id];
 
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
-      hit_record.data.material = material;
+      hit_record.data.vertices = m_vertices->get_device_ptr() + 3 * f;
+      hit_record.data.material = scene.m_materials[material_id];
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
 

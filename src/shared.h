@@ -58,6 +58,7 @@ struct MissSbtRecordData {
 
 struct HitGroupSbtRecordData {
   Material material;
+  float3* vertices;
 };
 
 template <typename T>

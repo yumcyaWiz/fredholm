@@ -180,6 +180,13 @@ extern "C" __global__ void __closesthit__radiance()
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
 
+  // compute face normal
+  const int prim_idx = optixGetPrimitiveIndex();
+  const float3 v0 = sbt->vertices[3 * prim_idx + 0];
+  const float3 v1 = sbt->vertices[3 * prim_idx + 1];
+  const float3 v2 = sbt->vertices[3 * prim_idx + 2];
+  const float3 n = normalize(cross(v1 - v0, v2 - v0));
+
   // compute tangent space basis
   // TODO: compute normal
   // const float3 n = make_float3(0, 1, 0);
@@ -202,7 +209,9 @@ extern "C" __global__ void __closesthit__radiance()
                RAY_EPS, 1e9f, &shadow_payload);
 
   // multiply visibility
-  payload->throughput *= shadow_payload.visibility;
+  // payload->throughput *= shadow_payload.visibility;
+  // payload->throughput *= sbt->material.base_color;
+  payload->throughput *= 0.5f * (n + 1.0f);
   payload->done = true;
 }
 
