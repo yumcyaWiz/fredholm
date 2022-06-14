@@ -53,6 +53,7 @@ struct RayGenSbtRecordData {
 };
 
 struct MissSbtRecordData {
+  float3 bg_color = make_float3(0, 0, 0);
 };
 
 struct HitGroupSbtRecordData {

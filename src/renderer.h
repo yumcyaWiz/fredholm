@@ -213,6 +213,7 @@ class Renderer
 
     // fill miss record
     MissSbtRecord miss_record = {};
+    miss_record.data.bg_color = make_float3(1.0f);
     OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_miss_group, &miss_record));
     m_miss_records.push_back(miss_record);
 

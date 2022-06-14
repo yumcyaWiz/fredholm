@@ -110,8 +110,11 @@ extern "C" __global__ void __raygen__rg()
 
 extern "C" __global__ void __miss__radiance()
 {
+  const MissSbtRecordData* sbt =
+      reinterpret_cast<MissSbtRecordData*>(optixGetSbtDataPointer());
+
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
-  payload->throughput *= make_float3(1.0f);
+  payload->throughput *= sbt->bg_color;
   payload->done = true;
 }
 
