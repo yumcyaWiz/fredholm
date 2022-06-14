@@ -122,6 +122,7 @@ extern "C" __global__ void __raygen__rg()
     payload.origin = ray_origin;
     payload.direction = ray_direction;
     payload.done = false;
+    // TODO: take depth parameter from LaunchParams
     for (int depth = 0; depth < 3; ++depth) {
       trace_radiance(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f,
                      &payload);

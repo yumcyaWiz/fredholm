@@ -37,7 +37,7 @@ int main()
 
     renderer.create_sbt(scene);
 
-    renderer.render(camera, 100);
+    renderer.render(camera, 1000);
 
     renderer.write_framebuffer_as_ppm("output.ppm");
   } catch (const std::exception &e) {
