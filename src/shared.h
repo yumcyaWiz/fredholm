@@ -41,6 +41,7 @@ struct LaunchParams {
   unsigned int width;
   unsigned int height;
   unsigned int n_samples;
+  unsigned int max_depth;
 
   float3 cam_origin;
   float3 cam_forward;

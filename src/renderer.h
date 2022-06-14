@@ -174,7 +174,7 @@ class Renderer
         &m_shadow_hit_group));
   }
 
-  void create_pipeline(uint32_t max_trace_depth, uint32_t max_traversable_depth)
+  void create_pipeline()
   {
     OptixProgramGroup program_groups[] = {
         m_raygen_group, m_radiance_miss_group, m_shadow_miss_group,
@@ -182,7 +182,7 @@ class Renderer
 
     // create pipeline
     OptixPipelineLinkOptions pipeline_link_options = {};
-    pipeline_link_options.maxTraceDepth = max_trace_depth;
+    pipeline_link_options.maxTraceDepth = m_max_trace_depth;
     pipeline_link_options.debugLevel = m_enable_validation_mode
                                            ? OPTIX_COMPILE_DEBUG_LEVEL_FULL
                                            : OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
@@ -204,14 +204,14 @@ class Renderer
     uint32_t direct_callable_stack_size_from_state;
     uint32_t continuation_stack_size;
     OPTIX_CHECK(optixUtilComputeStackSizes(
-        &stack_sizes, max_trace_depth, 0, 0,
+        &stack_sizes, m_max_trace_depth, 0, 0,
         &direct_callable_stack_size_from_traversal,
         &direct_callable_stack_size_from_state, &continuation_stack_size));
 
     OPTIX_CHECK(optixPipelineSetStackSize(
         m_pipeline, direct_callable_stack_size_from_traversal,
         direct_callable_stack_size_from_state, continuation_stack_size,
-        max_traversable_depth));
+        m_max_traversable_depth));
   }
 
   void create_sbt(const Scene& scene)
@@ -332,7 +332,7 @@ class Renderer
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
-  void render(const Camera& camera, uint32_t n_samples)
+  void render(const Camera& camera, uint32_t n_samples, uint32_t max_depth)
   {
     CUstream stream;
     CUDA_CHECK(cudaStreamCreate(&stream));
@@ -342,6 +342,7 @@ class Renderer
     params.width = m_width;
     params.height = m_height;
     params.n_samples = n_samples;
+    params.max_depth = max_depth;
 
     params.cam_origin = camera.m_origin;
     params.cam_forward = camera.m_forward;
@@ -356,7 +357,7 @@ class Renderer
     OPTIX_CHECK(
         optixLaunch(m_pipeline, stream,
                     reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
-                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 2));
+                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
 
     CUDA_SYNC_CHECK();
     CUDA_CHECK(cudaStreamDestroy(stream));
@@ -371,7 +372,11 @@ class Renderer
  private:
   uint32_t m_width = 0;
   uint32_t m_height = 0;
+
   bool m_enable_validation_mode = false;
+
+  uint32_t m_max_traversable_depth = 1;
+  uint32_t m_max_trace_depth = 3;
 
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
 
@@ -383,10 +388,8 @@ class Renderer
   OptixModule m_module = 0;
 
   OptixProgramGroup m_raygen_group = 0;
-
   OptixProgramGroup m_radiance_miss_group = 0;
   OptixProgramGroup m_shadow_miss_group = 0;
-
   OptixProgramGroup m_radiance_hit_group = 0;
   OptixProgramGroup m_shadow_hit_group = 0;
 

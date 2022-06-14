@@ -10,6 +10,8 @@ int main()
 {
   uint32_t width = 512;
   uint32_t height = 512;
+  uint32_t n_samples = 1000;
+  uint32_t max_depth = 10;
 
   float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
   float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
@@ -28,7 +30,7 @@ int main()
     renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
                            "ao.ptx");
     renderer.create_program_group();
-    renderer.create_pipeline(2, 1);
+    renderer.create_pipeline();
 
     Scene scene;
     scene.load_obj("CornellBox-Original.obj");
@@ -37,7 +39,7 @@ int main()
 
     renderer.create_sbt(scene);
 
-    renderer.render(camera, 1000);
+    renderer.render(camera, n_samples, max_depth);
 
     renderer.write_framebuffer_as_ppm("output.ppm");
   } catch (const std::exception &e) {
