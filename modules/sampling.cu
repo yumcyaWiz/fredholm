@@ -1,13 +1,13 @@
 struct RNGState {
-  ulong state = 0;
-  ulong inc = 0xdeadbeef;
+  unsigned long long state = 0;
+  unsigned long long inc = 1;
 };
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
 static __forceinline__ __device__ uint pcg32_random_r(RNGState* rng)
 {
-  ulong oldstate = rng->state;
+  unsigned long long oldstate = rng->state;
   // Advance internal state
   rng->state = oldstate * 6364136223846793005ULL + (rng->inc | 1);
   // Calculate output function (XSH RR), uses old state for max ILP
@@ -16,9 +16,9 @@ static __forceinline__ __device__ uint pcg32_random_r(RNGState* rng)
   return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
 
-static __forceinline__ __device__ float frandom(RNGState* rng)
+static __forceinline__ __device__ float frandom(RNGState& rng)
 {
-  return pcg32_random_r(rng) / static_cast<float>(0xffffffff);
+  return pcg32_random_r(&rng) / static_cast<float>(0xffffffffu);
 }
 
 static __forceinline__ __device__ float3
@@ -30,9 +30,9 @@ sample_cosine_weighted_hemisphere(const float u1, const float u2)
 
   float3 p;
   p.x = r * cosf(phi);
-  p.y = r * sinf(phi);
+  p.z = r * sinf(phi);
   // Project up to hemisphere.
-  p.z = sqrtf(fmaxf(0.0f, 1.0f - p.x * p.x - p.y * p.y));
+  p.y = sqrtf(fmaxf(0.0f, 1.0f - p.x * p.x - p.z * p.z));
 
   return p;
 }

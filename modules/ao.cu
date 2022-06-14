@@ -139,6 +139,9 @@ extern "C" __global__ void __raygen__rg()
   payload.rng.state = idx.x + params.width * idx.y;
   payload.done = false;
 
+  // warm up rng
+  for (int i = 0; i < 10; ++i) { frandom(payload.rng); }
+
   int depth = 0;
   while (!payload.done) {
     trace_radiance(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f,
@@ -181,6 +184,7 @@ extern "C" __global__ void __closesthit__radiance()
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
 
   // compute face normal
+  // TODO: remove this calculation, store normals(ptr) in SBT
   const int prim_idx = optixGetPrimitiveIndex();
   const float3 v0 = sbt->vertices[3 * prim_idx + 0];
   const float3 v1 = sbt->vertices[3 * prim_idx + 1];
@@ -188,30 +192,27 @@ extern "C" __global__ void __closesthit__radiance()
   const float3 n = normalize(cross(v1 - v0, v2 - v0));
 
   // compute tangent space basis
-  // TODO: compute normal
-  // const float3 n = make_float3(0, 1, 0);
-  // float3 t, b;
-  // orthonormal_basis(n, t, b);
+  float3 t, b;
+  orthonormal_basis(n, t, b);
 
   // sample shadow ray direction
-  // const float3 wi = sample_cosine_weighted_hemisphere(frandom(&payload->rng),
-  //                                                     frandom(&payload->rng));
-  // const float3 wi_world = local_to_world(wi, t, n, b);
-  const float3 wi_world = make_float3(0, 1, 0);
+  const float3 wi = sample_cosine_weighted_hemisphere(frandom(payload->rng),
+                                                      frandom(payload->rng));
+  const float3 wi_world = local_to_world(wi, t, n, b);
 
   // trace shadow ray
   const float3 shadow_ray_origin =
       optixGetWorldRayOrigin() +
-      optixGetRayTmax() * optixGetWorldRayDirection();
+      optixGetRayTmax() * optixGetWorldRayDirection() + RAY_EPS * n;
   const float3 shadow_ray_direction = wi_world;
   ShadowPayload shadow_payload;
-  trace_shadow(params.gas_handle, shadow_ray_origin, shadow_ray_direction,
-               RAY_EPS, 1e9f, &shadow_payload);
+  trace_shadow(params.gas_handle, shadow_ray_origin, shadow_ray_direction, 0.0f,
+               1e9f, &shadow_payload);
 
   // multiply visibility
-  // payload->throughput *= shadow_payload.visibility;
+  payload->throughput *= shadow_payload.visibility;
   // payload->throughput *= sbt->material.base_color;
-  payload->throughput *= 0.5f * (n + 1.0f);
+  // payload->throughput *= 0.5f * (n + 1.0f);
   payload->done = true;
 }
 
