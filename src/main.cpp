@@ -26,15 +26,15 @@ int main()
 
     renderer.create_context();
     renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
-                           "triangle.ptx");
+                           "ao.ptx");
     renderer.create_program_group();
     renderer.create_pipeline(1, 1);
 
     Scene scene;
     scene.load_obj("CornellBox-Original.obj");
-    renderer.load_scene(scene);
+    renderer.build_accel(scene);
 
-    renderer.create_sbt();
+    renderer.create_sbt(scene);
 
     renderer.render(camera);
 

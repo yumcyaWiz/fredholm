@@ -31,14 +31,13 @@ add_subdirectory("externals/")
 
 # compile modules into PTX
 add_library(modules OBJECT
-    "modules/white.cu"
-    "modules/triangle.cu"
+    "modules/ao.cu"
 )
-set_target_properties(modules PROPERTIES 
+set_target_properties(modules PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_PTX_COMPILATION ON
 )
-target_include_directories(modules PRIVATE 
+target_include_directories(modules PRIVATE
     ${OptiX_INCLUDE}
     "src"
 )
@@ -48,11 +47,11 @@ target_link_libraries(modules PRIVATE
 
 # main
 add_executable(main "src/main.cpp")
-target_include_directories(main PRIVATE 
+target_include_directories(main PRIVATE
     ${OptiX_INCLUDE}
     "src/"
 )
-target_link_libraries(main PRIVATE 
+target_link_libraries(main PRIVATE
     CUDA::cudart
     tinyobjloader
     sutil

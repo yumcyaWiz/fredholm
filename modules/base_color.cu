@@ -7,7 +7,7 @@ extern "C" {
 __constant__ LaunchParams params;
 }
 
-struct RadiancePayload {
+struct RayPayload {
   float3 radiance;
 };
 
@@ -31,11 +31,11 @@ static __forceinline__ __device__ void pack_ptr(void* ptr, unsigned int& i0,
 }
 
 // u0, u1 is upper-32bit, lower-32bit of ptr of Payload
-static __forceinline__ __device__ RadiancePayload* get_payload_ptr()
+static __forceinline__ __device__ RayPayload* get_payload_ptr()
 {
   const unsigned int u0 = optixGetPayload_0();
   const unsigned int u1 = optixGetPayload_1();
-  return reinterpret_cast<RadiancePayload*>(unpack_ptr(u0, u1));
+  return reinterpret_cast<RayPayload*>(unpack_ptr(u0, u1));
 }
 
 static __forceinline__ __device__ void sample_ray_pinhole_camera(
@@ -59,7 +59,7 @@ extern "C" __global__ void __raygen__rg()
   float3 ray_origin, ray_direction;
   sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
 
-  RadiancePayload payload;
+  RayPayload payload;
   payload.radiance = make_float3(0.0f);
 
   unsigned int u0, u1;
@@ -73,7 +73,7 @@ extern "C" __global__ void __raygen__rg()
 
 extern "C" __global__ void __miss__ms()
 {
-  RadiancePayload* payload = get_payload_ptr();
+  RayPayload* payload = get_payload_ptr();
   payload->radiance = make_float3(0.0f);
 }
 
@@ -82,6 +82,6 @@ extern "C" __global__ void __closesthit__ch()
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
 
-  RadiancePayload* payload = get_payload_ptr();
+  RayPayload* payload = get_payload_ptr();
   payload->radiance = sbt->material.base_color;
 }

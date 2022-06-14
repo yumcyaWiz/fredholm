@@ -38,14 +38,22 @@ class Renderer
 
     if (m_pipeline) { OPTIX_CHECK(optixPipelineDestroy(m_pipeline)); }
 
-    if (m_raygen_prog_group) {
-      OPTIX_CHECK(optixProgramGroupDestroy(m_raygen_prog_group));
+    if (m_raygen_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_raygen_group));
     }
-    if (m_miss_prog_group) {
-      OPTIX_CHECK(optixProgramGroupDestroy(m_miss_prog_group));
+
+    if (m_radiance_miss_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_radiance_miss_group));
     }
-    if (m_hit_prog_group) {
-      OPTIX_CHECK(optixProgramGroupDestroy(m_hit_prog_group));
+    if (m_shadow_miss_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_shadow_miss_group));
+    }
+
+    if (m_radiance_hit_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_radiance_hit_group));
+    }
+    if (m_shadow_hit_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_shadow_hit_group));
     }
 
     if (m_module) { OPTIX_CHECK(optixModuleDestroy(m_module)); }
@@ -119,36 +127,50 @@ class Renderer
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK_LOG(optixProgramGroupCreate(
-        m_context, &raygen_program_group_desc, 1, &options, log, &sizeof_log,
-        &m_raygen_prog_group));
+    OPTIX_CHECK_LOG(
+        optixProgramGroupCreate(m_context, &raygen_program_group_desc, 1,
+                                &options, log, &sizeof_log, &m_raygen_group));
 
     // create miss program group
     OptixProgramGroupDesc miss_program_group_desc = {};
     miss_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
     miss_program_group_desc.miss.module = m_module;
-    miss_program_group_desc.miss.entryFunctionName = "__miss__ms";
+    miss_program_group_desc.miss.entryFunctionName = "__miss__radiance";
     sizeof_log = sizeof(log);
     OPTIX_CHECK_LOG(optixProgramGroupCreate(m_context, &miss_program_group_desc,
                                             1, &options, log, &sizeof_log,
-                                            &m_miss_prog_group));
+                                            &m_radiance_miss_group));
+
+    miss_program_group_desc.miss.entryFunctionName = "__miss__shadow";
+    sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(m_context, &miss_program_group_desc,
+                                            1, &options, log, &sizeof_log,
+                                            &m_shadow_miss_group));
 
     // create hitgroup program group
     OptixProgramGroupDesc hitgroup_program_group_desc = {};
     hitgroup_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
     hitgroup_program_group_desc.hitgroup.moduleCH = m_module;
     hitgroup_program_group_desc.hitgroup.entryFunctionNameCH =
-        "__closesthit__ch";
+        "__closesthit__radiance";
     sizeof_log = sizeof(log);
-    OPTIX_CHECK_LOG(
-        optixProgramGroupCreate(m_context, &hitgroup_program_group_desc, 1,
-                                &options, log, &sizeof_log, &m_hit_prog_group));
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(
+        m_context, &hitgroup_program_group_desc, 1, &options, log, &sizeof_log,
+        &m_radiance_hit_group));
+
+    hitgroup_program_group_desc.hitgroup.entryFunctionNameCH =
+        "__closesthit__shadow";
+    sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(
+        m_context, &hitgroup_program_group_desc, 1, &options, log, &sizeof_log,
+        &m_shadow_hit_group));
   }
 
   void create_pipeline(uint32_t max_trace_depth, uint32_t max_traversable_depth)
   {
-    OptixProgramGroup program_groups[] = {m_raygen_prog_group,
-                                          m_miss_prog_group, m_hit_prog_group};
+    OptixProgramGroup program_groups[] = {
+        m_raygen_group, m_radiance_miss_group, m_shadow_miss_group,
+        m_radiance_hit_group, m_shadow_hit_group};
 
     // create pipeline
     OptixPipelineLinkOptions pipeline_link_options = {};
@@ -184,26 +206,36 @@ class Renderer
         max_traversable_depth));
   }
 
-  void create_sbt()
+  void create_sbt(const Scene& scene)
   {
-    // if there is no miss record, add empty one
-    if (m_miss_records.size() == 0) {
-      m_miss_records.push_back(MissSbtRecord{});
-    }
+    // fill raygen header
+    OPTIX_CHECK(optixSbtRecordPackHeader(m_raygen_group, &m_raygen_record));
 
-    // if there is no hit group record, add empty one
-    if (m_hit_group_records.size() == 0) {
-      m_hit_group_records.push_back(HitGroupSbtRecord{});
-    }
+    // fill miss record
+    MissSbtRecord miss_record = {};
+    OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_miss_group, &miss_record));
+    m_miss_records.push_back(miss_record);
 
-    // fill headers
-    OPTIX_CHECK(
-        optixSbtRecordPackHeader(m_raygen_prog_group, &m_raygen_record));
-    for (auto& record : m_miss_records) {
-      OPTIX_CHECK(optixSbtRecordPackHeader(m_miss_prog_group, &record));
-    }
-    for (auto& record : m_hit_group_records) {
-      OPTIX_CHECK(optixSbtRecordPackHeader(m_hit_prog_group, &record));
+    miss_record = {};
+    OPTIX_CHECK(optixSbtRecordPackHeader(m_shadow_miss_group, &miss_record));
+    m_miss_records.push_back(miss_record);
+
+    // fill hitgroup record
+    // TODO: use per-material GAS and single IAS, to reduce the number of SBT
+    // records
+    for (const uint material_id : scene.m_material_ids) {
+      const Material& material = scene.m_materials[material_id];
+
+      // radiance hitgroup record
+      HitGroupSbtRecord hit_record = {};
+      hit_record.data.material = material;
+      OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
+      m_hit_group_records.push_back(hit_record);
+
+      // shadow hitgroup record
+      hit_record = {};
+      OPTIX_CHECK(optixSbtRecordPackHeader(m_shadow_hit_group, &hit_record));
+      m_hit_group_records.push_back(hit_record);
     }
 
     // allocate SBT records on device
@@ -230,20 +262,8 @@ class Renderer
     m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
 
-  void load_scene(const Scene& scene)
+  void build_accel(const Scene& scene)
   {
-    // load material info into HitGroupSbtRecord
-    // TODO: use per-material GAS and single IAS, to reduce the number of SBT
-    // records
-    for (const uint material_id : scene.m_material_ids) {
-      const Material& material = scene.m_materials[material_id];
-
-      HitGroupSbtRecord record = {};
-      record.data.material = material;
-
-      m_hit_group_records.push_back(record);
-    }
-
     // GAS build option
     OptixAccelBuildOptions options = {};
     options.buildFlags = OPTIX_BUILD_FLAG_NONE;
@@ -340,9 +360,13 @@ class Renderer
 
   OptixModule m_module = 0;
 
-  OptixProgramGroup m_raygen_prog_group = 0;
-  OptixProgramGroup m_miss_prog_group = 0;
-  OptixProgramGroup m_hit_prog_group = 0;
+  OptixProgramGroup m_raygen_group = 0;
+
+  OptixProgramGroup m_radiance_miss_group = 0;
+  OptixProgramGroup m_shadow_miss_group = 0;
+
+  OptixProgramGroup m_radiance_hit_group = 0;
+  OptixProgramGroup m_shadow_hit_group = 0;
 
   OptixPipelineCompileOptions m_pipeline_compile_options = {};
   OptixPipeline m_pipeline = 0;
