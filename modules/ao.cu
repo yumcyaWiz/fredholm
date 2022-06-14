@@ -1,39 +1,11 @@
 #include <optix.h>
 
+#include "math.cu"
 #include "sampling.cu"
 #include "shared.h"
 #include "sutil/vec_math.h"
 
-#define RAY_EPS 0.01
-
-static __forceinline__ __device__ void orthonormal_basis(const float3& n,
-                                                         float3& t, float3& b)
-{
-  if (abs(n.y) < 0.9f) {
-    t = normalize(cross(n, make_float3(0, 1, 0)));
-  } else {
-    t = normalize(cross(n, make_float3(0, 0, -1)));
-  }
-  b = normalize(cross(t, n));
-}
-
-static __forceinline__ __device__ float3 world_to_local(const float3& v,
-                                                        const float3& t,
-                                                        const float3& n,
-                                                        const float3& b)
-{
-  return make_float3(dot(v, t), dot(v, n), dot(v, b));
-}
-
-static __forceinline__ __device__ float3 local_to_world(const float3& v,
-                                                        const float3& t,
-                                                        const float3& n,
-                                                        const float3& b)
-{
-  return make_float3(v.x * t.x + v.y * n.x + v.z * b.x,
-                     v.x * t.y + v.y * n.y + v.z * b.y,
-                     v.x * t.z + v.y * n.z + v.z * b.z);
-}
+#define RAY_EPS 0.001f
 
 extern "C" {
 __constant__ LaunchParams params;
@@ -129,36 +101,47 @@ extern "C" __global__ void __raygen__rg()
   const uint3 idx = optixGetLaunchIndex();
   const uint3 dim = optixGetLaunchDimensions();
 
-  const float2 uv = make_float2((2.0f * idx.x - dim.x) / dim.x,
-                                (2.0f * idx.y - dim.y) / dim.y);
-  float3 ray_origin, ray_direction;
-  sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
-
-  RadiancePayload payload;
-  // TODO: use hash to set more nice seed
-  payload.rng.state = idx.x + params.width * idx.y;
-  payload.done = false;
+  float3 radiance = make_float3(0);
 
   // warm up rng
+  // TODO: use some hash function to set more nice seed
+  RadiancePayload payload;
+  payload.rng.state = idx.x + params.width * idx.y;
   for (int i = 0; i < 10; ++i) { frandom(payload.rng); }
 
-  int depth = 0;
-  while (!payload.done) {
-    trace_radiance(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f,
-                   &payload);
+  for (int idx_sample = 0; idx_sample < params.n_samples; ++idx_sample) {
+    // generate initial ray from camera
+    const float2 uv = make_float2((2.0f * idx.x - dim.x) / dim.x,
+                                  (2.0f * idx.y - dim.y) / dim.y);
+    float3 ray_origin, ray_direction;
+    sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
 
-    if (payload.done || depth > 3) { break; }
+    // start ray tracing from the camera
+    payload.throughput = make_float3(1);
+    payload.origin = ray_origin;
+    payload.direction = ray_direction;
+    payload.done = false;
+    for (int depth = 0; depth < 3; ++depth) {
+      trace_radiance(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f,
+                     &payload);
 
-    // advance ray
-    ray_origin = payload.origin;
-    ray_direction = payload.direction;
+      if (payload.done) { break; }
 
-    depth++;
+      // advance ray
+      ray_origin = payload.origin;
+      ray_direction = payload.direction;
+    }
+
+    // accumulate contribution
+    radiance += payload.throughput;
   }
+
+  // take average
+  radiance /= params.n_samples;
 
   // write radiance to frame buffer
   params.framebuffer[idx.x + params.width * idx.y] =
-      make_float4(payload.throughput, 1.0f);
+      make_float4(radiance, 1.0f);
 }
 
 extern "C" __global__ void __miss__radiance()
@@ -210,9 +193,7 @@ extern "C" __global__ void __closesthit__radiance()
                1e9f, &shadow_payload);
 
   // multiply visibility
-  payload->throughput *= shadow_payload.visibility;
-  // payload->throughput *= sbt->material.base_color;
-  // payload->throughput *= 0.5f * (n + 1.0f);
+  payload->throughput *= shadow_payload.visibility * sbt->material.base_color;
   payload->done = true;
 }
 

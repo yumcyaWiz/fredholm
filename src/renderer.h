@@ -332,7 +332,7 @@ class Renderer
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
-  void render(const Camera& camera)
+  void render(const Camera& camera, uint32_t n_samples)
   {
     CUstream stream;
     CUDA_CHECK(cudaStreamCreate(&stream));
@@ -341,6 +341,7 @@ class Renderer
     params.framebuffer = m_framebuffer.get_device_ptr();
     params.width = m_width;
     params.height = m_height;
+    params.n_samples = n_samples;
 
     params.cam_origin = camera.m_origin;
     params.cam_forward = camera.m_forward;

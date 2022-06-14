@@ -40,6 +40,7 @@ struct LaunchParams {
   float4* framebuffer;
   unsigned int width;
   unsigned int height;
+  unsigned int n_samples;
 
   float3 cam_origin;
   float3 cam_forward;
