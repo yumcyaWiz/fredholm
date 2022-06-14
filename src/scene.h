@@ -65,8 +65,16 @@ struct Scene {
     // TODO: load more parameters
     for (int i = 0; i < m_materials.size(); ++i) {
       const auto& m = tinyobj_materials[i];
+      // base color
       m_materials[i].base_color =
           make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+
+      // emission
+      if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
+        m_materials[i].emission = 1.0f;
+        m_materials[i].emission_color =
+            make_float3(m.emission[0], m.emission[1], m.emission[2]);
+      }
     }
 
     // TODO: remove vertex duplication, use index buffer instead.
