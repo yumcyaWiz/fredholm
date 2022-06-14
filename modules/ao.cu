@@ -1,5 +1,6 @@
 #include <optix.h>
 
+#include "sampling.cu"
 #include "shared.h"
 #include "sutil/vec_math.h"
 
@@ -14,7 +15,10 @@ enum class RayType : unsigned int {
 };
 
 struct RadiancePayload {
-  float3 throughput = make_float3(0);
+  float3 origin;
+  float3 direction;
+  float3 throughput = make_float3(1);
+  RNGState rng;
   bool done = false;
 };
 
@@ -100,11 +104,26 @@ extern "C" __global__ void __raygen__rg()
   sample_ray_pinhole_camera(uv, ray_origin, ray_direction);
 
   RadiancePayload payload;
-  payload.throughput = make_float3(1.0f);
-  trace_radiance(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f,
-                 &payload);
+  // TODO: use hash to set more nice seed
+  payload.rng.state = idx.x + params.width * idx.y;
+  payload.done = false;
 
-  params.framebuffer[idx.x + idx.y * params.width] =
+  int depth = 0;
+  while (!payload.done) {
+    trace_radiance(params.gas_handle, ray_origin, ray_direction, 0.0f, 1e9f,
+                   &payload);
+
+    if (payload.done || depth > 3) { break; }
+
+    // advance ray
+    ray_origin = payload.origin;
+    ray_direction = payload.direction;
+
+    depth++;
+  }
+
+  // write radiance to frame buffer
+  params.framebuffer[idx.x + params.width * idx.y] =
       make_float4(payload.throughput, 1.0f);
 }
 
