@@ -34,3 +34,7 @@ target_include_directories(imgui_glfw_opengl3 SYSTEM PUBLIC imgui/backends)
 # spdlog
 SET(SPDLOG_MASTER_PROJECT ON CACHE BOOL "" FORCE)
 add_subdirectory(spdlog)
+
+# stb
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE "stb")
