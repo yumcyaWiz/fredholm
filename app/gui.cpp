@@ -3,12 +3,17 @@
 
 #include "glad/gl.h"
 //
+#include <cuda_gl_interop.h>
+#include <cuda_runtime.h>
+
 #include "GLFW/glfw3.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 //
 #include "gcss/texture.h"
+#include "quad.h"
+#include "shader.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -31,6 +36,9 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width,
 
 int main()
 {
+  uint32_t width = 512;
+  uint32_t height = 512;
+
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
   if (!glfwInit()) { return EXIT_FAILURE; }
@@ -40,7 +48,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window =
-      glfwCreateWindow(512, 512, "life-game", nullptr, nullptr);
+      glfwCreateWindow(width, height, "fredholm", nullptr, nullptr);
   if (!window) { return -1; }
   glfwMakeContextCurrent(window);
 
@@ -66,6 +74,44 @@ int main()
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
   // prepare framebuffer texture
+  gcss::Texture framebuffer(glm::uvec2(width, height), GL_RGBA32F, GL_RGBA,
+                            GL_FLOAT);
+
+  std::vector<float> data(4 * width * height);
+  for (int j = 0; j < height; ++j) {
+    for (int i = 0; i < width; ++i) {
+      const int idx = 4 * i + 4 * width * j;
+      data[idx + 0] = static_cast<float>(i) / width;
+      data[idx + 1] = static_cast<float>(j) / height;
+      data[idx + 2] = 1.0f;
+      data[idx + 3] = 1.0f;
+    }
+  }
+  framebuffer.setImage(data, glm::uvec2(width, height), GL_RGBA32F, GL_RGBA,
+                       GL_FLOAT);
+
+  // GL interop
+  // cudaGraphicsResource* resource;
+  // cudaGraphicsGLRegisterImage(&resource, framebuffer.getTextureName(),
+  //                             GL_TEXTURE_2D,
+  //                             cudaGraphicsRegisterFlagsWriteDiscard);
+  // cudaGraphicsMapResources(1, &resource, 0);
+
+  // prepare quad
+  gcss::Quad quad;
+
+  // prepare shaders
+  gcss::VertexShader vertex_shader(
+      std::filesystem::path(CMAKE_CURRENT_SOURCE_DIR) / "shaders" /
+      "quad.vert");
+  gcss::FragmentShader fragment_shader(
+      std::filesystem::path(CMAKE_CURRENT_SOURCE_DIR) / "shaders" /
+      "quad.frag");
+
+  // create render pipeline
+  gcss::Pipeline render_pipeline;
+  render_pipeline.attachVertexShader(vertex_shader);
+  render_pipeline.attachFragmentShader(fragment_shader);
 
   // app loop
   while (!glfwWindowShouldClose(window)) {
@@ -83,8 +129,13 @@ int main()
     }
     ImGui::End();
 
-    // render imgui
+    // render texture
     glClear(GL_COLOR_BUFFER_BIT);
+    glViewport(0, 0, width, height);
+    framebuffer.bindToTextureUnit(0);
+    quad.draw(render_pipeline);
+
+    // render imgui
     ImGui::Render();
     int display_w, display_h;
     glfwGetFramebufferSize(window, &display_w, &display_h);

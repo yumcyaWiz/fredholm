@@ -1,16 +1,3 @@
-# OptiX path
-set(CMAKE_MODULE_PATH
-    "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64/SDK/CMake/"
-    ${CMAKE_MODULE_PATH}
-)
-
-# CUDA Toolkit
-find_package(CUDAToolkit REQUIRED)
-
-# OptiX
-set(OptiX_INSTALL_DIR "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64")
-find_package(OptiX REQUIRED)
-
 # compile modules into PTX
 add_library(modules OBJECT
     "modules/pt.cu"

@@ -8,18 +8,26 @@ find_package(OpenGL REQUIRED)
 # gcss
 add_library(gcss INTERFACE)
 target_include_directories(gcss INTERFACE "gcss/")
-target_link_libraries(gcss INTERFACE OpenGL::GL)
-target_link_libraries(gcss INTERFACE glad)
-target_link_libraries(gcss INTERFACE glm)
-target_link_libraries(gcss INTERFACE stb)
-target_link_libraries(gcss INTERFACE spdlog::spdlog)
+target_link_libraries(gcss INTERFACE
+    OpenGL::GL
+    glad
+    glm
+    stb
+    spdlog::spdlog
+)
 
 # gui
 add_executable(gui "gui.cpp")
-target_link_libraries(gui PRIVATE spdlog::spdlog)
-target_link_libraries(gui PRIVATE OpenGL::GL)
-target_link_libraries(gui PRIVATE glad)
-target_link_libraries(gui PRIVATE gcss)
-target_link_libraries(gui PRIVATE glfw)
-target_link_libraries(gui PRIVATE imgui)
-target_link_libraries(gui PRIVATE imgui_glfw_opengl3)
+target_link_libraries(gui PRIVATE
+    spdlog::spdlog
+    OpenGL::GL
+    glad
+    gcss
+    glfw
+    imgui
+    imgui_glfw_opengl3
+    CUDA::cudart
+)
+
+# set cmake source dir macro
+target_compile_definitions(gui PRIVATE CMAKE_SOURCE_DIR="${CMAKE_SOURCE_DIR}" CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
