@@ -59,3 +59,6 @@ target_link_libraries(main PRIVATE
 
 # set modules source dir macro
 target_compile_definitions(main PRIVATE MODULES_SOURCE_DIR="${CMAKE_BINARY_DIR}/CMakeFiles/modules.dir/modules")
+
+# viewer
+add_subdirectory("viewer")
