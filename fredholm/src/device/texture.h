@@ -3,6 +3,9 @@
 #include "device/types.h"
 #include "device/util.h"
 
+namespace fredholm
+{
+
 template <typename T>
 class Texture2D : public DeviceAndHostObject<T>
 {
@@ -45,3 +48,5 @@ class Texture2D : public DeviceAndHostObject<T>
 
   Buffer<T> m_buffer;
 };
+
+}  // namespace fredholm

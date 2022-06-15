@@ -18,6 +18,9 @@
 #include "scene.h"
 #include "shared.h"
 
+namespace fredholm
+{
+
 class Renderer
 {
  public:
@@ -432,3 +435,5 @@ class Renderer
     return buffer;
   }
 };
+
+}  // namespace fredholm

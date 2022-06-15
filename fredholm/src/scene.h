@@ -8,6 +8,9 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+namespace fredholm
+{
+
 struct Scene {
   std::vector<float3> m_vertices = {};
   std::vector<uint3> m_indices = {};
@@ -130,3 +133,5 @@ struct Scene {
     }
   }
 };
+
+}  // namespace fredholm

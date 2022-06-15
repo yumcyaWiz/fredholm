@@ -2,6 +2,9 @@
 
 #include "sutil/vec_math.h"
 
+namespace fredholm
+{
+
 struct Camera {
   float3 m_origin;
   float3 m_forward;
@@ -15,3 +18,5 @@ struct Camera {
     m_up = normalize(cross(m_right, forward));
   }
 };
+
+}  // namespace fredholm

@@ -4,6 +4,9 @@
 #include "device/types.h"
 #include "device/util.h"
 
+namespace fredholm
+{
+
 // RAII buffer object which is on device
 template <typename T>
 class DeviceBuffer
@@ -107,3 +110,5 @@ class Buffer : public DeviceAndHostObject<T>
   T* m_host_ptr = nullptr;
   T* m_device_ptr = nullptr;
 };
+
+}  // namespace fredholm

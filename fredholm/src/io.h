@@ -8,6 +8,9 @@
 
 #include "device/texture.h"
 
+namespace fredholm
+{
+
 inline void write_ppm(const Texture2D<float4>& texture,
                       const std::filesystem::path& filepath)
 {
@@ -37,3 +40,5 @@ inline void write_ppm(const Texture2D<float4>& texture,
 
   file.close();
 }
+
+}  // namespace fredholm

@@ -6,6 +6,8 @@
 #include "scene.h"
 #include "shared.h"
 
+using namespace fredholm;
+
 int main()
 {
   uint32_t width = 512;

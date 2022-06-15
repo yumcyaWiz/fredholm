@@ -6,6 +6,9 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace fredholm
+{
+
 #define CUDA_CHECK(call)                                                   \
   do {                                                                     \
     cudaError_t error = call;                                              \
@@ -95,3 +98,5 @@ class DeviceObject
  private:
   T* m_device_ptr;
 };
+
+}  // namespace fredholm

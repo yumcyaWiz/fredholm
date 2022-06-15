@@ -1,6 +1,9 @@
 #pragma once
 #include <cstdint>
 
+namespace fredholm
+{
+
 // interface for object which is both on host and device
 template <typename T>
 class DeviceAndHostObject
@@ -20,3 +23,5 @@ class DeviceAndHostObject
   // get pointer to object on device
   virtual T* get_device_ptr() const = 0;
 };
+
+}  // namespace fredholm

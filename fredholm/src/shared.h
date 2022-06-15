@@ -2,6 +2,9 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 
+namespace fredholm
+{
+
 // similar to arnold standard surface
 // https://autodesk.github.io/standard-surface/
 // TODO: support texture input
@@ -73,3 +76,5 @@ struct SbtRecord {
 using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
 using MissSbtRecord = SbtRecord<MissSbtRecordData>;
 using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
+
+}  // namespace fredholm

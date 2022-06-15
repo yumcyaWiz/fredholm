@@ -7,6 +7,8 @@
 
 #define RAY_EPS 0.001f
 
+using namespace fredholm;
+
 extern "C" {
 __constant__ LaunchParams params;
 }
