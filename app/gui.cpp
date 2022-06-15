@@ -10,6 +10,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "spdlog/spdlog.h"
 //
 #include "gcss/texture.h"
 #include "quad.h"
@@ -17,7 +18,7 @@
 
 static void glfw_error_callback(int error, const char* description)
 {
-  fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+  spdlog::error("Glfw Error %d: %s\n", error, description);
 }
 
 void handle_input(GLFWwindow* window, const ImGuiIO& io)
@@ -49,15 +50,15 @@ int main()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   GLFWwindow* window =
       glfwCreateWindow(width, height, "fredholm", nullptr, nullptr);
-  if (!window) { return -1; }
+  if (!window) { return EXIT_FAILURE; }
   glfwMakeContextCurrent(window);
 
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // init glad
   if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
-    std::cerr << "failed to initialize OpenGL context" << std::endl;
-    return -1;
+    spdlog::error("failed to initialize OpenGL context");
+    return EXIT_FAILURE;
   }
 
   // init imgui
@@ -153,5 +154,5 @@ int main()
   glfwDestroyWindow(window);
   glfwTerminate();
 
-  return 0;
+  return EXIT_SUCCESS;
 }
