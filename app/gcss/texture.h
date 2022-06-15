@@ -1,14 +1,19 @@
 #ifndef _CSS_TEXTURE_H
 #define _CSS_TEXTURE_H
+#include <filesystem>
 #include <vector>
 
 #include "glad/gl.h"
 #include "glm/glm.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+//
+#include "spdlog/spdlog.h"
 
-namespace gcss {
-class Texture {
+namespace gcss
+{
+class Texture
+{
  private:
   glm::uvec2 resolution;
   GLuint texture;
@@ -17,7 +22,8 @@ class Texture {
   GLenum type;
 
  public:
-  Texture() {
+  Texture()
+  {
     // init texture
     glCreateTextures(GL_TEXTURE_2D, 1, &texture);
     glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -30,7 +36,8 @@ class Texture {
 
   Texture(const glm::uvec2& resolution, GLint internalFormat, GLenum format,
           GLenum type)
-      : Texture() {
+      : Texture()
+  {
     initImage(resolution, internalFormat, format, type);
   }
 
@@ -41,7 +48,8 @@ class Texture {
         texture(other.texture),
         internalFormat(other.internalFormat),
         format(other.format),
-        type(other.type) {
+        type(other.type)
+  {
     other.texture = 0;
   }
 
@@ -49,7 +57,8 @@ class Texture {
 
   Texture& operator=(const Texture& other) = delete;
 
-  Texture& operator=(Texture&& other) {
+  Texture& operator=(Texture&& other)
+  {
     if (this != &other) {
       release();
 
@@ -76,7 +85,8 @@ class Texture {
   GLenum getType() const { return this->type; }
 
   void initImage(const glm::uvec2& resolution, GLint internalFormat,
-                 GLenum format, GLenum type) {
+                 GLenum format, GLenum type)
+  {
     this->resolution = resolution;
     this->internalFormat = internalFormat;
     this->format = format;
@@ -90,7 +100,8 @@ class Texture {
 
   template <typename T>
   void setImage(const std::vector<T>& image, const glm::uvec2& resolution,
-                GLint internalFormat, GLenum format, GLenum type) {
+                GLint internalFormat, GLenum format, GLenum type)
+  {
     this->resolution = resolution;
     this->internalFormat = internalFormat;
     this->format = format;
@@ -104,7 +115,8 @@ class Texture {
 
   template <typename T>
   void setImage(const T* image, const glm::uvec2& resolution,
-                GLint internalFormat, GLenum format, GLenum type) {
+                GLint internalFormat, GLenum format, GLenum type)
+  {
     this->resolution = resolution;
     this->internalFormat = internalFormat;
     this->format = format;
@@ -116,19 +128,19 @@ class Texture {
     glBindTexture(GL_TEXTURE_2D, 0);
   }
 
-  void resize(const glm::uvec2& resolution) {
+  void resize(const glm::uvec2& resolution)
+  {
     initImage(resolution, internalFormat, format, type);
   }
 
-  void loadHDR(const std::filesystem::path& filepath) {
+  void loadHDR(const std::filesystem::path& filepath)
+  {
     const std::string filepath_str = filepath.generic_string();
     int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
     float* image =
         stbi_loadf(filepath_str.c_str(), &width, &height, &channels, 4);
-    if (!image) {
-      spdlog::error("[Texture] failed to load {}", filepath_str);
-    }
+    if (!image) { spdlog::error("[Texture] failed to load {}", filepath_str); }
 
     this->internalFormat = GL_RGBA32F;
     this->format = GL_RGBA;
@@ -139,17 +151,20 @@ class Texture {
   }
 
   // bind texture to the specified texture unit
-  void bindToTextureUnit(GLuint texture_unit_number) const {
+  void bindToTextureUnit(GLuint texture_unit_number) const
+  {
     glBindTextureUnit(texture_unit_number, texture);
   }
 
   // bind texture to the specified image unit
-  void bindToImageUnit(GLuint image_unit_number, GLenum access) const {
+  void bindToImageUnit(GLuint image_unit_number, GLenum access) const
+  {
     glBindImageTexture(image_unit_number, this->texture, 0, GL_FALSE, 0, access,
                        this->internalFormat);
   }
 
-  void release() {
+  void release()
+  {
     if (texture) {
       spdlog::info("[Texture] release texture {:x}", this->texture);
 

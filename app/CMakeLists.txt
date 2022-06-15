@@ -8,6 +8,11 @@ find_package(OpenGL REQUIRED)
 # gcss
 add_library(gcss INTERFACE)
 target_include_directories(gcss INTERFACE "gcss/")
+target_link_libraries(gcss INTERFACE OpenGL::GL)
+target_link_libraries(gcss INTERFACE glad)
+target_link_libraries(gcss INTERFACE glm)
+target_link_libraries(gcss INTERFACE stb)
+target_link_libraries(gcss INTERFACE spdlog::spdlog)
 
 # gui
 add_executable(gui "gui.cpp")
