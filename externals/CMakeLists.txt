@@ -10,7 +10,7 @@ target_include_directories(tinyobjloader INTERFACE "tinyobjloader/")
 add_subdirectory("glm/")
 
 # glad
-add_library(glad glad/src/glad.c)
+add_library(glad glad/src/gl.c)
 target_include_directories(glad SYSTEM PUBLIC glad/include)
 
 # glfw
