@@ -27,6 +27,7 @@ target_link_libraries(gui PRIVATE
     imgui
     imgui_glfw_opengl3
     CUDA::cudart
+    fredholm
 )
 
 # set cmake source dir macro

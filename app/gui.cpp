@@ -15,6 +15,8 @@
 #include "gcss/texture.h"
 #include "quad.h"
 #include "shader.h"
+//
+#include "device/util.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -78,25 +80,18 @@ int main()
   gcss::Texture framebuffer(glm::uvec2(width, height), GL_RGBA32F, GL_RGBA,
                             GL_FLOAT);
 
-  std::vector<float> data(4 * width * height);
-  for (int j = 0; j < height; ++j) {
-    for (int i = 0; i < width; ++i) {
-      const int idx = 4 * i + 4 * width * j;
-      data[idx + 0] = static_cast<float>(i) / width;
-      data[idx + 1] = static_cast<float>(j) / height;
-      data[idx + 2] = 1.0f;
-      data[idx + 3] = 1.0f;
-    }
-  }
-  framebuffer.setImage(data, glm::uvec2(width, height), GL_RGBA32F, GL_RGBA,
-                       GL_FLOAT);
+  // get cuda device ptr from OpenGL texture
+  struct cudaGraphicsResource* resource;
+  CUDA_CHECK(cudaGraphicsGLRegisterImage(
+      &resource, framebuffer.getTextureName(), GL_TEXTURE_2D,
+      cudaGraphicsRegisterFlagsWriteDiscard));
+  CUDA_CHECK(cudaGraphicsMapResources(1, &resource));
 
-  // GL interop
-  // cudaGraphicsResource* resource;
-  // cudaGraphicsGLRegisterImage(&resource, framebuffer.getTextureName(),
-  //                             GL_TEXTURE_2D,
-  //                             cudaGraphicsRegisterFlagsWriteDiscard);
-  // cudaGraphicsMapResources(1, &resource, 0);
+  // NOTE:
+  // https://stackoverflow.com/questions/9406844/cudagraphicsresourcegetmappedpointer-returns-unknown-error
+  cudaArray_t d_framebuffer;
+  CUDA_CHECK(
+      cudaGraphicsSubResourceGetMappedArray(&d_framebuffer, resource, 0, 0));
 
   // prepare quad
   gcss::Quad quad;
@@ -147,6 +142,9 @@ int main()
   }
 
   // cleanup
+  CUDA_CHECK(cudaGraphicsUnmapResources(1, &resource));
+  CUDA_CHECK(cudaGraphicsUnregisterResource(resource));
+
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();

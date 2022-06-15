@@ -6,9 +6,6 @@
 #include <sstream>
 #include <stdexcept>
 
-namespace fredholm
-{
-
 #define CUDA_CHECK(call)                                                   \
   do {                                                                     \
     cudaError_t error = call;                                              \
@@ -59,6 +56,9 @@ namespace fredholm
       throw std::runtime_error(ss.str().c_str());                          \
     }                                                                      \
   } while (0)
+
+namespace fredholm
+{
 
 template <typename T>
 inline CUdeviceptr alloc_and_copy_to_device(const T& src)
