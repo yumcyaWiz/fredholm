@@ -13,3 +13,6 @@
 [submodule "externals/spdlog"]
 	path = externals/spdlog
 	url = git@github.com:gabime/spdlog.git
+[submodule "externals/stb"]
+	path = externals/stb
+	url = git@github.com:nothings/stb.git
