@@ -10,7 +10,7 @@ int main()
 {
   uint32_t width = 512;
   uint32_t height = 512;
-  uint32_t n_samples = 10000;
+  uint32_t n_samples = 1000;
   uint32_t max_depth = 100;
 
   float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
@@ -33,7 +33,7 @@ int main()
     renderer.create_pipeline();
 
     Scene scene;
-    scene.load_obj("CornellBox-Original.obj");
+    scene.load_obj("../resources/CornellBox-Original.obj");
     renderer.load_scene(scene);
     renderer.build_accel();
 
