@@ -63,6 +63,7 @@ int main()
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
+  // app loop
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 

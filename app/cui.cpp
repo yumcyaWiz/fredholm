@@ -40,6 +40,7 @@ int main()
     renderer.create_sbt(scene);
 
     renderer.render(camera, n_samples, max_depth);
+    renderer.wait_for_completion();
 
     renderer.write_framebuffer_as_ppm("output.ppm");
   } catch (const std::exception &e) {

@@ -27,6 +27,7 @@ class Renderer
         m_enable_validation_mode(enable_validation_mode),
         m_framebuffer(width, height)
   {
+    CUDA_CHECK(cudaStreamCreate(&m_stream));
   }
 
   ~Renderer() noexcept(false)
@@ -67,6 +68,8 @@ class Renderer
 
     // release context
     if (m_context) { OPTIX_CHECK(optixDeviceContextDestroy(m_context)); }
+
+    CUDA_CHECK(cudaStreamDestroy(m_stream));
   }
 
   void create_context()
@@ -334,9 +337,6 @@ class Renderer
 
   void render(const Camera& camera, uint32_t n_samples, uint32_t max_depth)
   {
-    CUstream stream;
-    CUDA_CHECK(cudaStreamCreate(&stream));
-
     LaunchParams params;
     params.framebuffer = m_framebuffer.get_device_ptr();
     params.width = m_width;
@@ -355,13 +355,12 @@ class Renderer
 
     // run pipeline
     OPTIX_CHECK(
-        optixLaunch(m_pipeline, stream,
+        optixLaunch(m_pipeline, m_stream,
                     reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
                     sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
-
-    CUDA_SYNC_CHECK();
-    CUDA_CHECK(cudaStreamDestroy(stream));
   }
+
+  void wait_for_completion() { CUDA_SYNC_CHECK(); }
 
   void write_framebuffer_as_ppm(const std::filesystem::path& filepath)
   {
@@ -379,6 +378,8 @@ class Renderer
   uint32_t m_max_trace_depth = 3;
 
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
+
+  CUstream m_stream = 0;
 
   OptixDeviceContext m_context = 0;
 
