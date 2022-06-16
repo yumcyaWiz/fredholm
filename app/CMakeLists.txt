@@ -1,6 +1,6 @@
 # cui
-add_executable(cui "cui.cpp")
-target_link_libraries(cui PRIVATE fredholm)
+# add_executable(cui "cui.cpp")
+# target_link_libraries(cui PRIVATE fredholm)
 
 # OpenGL
 find_package(OpenGL REQUIRED)

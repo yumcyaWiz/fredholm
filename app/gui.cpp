@@ -125,7 +125,7 @@ int main()
   renderer.build_accel();
   renderer.create_sbt(scene);
 
-  renderer.init_rng_state();
+  renderer.init_before_render();
 
   const float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
   const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
@@ -164,7 +164,8 @@ int main()
     ImGui::End();
 
     // render
-    renderer.render_one_sample(camera, d_framebuffer, 100);
+    renderer.render(camera, d_framebuffer, 1, 100);
+    // TODO: Is is safe to remove this?
     renderer.wait_for_completion();
 
     // render texture

@@ -27,10 +27,7 @@ class Renderer
   Renderer(uint32_t width, uint32_t height, bool enable_validation_mode = false)
       : m_width(width),
         m_height(height),
-        m_enable_validation_mode(enable_validation_mode),
-        m_framebuffer(width, height),
-        m_accumulation(width, height),
-        m_sample_count(width, height)
+        m_enable_validation_mode(enable_validation_mode)
   {
     CUDA_CHECK(cudaStreamCreate(&m_stream));
   }
@@ -340,10 +337,43 @@ class Renderer
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
-  void render(const Camera& camera, uint32_t n_samples, uint32_t max_depth)
+  void init_before_render()
+  {
+    // init framebuffer
+    m_framebuffer =
+        std::make_unique<DeviceBuffer<float4>>(m_width * m_height, 0);
+
+    // init accumulation buffer
+    m_accumulation =
+        std::make_unique<DeviceBuffer<float4>>(m_width * m_height, 0);
+
+    // init sample count buffer
+    m_sample_count =
+        std::make_unique<DeviceBuffer<uint>>(m_width * m_height, 0);
+
+    // init RNG state buffer
+    // TODO: apply some hash function
+    std::vector<RNGState> rng_states(m_width * m_height);
+    for (int j = 0; j < m_height; ++j) {
+      for (int i = 0; i < m_width; ++i) {
+        const int idx = i + m_width * j;
+        rng_states[idx].state = idx;
+        rng_states[idx].inc = 0xdeadbeef;
+      }
+    }
+
+    m_rng_states = std::make_unique<DeviceBuffer<RNGState>>(rng_states);
+  }
+
+  void render(const Camera& camera, float4* d_framebuffer, uint32_t n_samples,
+              uint32_t max_depth)
   {
     LaunchParams params;
-    params.framebuffer = m_framebuffer.get_device_ptr();
+    params.framebuffer = d_framebuffer;
+    params.accumulation = m_accumulation->get_device_ptr();
+    params.sample_count = m_sample_count->get_device_ptr();
+    params.rng_states = m_rng_states->get_device_ptr();
+
     params.width = m_width;
     params.height = m_height;
     params.n_samples = n_samples;
@@ -365,58 +395,7 @@ class Renderer
                     sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
   }
 
-  void init_rng_state()
-  {
-    // TODO: apply some hash function
-    std::vector<RNGState> rng_states(m_width * m_height);
-    for (int j = 0; j < m_height; ++j) {
-      for (int i = 0; i < m_width; ++i) {
-        const int idx = i + m_width * j;
-        rng_states[idx].state = idx;
-        rng_states[idx].inc = 0xdeadbeef;
-      }
-    }
-
-    m_rng_states = std::make_unique<DeviceBuffer<RNGState>>(rng_states);
-  }
-
-  void render_one_sample(const Camera& camera, float4* d_framebuffer,
-                         uint32_t max_depth)
-  {
-    LaunchParams params;
-    params.framebuffer = d_framebuffer;
-    params.accumulation = m_accumulation.get_device_ptr();
-    params.sample_count = m_sample_count.get_device_ptr();
-    params.rng_states = m_rng_states->get_device_ptr();
-
-    params.width = m_width;
-    params.height = m_height;
-    params.n_samples = 1;
-    params.max_depth = max_depth;
-
-    params.cam_origin = camera.m_origin;
-    params.cam_forward = camera.m_forward;
-    params.cam_right = camera.m_right;
-    params.cam_up = camera.m_up;
-
-    params.gas_handle = m_gas_handle;
-
-    DeviceObject d_params(params);
-
-    // run pipeline
-    OPTIX_CHECK(
-        optixLaunch(m_pipeline, m_stream,
-                    reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
-                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
-  }
-
   void wait_for_completion() { CUDA_SYNC_CHECK(); }
-
-  void write_framebuffer_as_ppm(const std::filesystem::path& filepath)
-  {
-    m_framebuffer.copy_from_device_to_host();
-    write_ppm(m_framebuffer, filepath);
-  }
 
  private:
   uint32_t m_width = 0;
@@ -456,10 +435,9 @@ class Renderer
       nullptr;
   OptixShaderBindingTable m_sbt = {};
 
-  // TODO: use device buffer
-  Texture2D<float4> m_framebuffer;
-  Texture2D<float4> m_accumulation;
-  Texture2D<uint> m_sample_count;
+  std::unique_ptr<DeviceBuffer<float4>> m_framebuffer;
+  std::unique_ptr<DeviceBuffer<float4>> m_accumulation;
+  std::unique_ptr<DeviceBuffer<uint>> m_sample_count;
   std::unique_ptr<DeviceBuffer<RNGState>> m_rng_states;
 
   static void context_log_callback(unsigned int level, const char* tag,

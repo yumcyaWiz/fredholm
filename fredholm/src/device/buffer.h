@@ -19,6 +19,11 @@ class DeviceBuffer
                           m_buffer_size * sizeof(T)));
   }
 
+  DeviceBuffer(uint32_t buffer_size, int value) : DeviceBuffer<T>(buffer_size)
+  {
+    CUDA_CHECK(cudaMemset(m_device_ptr, value, m_buffer_size * sizeof(T)));
+  }
+
   DeviceBuffer(const std::vector<T>& values) : DeviceBuffer<T>(values.size())
   {
     copy_from_host_to_device(values);
