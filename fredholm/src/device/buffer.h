@@ -29,6 +29,15 @@ class DeviceBuffer
     copy_from_host_to_device(values);
   }
 
+  DeviceBuffer(const DeviceBuffer<T>& other) = delete;
+
+  DeviceBuffer(DeviceBuffer<T>&& other)
+      : m_device_ptr(other.m_device_ptr), m_buffer_size(other.m_buffer_size)
+  {
+    other.m_device_ptr = nullptr;
+    other.m_buffer_size = 0;
+  }
+
   ~DeviceBuffer() noexcept(false)
   {
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_device_ptr)));
@@ -47,8 +56,8 @@ class DeviceBuffer
   uint32_t get_size_in_bytes() const { return m_buffer_size * sizeof(T); }
 
  private:
-  uint32_t m_buffer_size;
   T* m_device_ptr;
+  uint32_t m_buffer_size;
 };
 
 // RAII buffer object which is both on host and device
