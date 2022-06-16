@@ -19,6 +19,7 @@
 #include "shader.h"
 //
 #include "camera.h"
+#include "cuda_gl_util.h"
 #include "device/util.h"
 #include "scene.h"
 
@@ -107,29 +108,7 @@ int main()
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
   // prepare framebuffer
-  gcss::Buffer framebuffer;
-  std::vector<glm::vec4> data(width * height);
-  for (int j = 0; j < height; ++j) {
-    for (int i = 0; i < width; ++i) {
-      data[i + width * j] =
-          glm::vec4(static_cast<float>(i) / width,
-                    static_cast<float>(j) / height, 1.0f, 1.0f);
-    }
-  }
-
-  framebuffer.setData(data, GL_STATIC_DRAW);
-  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-  // get cuda device ptr from OpenGL texture
-  struct cudaGraphicsResource* resource;
-  CUDA_CHECK(cudaGraphicsGLRegisterBuffer(
-      &resource, framebuffer.getName(), cudaGraphicsRegisterFlagsWriteDiscard));
-  CUDA_CHECK(cudaGraphicsMapResources(1, &resource));
-
-  float4* d_framebuffer;
-  size_t d_framebuffer_size;
-  CUDA_CHECK(cudaGraphicsResourceGetMappedPointer(
-      reinterpret_cast<void**>(&d_framebuffer), &d_framebuffer_size, resource));
+  app::CUDAGLBuffer<float4> framebuffer(width, height);
 
   // setup renderer
 #ifdef NDEBUG
@@ -190,7 +169,7 @@ int main()
     ImGui::End();
 
     // render
-    renderer.render(camera, d_framebuffer, 1, 100);
+    renderer.render(camera, framebuffer.m_d_buffer, 1, 100);
     // TODO: Is is safe to remove this?
     renderer.wait_for_completion();
 
@@ -198,7 +177,7 @@ int main()
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, width, height);
     fragment_shader.setUniform("resolution", glm::vec2(width, height));
-    framebuffer.bindToShaderStorageBuffer(0);
+    framebuffer.m_buffer.bindToShaderStorageBuffer(0);
     quad.draw(render_pipeline);
 
     // render imgui
@@ -210,10 +189,6 @@ int main()
 
     glfwSwapBuffers(window);
   }
-
-  // cleanup
-  CUDA_CHECK(cudaGraphicsUnmapResources(1, &resource));
-  CUDA_CHECK(cudaGraphicsUnregisterResource(resource));
 
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();

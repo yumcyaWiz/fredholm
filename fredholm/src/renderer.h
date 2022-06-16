@@ -337,6 +337,13 @@ class Renderer
         gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
   }
 
+  // NOTE: need to call init_before_render after this
+  void set_render_resolution(uint32_t width, uint32_t height)
+  {
+    m_width = width;
+    m_height = height;
+  }
+
   void init_before_render()
   {
     // init framebuffer
