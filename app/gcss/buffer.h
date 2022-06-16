@@ -8,6 +8,7 @@
 namespace gcss
 {
 
+// TODO: use template <typename T>?
 class Buffer
 {
  private:

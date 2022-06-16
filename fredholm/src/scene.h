@@ -3,10 +3,11 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "shared.h"
-
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
+//
+#include "shared.h"
+#include "sutil/vec_math.h"
 
 namespace fredholm
 {
@@ -86,7 +87,12 @@ struct Scene {
       for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f) {
         size_t fv = static_cast<size_t>(shapes[s].mesh.num_face_vertices[f]);
 
-        for (size_t v = 0; v < fv; ++v) {
+        std::vector<float3> vertices_temp;
+        std::vector<float3> normals_temp;
+        std::vector<float2> texcoords_temp;
+
+        // NOTE: assuming fv = 3
+        for (size_t v = 0; v < 3; ++v) {
           tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
 
           // vertex position
@@ -96,7 +102,7 @@ struct Scene {
               attrib.vertices[3 * size_t(idx.vertex_index) + 1];
           tinyobj::real_t vz =
               attrib.vertices[3 * size_t(idx.vertex_index) + 2];
-          m_vertices.push_back(make_float3(vx, vy, vz));
+          vertices_temp.push_back(make_float3(vx, vy, vz));
 
           // vertex normal
           if (idx.normal_index >= 0) {
@@ -106,7 +112,7 @@ struct Scene {
                 attrib.normals[3 * size_t(idx.normal_index) + 1];
             tinyobj::real_t nz =
                 attrib.normals[3 * size_t(idx.normal_index) + 2];
-            m_normals.push_back(make_float3(nx, ny, nz));
+            normals_temp.push_back(make_float3(nx, ny, nz));
           }
 
           // texture coordinate
@@ -115,16 +121,36 @@ struct Scene {
                 attrib.texcoords[2 * size_t(idx.texcoord_index) + 0];
             tinyobj::real_t ty =
                 attrib.texcoords[2 * size_t(idx.texcoord_index) + 1];
-            m_texcoords.push_back(make_float2(tx, ty));
+            texcoords_temp.push_back(make_float2(tx, ty));
           }
         }
 
-        // fill indices buffer
-        m_indices.push_back(make_uint3(3 * m_indices.size(),
-                                       3 * m_indices.size() + 1,
-                                       3 * m_indices.size() + 2));
+        // if vertex normals is empty, add face normal
+        if (normals_temp.size() == 0) {
+          const float3 v1 = normalize(vertices_temp[1] - vertices_temp[0]);
+          const float3 v2 = normalize(vertices_temp[2] - vertices_temp[0]);
+          const float3 n = normalize(cross(v1, v2));
+          normals_temp.push_back(n);
+          normals_temp.push_back(n);
+          normals_temp.push_back(n);
+        }
 
-        index_offset += fv;
+        // if texcoords is empty, add barycentric coords
+        if (texcoords_temp.size() == 0) {
+          texcoords_temp.push_back(make_float2(0, 0));
+          texcoords_temp.push_back(make_float2(1, 0));
+          texcoords_temp.push_back(make_float2(0, 1));
+        }
+
+        for (int v = 0; v < 3; ++v) {
+          m_vertices.push_back(vertices_temp[v]);
+          m_normals.push_back(normals_temp[v]);
+          m_texcoords.push_back(texcoords_temp[v]);
+        }
+
+        // TODO: fill indices buffer
+
+        index_offset += 3;
 
         // load per-face material id
         const int material_id = shapes[s].mesh.material_ids[f];
