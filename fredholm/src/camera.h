@@ -31,12 +31,63 @@ struct Camera {
   float m_theta;
 
   Camera(const float3& origin, const float3& forward, float fov = 0.5f * M_PI)
-      : m_origin(origin), m_forward(forward)
+      : m_origin(origin),
+        m_forward(forward),
+        m_movement_speed(1.0f),
+        m_look_around_speed(0.1f),
+        m_phi(270.0f),
+        m_theta(90.0f)
   {
-    m_right = normalize(cross(forward, make_float3(0.0f, 1.0f, 0.0f)));
-    m_up = normalize(cross(m_right, forward));
+    m_right = normalize(cross(m_forward, make_float3(0.0f, 1.0f, 0.0f)));
+    m_up = normalize(cross(m_right, m_forward));
 
     m_f = 1.0f / std::tan(0.5f * fov);
+  }
+
+  void move(const CameraMovement& direction, float dt)
+  {
+    const float velocity = m_movement_speed * dt;
+    switch (direction) {
+      case CameraMovement::FORWARD:
+        m_origin += velocity * m_forward;
+        break;
+      case CameraMovement::BACKWARD:
+        m_origin -= velocity * m_forward;
+        break;
+      case CameraMovement::RIGHT:
+        m_origin += velocity * m_right;
+        break;
+      case CameraMovement::LEFT:
+        m_origin -= velocity * m_right;
+        break;
+      case CameraMovement::UP:
+        m_origin += velocity * m_up;
+        break;
+      case CameraMovement::DOWN:
+        m_origin -= velocity * m_up;
+        break;
+    }
+  }
+
+  void lookAround(float d_phi, float d_theta)
+  {
+    // update phi, theta
+    m_phi += m_look_around_speed * d_phi;
+    if (m_phi < 0.0f) m_phi = 360.0f;
+    if (m_phi > 360.0f) m_phi = 0.0f;
+
+    m_theta += m_look_around_speed * d_theta;
+    if (m_theta < 0.0f) m_theta = 180.0f;
+    if (m_theta > 180.0f) m_theta = 0.0f;
+
+    // set camera directions
+    const float phi_rad = m_phi / 180.0f * M_PI;
+    const float theta_rad = m_theta / 180.0f * M_PI;
+    m_forward = make_float3(std::cos(phi_rad) * std::sin(theta_rad),
+                            std::cos(theta_rad),
+                            std::sin(phi_rad) * std::sin(theta_rad));
+    m_right = normalize(cross(m_forward, make_float3(0.0f, 1.0f, 0.0f)));
+    m_up = normalize(cross(m_right, m_forward));
   }
 };
 

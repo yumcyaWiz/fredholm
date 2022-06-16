@@ -27,11 +27,37 @@ static void glfw_error_callback(int error, const char* description)
   spdlog::error("Glfw Error %d: %s\n", error, description);
 }
 
-void handle_input(GLFWwindow* window, const ImGuiIO& io)
+void handle_input(GLFWwindow* window, const ImGuiIO& io,
+                  fredholm::Camera& camera, fredholm::Renderer& renderer)
 {
   // close window
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
+  }
+
+  // move camera
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    camera.move(fredholm::CameraMovement::FORWARD, io.DeltaTime);
+    renderer.init_before_render();
+  }
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    camera.move(fredholm::CameraMovement::LEFT, io.DeltaTime);
+    renderer.init_before_render();
+  }
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    camera.move(fredholm::CameraMovement::BACKWARD, io.DeltaTime);
+    renderer.init_before_render();
+  }
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    camera.move(fredholm::CameraMovement::RIGHT, io.DeltaTime);
+    renderer.init_before_render();
+  }
+
+  // camera look around
+  if (!io.WantCaptureMouse &&
+      glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
+    camera.lookAround(io.MouseDelta.x, io.MouseDelta.y);
+    renderer.init_before_render();
   }
 }
 
@@ -151,7 +177,7 @@ int main()
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    handle_input(window, io);
+    handle_input(window, io, camera, renderer);
 
     // start imgui frame
     ImGui_ImplOpenGL3_NewFrame();
