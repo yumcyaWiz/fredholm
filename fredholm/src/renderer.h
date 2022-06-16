@@ -379,10 +379,11 @@ class Renderer
     params.n_samples = n_samples;
     params.max_depth = max_depth;
 
-    params.cam_origin = camera.m_origin;
-    params.cam_forward = camera.m_forward;
-    params.cam_right = camera.m_right;
-    params.cam_up = camera.m_up;
+    params.camera.origin = camera.m_origin;
+    params.camera.forward = camera.m_forward;
+    params.camera.right = camera.m_right;
+    params.camera.up = camera.m_up;
+    params.camera.f = camera.m_f;
 
     params.gas_handle = m_gas_handle;
 

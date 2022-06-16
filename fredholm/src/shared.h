@@ -5,6 +5,14 @@
 namespace fredholm
 {
 
+struct CameraParams {
+  float3 origin;
+  float3 forward;
+  float3 right;
+  float3 up;
+  float f;
+};
+
 struct RNGState {
   unsigned long long state = 0;
   unsigned long long inc = 1;
@@ -55,10 +63,7 @@ struct LaunchParams {
   uint n_samples;
   uint max_depth;
 
-  float3 cam_origin;
-  float3 cam_forward;
-  float3 cam_right;
-  float3 cam_up;
+  CameraParams camera;
 
   OptixTraversableHandle gas_handle;
 };

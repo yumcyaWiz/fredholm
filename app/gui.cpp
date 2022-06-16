@@ -127,7 +127,7 @@ int main()
 
   renderer.init_before_render();
 
-  const float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
+  const float3 cam_origin = make_float3(0.0f, 1.0f, 5.0f);
   const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
   fredholm::Camera camera(cam_origin, cam_forward);
 

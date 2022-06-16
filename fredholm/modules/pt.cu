@@ -83,11 +83,12 @@ static __forceinline__ __device__ bool has_emission(const Material& material)
 static __forceinline__ __device__ void sample_ray_pinhole_camera(
     const float2& uv, float3& origin, float3& direction)
 {
-  const float3 p_sensor =
-      params.cam_origin + uv.x * params.cam_right + uv.y * params.cam_up;
-  const float3 p_pinhole = params.cam_origin + params.cam_forward;
+  const float3 p_sensor = params.camera.origin + uv.x * params.camera.right +
+                          uv.y * params.camera.up;
+  const float3 p_pinhole =
+      params.camera.origin + params.camera.f * params.camera.forward;
 
-  origin = params.cam_origin;
+  origin = p_sensor;
   direction = normalize(p_pinhole - p_sensor);
 }
 
