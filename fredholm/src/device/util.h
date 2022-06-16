@@ -60,21 +60,6 @@
 namespace fredholm
 {
 
-template <typename T>
-inline CUdeviceptr alloc_and_copy_to_device(const T& src)
-{
-  // alloc memory on device
-  CUdeviceptr dst;
-  const size_t size = sizeof(T);
-  CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&dst), size));
-
-  // copy data from host to device
-  CUDA_CHECK(cudaMemcpy(reinterpret_cast<void*>(dst), &src, size,
-                        cudaMemcpyHostToDevice));
-
-  return dst;
-}
-
 // RAII wrapper for objects on device
 template <typename T>
 class DeviceObject

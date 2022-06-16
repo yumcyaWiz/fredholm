@@ -1,4 +1,6 @@
 #pragma once
+#include <cstdint>
+
 #include "device/buffer.h"
 #include "device/types.h"
 #include "device/util.h"
