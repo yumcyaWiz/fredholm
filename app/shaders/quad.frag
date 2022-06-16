@@ -12,6 +12,7 @@ uniform vec2 resolution;
 
 void main() {
   ivec2 xy = ivec2(texCoords * resolution);
+  xy.y = int(resolution.y) - xy.y - 1;
   int idx = int(xy.x + resolution.x * xy.y);
   fragColor = framebuffer[idx];
 }

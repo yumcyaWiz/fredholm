@@ -11,7 +11,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-// #include "renderer.h"
+#include "renderer.h"
 #include "spdlog/spdlog.h"
 //
 #include "gcss/texture.h"
@@ -95,17 +95,15 @@ int main()
   glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // get cuda device ptr from OpenGL texture
-  // struct cudaGraphicsResource* resource;
-  // CUDA_CHECK(cudaGraphicsGLRegisterImage(
-  //     &resource, framebuffer.getTextureName(), GL_TEXTURE_2D,
-  //     cudaGraphicsRegisterFlagsWriteDiscard));
-  // CUDA_CHECK(cudaGraphicsMapResources(1, &resource));
+  struct cudaGraphicsResource* resource;
+  CUDA_CHECK(cudaGraphicsGLRegisterBuffer(
+      &resource, framebuffer.getName(), cudaGraphicsRegisterFlagsWriteDiscard));
+  CUDA_CHECK(cudaGraphicsMapResources(1, &resource));
 
-  // NOTE:
-  // https://stackoverflow.com/questions/9406844/cudagraphicsresourcegetmappedpointer-returns-unknown-error
-  // cudaArray_t d_framebuffer;
-  // CUDA_CHECK(
-  //     cudaGraphicsSubResourceGetMappedArray(&d_framebuffer, resource, 0, 0));
+  float4* d_framebuffer;
+  size_t d_framebuffer_size;
+  CUDA_CHECK(cudaGraphicsResourceGetMappedPointer(
+      reinterpret_cast<void**>(&d_framebuffer), &d_framebuffer_size, resource));
 
   // setup renderer
 #ifdef NDEBUG
@@ -114,23 +112,24 @@ int main()
   bool enable_validation_mode = true;
 #endif
 
-  // fredholm::Renderer renderer(width, height, enable_validation_mode);
-  // renderer.create_context();
-  // renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
-  // "pt.ptx"); renderer.create_program_group(); renderer.create_pipeline();
+  fredholm::Renderer renderer(width, height, enable_validation_mode);
+  renderer.create_context();
+  renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "pt.ptx");
+  renderer.create_program_group();
+  renderer.create_pipeline();
 
-  // fredholm::Scene scene;
-  // scene.load_obj(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
-  //                "CornellBox-Original.obj");
-  // renderer.load_scene(scene);
-  // renderer.build_accel();
-  // renderer.create_sbt(scene);
+  fredholm::Scene scene;
+  scene.load_obj(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
+                 "CornellBox-Original.obj");
+  renderer.load_scene(scene);
+  renderer.build_accel();
+  renderer.create_sbt(scene);
 
-  // const float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
-  // const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
-  // fredholm::Camera camera(cam_origin, cam_forward);
+  const float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
+  const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
+  fredholm::Camera camera(cam_origin, cam_forward);
 
-  // renderer.render_to_framebuffer(camera, d_framebuffer, 1, 100);
+  renderer.render_to_framebuffer(camera, d_framebuffer, 1, 100);
 
   // prepare quad
   gcss::Quad quad;
@@ -182,8 +181,8 @@ int main()
   }
 
   // cleanup
-  // CUDA_CHECK(cudaGraphicsUnmapResources(1, &resource));
-  // CUDA_CHECK(cudaGraphicsUnregisterResource(resource));
+  CUDA_CHECK(cudaGraphicsUnmapResources(1, &resource));
+  CUDA_CHECK(cudaGraphicsUnregisterResource(resource));
 
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
