@@ -1,7 +1,7 @@
-struct RNGState {
-  unsigned long long state = 0;
-  unsigned long long inc = 1;
-};
+#include "shared.h"
+
+namespace fredholm
+{
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
@@ -36,3 +36,5 @@ sample_cosine_weighted_hemisphere(const float u1, const float u2)
 
   return p;
 }
+
+}  // namespace fredholm

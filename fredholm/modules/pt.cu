@@ -97,11 +97,10 @@ extern "C" __global__ void __raygen__rg()
   const uint3 dim = optixGetLaunchDimensions();
   const uint image_idx = idx.x + params.width * idx.y;
 
-  // warm up rng
-  // TODO: use some hash function to set more nice seed
+  // set RNG state
   RadiancePayload payload;
-  payload.rng.state = idx.x + params.width * idx.y;
-  for (int i = 0; i < 10; ++i) { frandom(payload.rng); }
+  payload.rng.state = params.rng_states[image_idx].state;
+  payload.rng.inc = params.rng_states[image_idx].inc;
 
   for (int spp = 0; spp < params.n_samples; ++spp) {
     // generate initial ray from camera
@@ -125,6 +124,10 @@ extern "C" __global__ void __raygen__rg()
     params.accumulation[image_idx] += make_float4(payload.radiance, 1.0f);
     params.sample_count[image_idx] += 1;
   }
+
+  // save RNG state for next sampling
+  params.rng_states[image_idx].state = payload.rng.state;
+  params.rng_states[image_idx].inc = payload.rng.inc;
 
   // take average
   float3 radiance = make_float3(params.accumulation[image_idx]);

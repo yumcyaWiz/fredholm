@@ -43,8 +43,8 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width,
 
 int main()
 {
-  const uint32_t width = 512;
-  const uint32_t height = 512;
+  const uint32_t width = 1024;
+  const uint32_t height = 1024;
 
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
@@ -124,6 +124,8 @@ int main()
   renderer.load_scene(scene);
   renderer.build_accel();
   renderer.create_sbt(scene);
+
+  renderer.init_rng_state();
 
   const float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
   const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);

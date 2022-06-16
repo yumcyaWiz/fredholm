@@ -229,7 +229,7 @@ class Renderer
 
     // fill miss record
     MissSbtRecord miss_record = {};
-    miss_record.data.bg_color = make_float3(1.0f);
+    miss_record.data.bg_color = make_float3(0.0f);
     OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_miss_group, &miss_record));
     m_miss_records.push_back(miss_record);
 
@@ -365,6 +365,21 @@ class Renderer
                     sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
   }
 
+  void init_rng_state()
+  {
+    // TODO: apply some hash function
+    std::vector<RNGState> rng_states(m_width * m_height);
+    for (int j = 0; j < m_height; ++j) {
+      for (int i = 0; i < m_width; ++i) {
+        const int idx = i + m_width * j;
+        rng_states[idx].state = idx;
+        rng_states[idx].inc = 0xdeadbeef;
+      }
+    }
+
+    m_rng_states = std::make_unique<DeviceBuffer<RNGState>>(rng_states);
+  }
+
   void render_one_sample(const Camera& camera, float4* d_framebuffer,
                          uint32_t max_depth)
   {
@@ -372,6 +387,7 @@ class Renderer
     params.framebuffer = d_framebuffer;
     params.accumulation = m_accumulation.get_device_ptr();
     params.sample_count = m_sample_count.get_device_ptr();
+    params.rng_states = m_rng_states->get_device_ptr();
 
     params.width = m_width;
     params.height = m_height;
@@ -440,9 +456,11 @@ class Renderer
       nullptr;
   OptixShaderBindingTable m_sbt = {};
 
+  // TODO: use device buffer
   Texture2D<float4> m_framebuffer;
   Texture2D<float4> m_accumulation;
   Texture2D<uint> m_sample_count;
+  std::unique_ptr<DeviceBuffer<RNGState>> m_rng_states;
 
   static void context_log_callback(unsigned int level, const char* tag,
                                    const char* message, void* cbdata)

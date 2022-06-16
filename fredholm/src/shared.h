@@ -5,6 +5,11 @@
 namespace fredholm
 {
 
+struct RNGState {
+  unsigned long long state = 0;
+  unsigned long long inc = 1;
+};
+
 // similar to arnold standard surface
 // https://autodesk.github.io/standard-surface/
 // TODO: support texture input
@@ -43,6 +48,7 @@ struct LaunchParams {
   float4* framebuffer;
   float4* accumulation;
   uint* sample_count;
+  RNGState* rng_states;
 
   uint width;
   uint height;
