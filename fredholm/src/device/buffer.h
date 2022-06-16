@@ -54,10 +54,12 @@ class Buffer : public DeviceAndHostObject<T>
   {
     // allocate on host
     m_host_ptr = reinterpret_cast<T*>(malloc(m_buffer_size * sizeof(T)));
+    memset(m_host_ptr, 0, m_buffer_size * sizeof(T));
 
     // allocate on device
     CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&m_device_ptr),
                           m_buffer_size * sizeof(T)));
+    CUDA_CHECK(cudaMemset(m_device_ptr, 0, m_buffer_size * sizeof(T)));
   }
 
   Buffer(const std::vector<T>& values) : Buffer(values.size())
