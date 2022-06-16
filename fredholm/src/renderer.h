@@ -363,6 +363,32 @@ class Renderer
                     sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
   }
 
+  void render_to_framebuffer(const Camera& camera, float4* d_framebuffer,
+                             uint32_t n_samples, uint32_t max_depth)
+  {
+    LaunchParams params;
+    params.framebuffer = d_framebuffer;
+    params.width = m_width;
+    params.height = m_height;
+    params.n_samples = n_samples;
+    params.max_depth = max_depth;
+
+    params.cam_origin = camera.m_origin;
+    params.cam_forward = camera.m_forward;
+    params.cam_right = camera.m_right;
+    params.cam_up = camera.m_up;
+
+    params.gas_handle = m_gas_handle;
+
+    DeviceObject d_params(params);
+
+    // run pipeline
+    OPTIX_CHECK(
+        optixLaunch(m_pipeline, m_stream,
+                    reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
+                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
+  }
+
   void wait_for_completion() { CUDA_SYNC_CHECK(); }
 
   void write_framebuffer_as_ppm(const std::filesystem::path& filepath)

@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 
 #include "glad/gl.h"
@@ -10,13 +11,16 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+// #include "renderer.h"
 #include "spdlog/spdlog.h"
 //
 #include "gcss/texture.h"
 #include "quad.h"
 #include "shader.h"
 //
+#include "camera.h"
 #include "device/util.h"
+#include "scene.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -39,8 +43,8 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width,
 
 int main()
 {
-  uint32_t width = 512;
-  uint32_t height = 512;
+  const uint32_t width = 512;
+  const uint32_t height = 512;
 
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
@@ -76,22 +80,57 @@ int main()
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
-  // prepare framebuffer texture
-  gcss::Texture framebuffer(glm::uvec2(width, height), GL_RGBA32F, GL_RGBA,
-                            GL_FLOAT);
+  // prepare framebuffer
+  gcss::Buffer framebuffer;
+  std::vector<glm::vec4> data(width * height);
+  for (int j = 0; j < height; ++j) {
+    for (int i = 0; i < width; ++i) {
+      data[i + width * j] =
+          glm::vec4(static_cast<float>(i) / width,
+                    static_cast<float>(j) / height, 1.0f, 1.0f);
+    }
+  }
+
+  framebuffer.setData(data, GL_STATIC_DRAW);
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
   // get cuda device ptr from OpenGL texture
-  struct cudaGraphicsResource* resource;
-  CUDA_CHECK(cudaGraphicsGLRegisterImage(
-      &resource, framebuffer.getTextureName(), GL_TEXTURE_2D,
-      cudaGraphicsRegisterFlagsWriteDiscard));
-  CUDA_CHECK(cudaGraphicsMapResources(1, &resource));
+  // struct cudaGraphicsResource* resource;
+  // CUDA_CHECK(cudaGraphicsGLRegisterImage(
+  //     &resource, framebuffer.getTextureName(), GL_TEXTURE_2D,
+  //     cudaGraphicsRegisterFlagsWriteDiscard));
+  // CUDA_CHECK(cudaGraphicsMapResources(1, &resource));
 
   // NOTE:
   // https://stackoverflow.com/questions/9406844/cudagraphicsresourcegetmappedpointer-returns-unknown-error
-  cudaArray_t d_framebuffer;
-  CUDA_CHECK(
-      cudaGraphicsSubResourceGetMappedArray(&d_framebuffer, resource, 0, 0));
+  // cudaArray_t d_framebuffer;
+  // CUDA_CHECK(
+  //     cudaGraphicsSubResourceGetMappedArray(&d_framebuffer, resource, 0, 0));
+
+  // setup renderer
+#ifdef NDEBUG
+  bool enable_validation_mode = false;
+#else
+  bool enable_validation_mode = true;
+#endif
+
+  // fredholm::Renderer renderer(width, height, enable_validation_mode);
+  // renderer.create_context();
+  // renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
+  // "pt.ptx"); renderer.create_program_group(); renderer.create_pipeline();
+
+  // fredholm::Scene scene;
+  // scene.load_obj(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
+  //                "CornellBox-Original.obj");
+  // renderer.load_scene(scene);
+  // renderer.build_accel();
+  // renderer.create_sbt(scene);
+
+  // const float3 cam_origin = make_float3(0.0f, 1.0f, 3.0f);
+  // const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
+  // fredholm::Camera camera(cam_origin, cam_forward);
+
+  // renderer.render_to_framebuffer(camera, d_framebuffer, 1, 100);
 
   // prepare quad
   gcss::Quad quad;
@@ -128,7 +167,8 @@ int main()
     // render texture
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, width, height);
-    framebuffer.bindToTextureUnit(0);
+    fragment_shader.setUniform("resolution", glm::vec2(width, height));
+    framebuffer.bindToShaderStorageBuffer(0);
     quad.draw(render_pipeline);
 
     // render imgui
@@ -142,8 +182,8 @@ int main()
   }
 
   // cleanup
-  CUDA_CHECK(cudaGraphicsUnmapResources(1, &resource));
-  CUDA_CHECK(cudaGraphicsUnregisterResource(resource));
+  // CUDA_CHECK(cudaGraphicsUnmapResources(1, &resource));
+  // CUDA_CHECK(cudaGraphicsUnregisterResource(resource));
 
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();

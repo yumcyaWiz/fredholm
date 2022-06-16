@@ -1,11 +1,17 @@
 #version 460 core
 
-layout(binding = 0) uniform sampler2D tex;
+layout(std430, binding = 0) buffer layout_framebuffer {
+  vec4 framebuffer[];
+};
 
 in vec2 texCoords;
 
 out vec4 fragColor;
 
+uniform vec2 resolution;
+
 void main() {
-  fragColor = texture(tex, texCoords);
+  ivec2 xy = ivec2(texCoords * resolution);
+  int idx = int(xy.x + resolution.x * xy.y);
+  fragColor = framebuffer[idx];
 }

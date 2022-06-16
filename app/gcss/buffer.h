@@ -5,15 +5,18 @@
 #include "glad/gl.h"
 #include "spdlog/spdlog.h"
 
-namespace gcss {
+namespace gcss
+{
 
-class Buffer {
+class Buffer
+{
  private:
   GLuint buffer;
   uint32_t size;
 
  public:
-  Buffer() : buffer{0}, size{0} {
+  Buffer() : buffer{0}, size{0}
+  {
     glCreateBuffers(1, &buffer);
 
     spdlog::info("[Buffer] created buffer {:x}", buffer);
@@ -21,7 +24,8 @@ class Buffer {
 
   Buffer(const Buffer& buffer) = delete;
 
-  Buffer(Buffer&& other) : buffer(other.buffer), size(other.size) {
+  Buffer(Buffer&& other) : buffer(other.buffer), size(other.size)
+  {
     other.buffer = 0;
   }
 
@@ -29,7 +33,8 @@ class Buffer {
 
   Buffer& operator=(const Buffer& buffer) = delete;
 
-  Buffer& operator=(Buffer&& other) {
+  Buffer& operator=(Buffer&& other)
+  {
     if (this != &other) {
       release();
 
@@ -42,7 +47,8 @@ class Buffer {
     return *this;
   }
 
-  void release() {
+  void release()
+  {
     if (buffer) {
       spdlog::info("[Buffer] release buffer {:x}", buffer);
 
@@ -56,13 +62,15 @@ class Buffer {
   uint32_t getLength() const { return size; }
 
   template <typename T>
-  void setData(const std::vector<T>& data, GLenum usage) {
+  void setData(const std::vector<T>& data, GLenum usage)
+  {
     glNamedBufferData(this->buffer, sizeof(T) * data.size(), data.data(),
                       usage);
     this->size = data.size();
   }
 
-  void bindToShaderStorageBuffer(GLuint binding_point_index) const {
+  void bindToShaderStorageBuffer(GLuint binding_point_index) const
+  {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding_point_index, buffer);
   }
 };
