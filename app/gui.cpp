@@ -129,8 +129,6 @@ int main()
   const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
   fredholm::Camera camera(cam_origin, cam_forward);
 
-  renderer.render_to_framebuffer(camera, d_framebuffer, 1, 100);
-
   // prepare quad
   gcss::Quad quad;
 
@@ -162,6 +160,10 @@ int main()
     {
     }
     ImGui::End();
+
+    // render
+    renderer.render_one_sample(camera, d_framebuffer, 100);
+    renderer.wait_for_completion();
 
     // render texture
     glClear(GL_COLOR_BUFFER_BIT);

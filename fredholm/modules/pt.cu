@@ -95,8 +95,7 @@ extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
   const uint3 dim = optixGetLaunchDimensions();
-
-  float3 radiance = make_float3(0);
+  const uint image_idx = idx.x + params.width * idx.y;
 
   // warm up rng
   // TODO: use some hash function to set more nice seed
@@ -123,11 +122,13 @@ extern "C" __global__ void __raygen__rg()
     }
 
     // accumulate contribution
-    radiance += payload.radiance;
+    params.accumulation[image_idx] += make_float4(payload.radiance, 1.0f);
+    params.sample_count[image_idx] += 1;
   }
 
   // take average
-  radiance /= params.n_samples;
+  float3 radiance = make_float3(params.accumulation[image_idx]);
+  radiance /= params.sample_count[image_idx];
 
   // gamma correction
   radiance.x = pow(radiance.x, 1.0f / 2.2f);
@@ -135,8 +136,7 @@ extern "C" __global__ void __raygen__rg()
   radiance.z = pow(radiance.z, 1.0f / 2.2f);
 
   // write radiance to frame buffer
-  params.framebuffer[idx.x + params.width * idx.y] =
-      make_float4(radiance, 1.0f);
+  params.framebuffer[image_idx] = make_float4(radiance, 1.0f);
 }
 
 extern "C" __global__ void __miss__radiance()

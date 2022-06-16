@@ -28,7 +28,9 @@ class Renderer
       : m_width(width),
         m_height(height),
         m_enable_validation_mode(enable_validation_mode),
-        m_framebuffer(width, height)
+        m_framebuffer(width, height),
+        m_accumulation(width, height),
+        m_sample_count(width, height)
   {
     CUDA_CHECK(cudaStreamCreate(&m_stream));
   }
@@ -363,14 +365,17 @@ class Renderer
                     sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
   }
 
-  void render_to_framebuffer(const Camera& camera, float4* d_framebuffer,
-                             uint32_t n_samples, uint32_t max_depth)
+  void render_one_sample(const Camera& camera, float4* d_framebuffer,
+                         uint32_t max_depth)
   {
     LaunchParams params;
     params.framebuffer = d_framebuffer;
+    params.accumulation = m_accumulation.get_device_ptr();
+    params.sample_count = m_sample_count.get_device_ptr();
+
     params.width = m_width;
     params.height = m_height;
-    params.n_samples = n_samples;
+    params.n_samples = 1;
     params.max_depth = max_depth;
 
     params.cam_origin = camera.m_origin;
@@ -436,6 +441,8 @@ class Renderer
   OptixShaderBindingTable m_sbt = {};
 
   Texture2D<float4> m_framebuffer;
+  Texture2D<float4> m_accumulation;
+  Texture2D<uint> m_sample_count;
 
   static void context_log_callback(unsigned int level, const char* tag,
                                    const char* message, void* cbdata)

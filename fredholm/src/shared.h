@@ -41,10 +41,13 @@ struct Material {
 
 struct LaunchParams {
   float4* framebuffer;
-  unsigned int width;
-  unsigned int height;
-  unsigned int n_samples;
-  unsigned int max_depth;
+  float4* accumulation;
+  uint* sample_count;
+
+  uint width;
+  uint height;
+  uint n_samples;
+  uint max_depth;
 
   float3 cam_origin;
   float3 cam_forward;
