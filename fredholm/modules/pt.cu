@@ -168,13 +168,14 @@ extern "C" __global__ void __closesthit__radiance()
     return;
   }
 
-  // compute face normal
-  // TODO: remove this calculation, store normals(ptr) in SBT
+  // compute shading normal
   const int prim_idx = optixGetPrimitiveIndex();
-  const float3 v0 = sbt->vertices[3 * prim_idx + 0];
-  const float3 v1 = sbt->vertices[3 * prim_idx + 1];
-  const float3 v2 = sbt->vertices[3 * prim_idx + 2];
-  const float3 n = normalize(cross(v1 - v0, v2 - v0));
+  const float2 barycentric = optixGetTriangleBarycentrics();
+  const float3 n0 = sbt->normals[3 * prim_idx + 0];
+  const float3 n1 = sbt->normals[3 * prim_idx + 1];
+  const float3 n2 = sbt->normals[3 * prim_idx + 2];
+  const float3 n = (1.0f - barycentric.x - barycentric.y) * n0 +
+                   barycentric.x * n1 + barycentric.y * n2;
 
   // compute tangent space basis
   float3 t, b;

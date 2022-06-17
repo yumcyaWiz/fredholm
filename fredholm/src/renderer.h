@@ -36,6 +36,8 @@ class Renderer
   {
     // release scene data
     if (m_vertices) { m_vertices.reset(); }
+    if (m_normals) { m_normals.reset(); }
+    if (m_texcoords) { m_texcoords.reset(); }
 
     // release GAS
     if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
@@ -244,8 +246,10 @@ class Renderer
 
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
-      hit_record.data.vertices = m_vertices->get_device_ptr() + 3 * f;
       hit_record.data.material = scene.m_materials[material_id];
+      hit_record.data.vertices = m_vertices->get_device_ptr() + 3 * f;
+      hit_record.data.normals = m_normals->get_device_ptr() + 3 * f;
+      hit_record.data.texcoords = m_texcoords->get_device_ptr() + 3 * f;
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
 
@@ -284,6 +288,8 @@ class Renderer
     if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
     m_vertices = std::make_unique<DeviceBuffer<float3>>(scene.m_vertices);
+    m_normals = std::make_unique<DeviceBuffer<float3>>(scene.m_normals);
+    m_texcoords = std::make_unique<DeviceBuffer<float2>>(scene.m_texcoords);
   }
 
   void build_accel()
@@ -415,6 +421,8 @@ class Renderer
   uint32_t m_max_trace_depth = 3;
 
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
+  std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
+  std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
 
   CUstream m_stream = 0;
 

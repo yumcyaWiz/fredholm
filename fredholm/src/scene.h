@@ -148,8 +148,6 @@ struct Scene {
           m_texcoords.push_back(texcoords_temp[v]);
         }
 
-        // TODO: fill indices buffer
-
         index_offset += 3;
 
         // load per-face material id
