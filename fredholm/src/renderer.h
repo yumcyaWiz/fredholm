@@ -328,6 +328,8 @@ class Renderer
     spdlog::info("[Renderer] number of materials: {}", m_materials->get_size());
   }
 
+  // TODO: separate GAS, IAS build(when setting transform, only IAS should be
+  // updated or built)
   void build_accel()
   {
     spdlog::info("[Renderer] creating OptiX GAS, OptiX IAS");
