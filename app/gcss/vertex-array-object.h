@@ -6,9 +6,11 @@
 //
 #include "buffer.h"
 
-namespace gcss {
+namespace gcss
+{
 
-class VertexArrayObject {
+class VertexArrayObject
+{
  private:
   GLuint array;
 
@@ -17,7 +19,8 @@ class VertexArrayObject {
 
   VertexArrayObject(const VertexArrayObject& other) = delete;
 
-  VertexArrayObject(VertexArrayObject&& other) : array(other.array) {
+  VertexArrayObject(VertexArrayObject&& other) : array(other.array)
+  {
     other.array = 0;
   }
 
@@ -25,7 +28,8 @@ class VertexArrayObject {
 
   VertexArrayObject& operator=(const VertexArrayObject& other) = delete;
 
-  VertexArrayObject& operator=(VertexArrayObject&& other) {
+  VertexArrayObject& operator=(VertexArrayObject&& other)
+  {
     if (this != &other) {
       release();
 
@@ -37,17 +41,22 @@ class VertexArrayObject {
     return *this;
   }
 
-  void bindVertexBuffer(const Buffer& buffer, GLuint binding, GLintptr offset,
-                        GLsizei stride) const {
+  template <typename T>
+  void bindVertexBuffer(const Buffer<T>& buffer, GLuint binding,
+                        GLintptr offset, GLsizei stride) const
+  {
     glVertexArrayVertexBuffer(array, binding, buffer.getName(), offset, stride);
   }
 
-  void bindElementBuffer(const Buffer& buffer) const {
+  template <typename T>
+  void bindElementBuffer(const Buffer<T>& buffer) const
+  {
     glVertexArrayElementBuffer(array, buffer.getName());
   }
 
   void activateVertexAttribution(GLuint binding, GLuint attrib, GLint size,
-                                 GLenum type, GLsizei offset) const {
+                                 GLenum type, GLsizei offset) const
+  {
     glEnableVertexArrayAttrib(array, attrib);
     glVertexArrayAttribBinding(array, attrib, binding);
     glVertexArrayAttribFormat(array, attrib, size, type, GL_FALSE, offset);
@@ -57,7 +66,8 @@ class VertexArrayObject {
 
   void deactivate() const { glBindVertexArray(0); }
 
-  void release() {
+  void release()
+  {
     if (array) {
       spdlog::info("[VertexArrayObject] release VAO {:x}", array);
       glDeleteVertexArrays(1, &array);

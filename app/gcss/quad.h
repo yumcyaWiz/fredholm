@@ -8,16 +8,19 @@
 #include "shader.h"
 #include "vertex-array-object.h"
 
-namespace gcss {
+namespace gcss
+{
 
-class Quad {
+class Quad
+{
  private:
   VertexArrayObject VAO;
-  Buffer VBO;
-  Buffer EBO;
+  Buffer<GLfloat> VBO;
+  Buffer<GLuint> EBO;
 
  public:
-  Quad() {
+  Quad()
+  {
     // setup VBO
     // position and texcoords
     const std::vector<GLfloat> vertices = {
@@ -40,7 +43,8 @@ class Quad {
     VAO.activateVertexAttribution(0, 1, 2, GL_FLOAT, 3 * sizeof(GLfloat));
   }
 
-  void draw(const Pipeline& pipeline) const {
+  void draw(const Pipeline& pipeline) const
+  {
     pipeline.activate();
     VAO.activate();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

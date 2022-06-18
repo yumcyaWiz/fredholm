@@ -8,7 +8,7 @@
 namespace gcss
 {
 
-// TODO: use template <typename T>?
+template <typename T>
 class Buffer
 {
  private:
@@ -62,7 +62,6 @@ class Buffer
 
   uint32_t getLength() const { return size; }
 
-  template <typename T>
   void setData(const std::vector<T>& data, GLenum usage)
   {
     glNamedBufferData(this->buffer, sizeof(T) * data.size(), data.data(),

@@ -41,7 +41,7 @@ struct CUDAGLBuffer {
 
   ~CUDAGLBuffer() {}
 
-  gcss::Buffer m_buffer;
+  gcss::Buffer<T> m_buffer;
   cudaGraphicsResource* m_resource;
   T* m_d_buffer;
 };
