@@ -234,7 +234,7 @@ class Renderer
         m_max_traversable_depth));
   }
 
-  void create_sbt(const Scene& scene)
+  void create_sbt()
   {
     spdlog::info("[Renderer] creating OptiX shader binding table");
 
@@ -254,11 +254,7 @@ class Renderer
     // fill hitgroup record
     // TODO: use per-material GAS and single IAS, to reduce the number of SBT
     // records
-    // TODO: move this inside load_scene?
-    for (size_t f = 0; f < scene.n_faces(); ++f) {
-      const uint material_id = scene.m_material_ids[f];
-      const Material& material = scene.m_materials[material_id];
-
+    for (size_t f = 0; f < m_indices->get_size(); ++f) {
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
       hit_record.data.vertices = m_vertices->get_device_ptr();

@@ -128,7 +128,7 @@ int main()
                  "CornellBox-Original.obj");
   renderer.load_scene(scene);
   renderer.build_accel();
-  renderer.create_sbt(scene);
+  renderer.create_sbt();
 
   renderer.init_before_render();
 
