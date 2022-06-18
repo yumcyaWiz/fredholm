@@ -52,6 +52,16 @@ struct Material {
   float sheen_roughness = 0.3;
 };
 
+struct SurfaceInfo {
+  float3 x;            // shading position
+  float3 n_g;          // geometric normal in world space
+  float3 n_s;          // shading normal in world space
+  float2 barycentric;  // barycentric coordinate
+  float2 texcoord;     // texture coordinate
+  float3 tangent;      // tangent vector in world space
+  float3 bitangent;    // bitangent vector in world space
+};
+
 struct LaunchParams {
   float4* framebuffer;
   float4* accumulation;

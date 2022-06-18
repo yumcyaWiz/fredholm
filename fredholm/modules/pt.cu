@@ -92,6 +92,36 @@ static __forceinline__ __device__ void sample_ray_pinhole_camera(
   direction = normalize(p_pinhole - p_sensor);
 }
 
+static __forceinline__ __device__ void fill_surface_info(
+    const float3* vertices, const uint3* indices, const float3* normals,
+    const float2* texcoords, const float3& ray_origin,
+    const float3& ray_direction, float ray_tmax, const float2& barycentric,
+    uint prim_idx, SurfaceInfo& info)
+{
+  info.x = ray_origin + ray_tmax * ray_direction;
+  info.barycentric = barycentric;
+
+  const uint3 idx = indices[prim_idx];
+  const float3 v0 = vertices[idx.x];
+  const float3 v1 = vertices[idx.y];
+  const float3 v2 = vertices[idx.z];
+  info.n_g = normalize(cross(v1 - v0, v2 - v0));
+
+  const float3 n0 = normals[idx.x];
+  const float3 n1 = normals[idx.y];
+  const float3 n2 = normals[idx.z];
+  info.n_s = (1.0f - info.barycentric.x - info.barycentric.y) * n0 +
+             info.barycentric.x * n1 + info.barycentric.y * n2;
+
+  const float2 tex0 = texcoords[idx.x];
+  const float2 tex1 = texcoords[idx.y];
+  const float2 tex2 = texcoords[idx.z];
+  info.texcoord = (1.0f - info.barycentric.x - info.barycentric.y) * tex0 +
+                  info.barycentric.x * tex1 + info.barycentric.y * tex2;
+
+  orthonormal_basis(info.n_s, info.tangent, info.bitangent);
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -168,32 +198,28 @@ extern "C" __global__ void __closesthit__radiance()
     return;
   }
 
-  // compute shading normal
-  const int prim_idx = optixGetPrimitiveIndex();
-  const uint3 indices = sbt->indices[prim_idx];
+  const float3 ray_origin = optixGetWorldRayOrigin();
+  const float3 ray_direction = optixGetWorldRayDirection();
+  const float ray_tmax = optixGetRayTmax();
   const float2 barycentric = optixGetTriangleBarycentrics();
-  const float3 n0 = sbt->normals[indices.x];
-  const float3 n1 = sbt->normals[indices.y];
-  const float3 n2 = sbt->normals[indices.z];
-  const float3 n = (1.0f - barycentric.x - barycentric.y) * n0 +
-                   barycentric.x * n1 + barycentric.y * n2;
+  const uint prim_idx = optixGetPrimitiveIndex();
 
-  // compute tangent space basis
-  float3 t, b;
-  orthonormal_basis(n, t, b);
+  SurfaceInfo surf_info;
+  fill_surface_info(sbt->vertices, sbt->indices, sbt->normals, sbt->texcoords,
+                    ray_origin, ray_direction, ray_tmax, barycentric, prim_idx,
+                    surf_info);
 
   // sample next ray direction
   const float3 wi = sample_cosine_weighted_hemisphere(frandom(payload->rng),
                                                       frandom(payload->rng));
-  const float3 wi_world = local_to_world(wi, t, n, b);
+  const float3 wi_world =
+      local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 
   // update payload
   payload->throughput *= sbt->material.base_color;
 
   // advance ray
-  payload->origin = optixGetWorldRayOrigin() +
-                    optixGetRayTmax() * optixGetWorldRayDirection();
-  payload->origin += RAY_EPS * n;
+  payload->origin = surf_info.x + RAY_EPS * surf_info.n_s;
   payload->direction = wi_world;
 }
 
