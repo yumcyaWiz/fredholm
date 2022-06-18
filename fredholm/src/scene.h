@@ -1,4 +1,6 @@
 #pragma once
+#include <unistd.h>
+
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -54,37 +56,44 @@ struct hash<fredholm::Vertex> {
 namespace fredholm
 {
 
+// TODO: add transform in each submesh
 struct Scene {
+  // offset of each sub-mesh in index buffer
+  std::vector<uint> m_submesh_offsets = {};
+  // number of faces in each sub-mesh
+  std::vector<uint> m_submesh_n_faces = {};
+
   std::vector<float3> m_vertices = {};
   std::vector<uint3> m_indices = {};
   std::vector<float2> m_texcoords = {};
   std::vector<float3> m_normals = {};
   std::vector<float3> m_tangents = {};
+  // per-face material id
+  std::vector<uint> m_material_ids = {};
 
   std::vector<Material> m_materials;
-  // per-face material id
-  std::vector<uint> m_material_ids;
 
   Scene() {}
 
-  uint32_t n_vertices() const { return m_vertices.size(); }
-  uint32_t n_faces() const { return m_indices.size(); }
-
   bool is_valid() const
   {
-    return m_vertices.size() > 0 && m_indices.size() > 0;
+    return m_submesh_offsets.size() > 0 && m_vertices.size() > 0 &&
+           m_indices.size() > 0;
   }
 
   void clear()
   {
+    m_submesh_offsets.clear();
+    m_submesh_n_faces.clear();
+
     m_vertices.clear();
     m_indices.clear();
     m_texcoords.clear();
     m_normals.clear();
     m_tangents.clear();
+    m_material_ids.clear();
 
     m_materials.clear();
-    m_material_ids.clear();
   }
 
   void load_obj(const std::filesystem::path& filepath)
@@ -127,11 +136,13 @@ struct Scene {
     }
 
     std::vector<Vertex> vertices{};
-    std::vector<uint32_t> indices{};
     std::unordered_map<Vertex, uint32_t> unique_vertices{};
 
     for (size_t s = 0; s < shapes.size(); ++s) {
       size_t index_offset = 0;
+
+      std::vector<uint32_t> indices{};
+
       for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f) {
         size_t fv = static_cast<size_t>(shapes[s].mesh.num_face_vertices[f]);
 
@@ -194,7 +205,6 @@ struct Scene {
           texcoords_temp.push_back(glm::vec2(0, 1));
         }
 
-        // fill vertices and indices
         for (int v = 0; v < 3; ++v) {
           Vertex vertex{};
           vertex.position = vertices_temp[v];
@@ -209,15 +219,33 @@ struct Scene {
           indices.push_back(unique_vertices[vertex]);
         }
 
-        // load per-face material id
+        // load submesh per-face material id
         const int material_id = shapes[s].mesh.material_ids[f];
         m_material_ids.push_back(material_id);
 
         index_offset += 3;
       }
+
+      spdlog::info("[tinyobjloader] submesh: {}, number of vertices: {}", s,
+                   indices.size());
+      spdlog::info("[tinyobjloader] submesh: {}, number of faces: {}", s,
+                   indices.size() / 3);
+
+      // fill submesh offset
+      const size_t prev_indices_size = m_indices.size();
+      m_submesh_offsets.push_back(prev_indices_size);
+
+      // fill submesh indices
+      for (int f = 0; f < indices.size() / 3; ++f) {
+        m_indices.push_back(make_uint3(indices[3 * f + 0], indices[3 * f + 1],
+                                       indices[3 * f + 2]));
+      }
+
+      // fill n_faces of sub-mesh
+      m_submesh_n_faces.push_back(m_indices.size() - prev_indices_size);
     }
 
-    // fill vertices, normals, texcoords
+    // fill submesh vertices, normals, texcoords
     for (const auto& vertex : vertices) {
       m_vertices.push_back(
           make_float3(vertex.position.x, vertex.position.y, vertex.position.z));
@@ -226,14 +254,9 @@ struct Scene {
       m_texcoords.push_back(make_float2(vertex.texcoord.x, vertex.texcoord.y));
     }
 
-    // fill indices
-    for (int f = 0; f < indices.size() / 3; ++f) {
-      m_indices.push_back(make_uint3(indices[3 * f + 0], indices[3 * f + 1],
-                                     indices[3 * f + 2]));
-    }
-
-    spdlog::info("[tinyobjloader] number of vertices: {}", m_vertices.size());
-    spdlog::info("[tinyobjloader] number of faces: {}", m_indices.size());
+    spdlog::info("[tinyobjloader] number of sub meshes: {}",
+                 m_submesh_offsets.size());
+    spdlog::info("[tinyobjloader] number of materials: {}", m_materials.size());
   }
 };
 

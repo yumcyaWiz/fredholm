@@ -78,7 +78,7 @@ struct LaunchParams {
 
   Material* materials;
 
-  OptixTraversableHandle gas_handle;
+  OptixTraversableHandle ias_handle;
 };
 
 struct RayGenSbtRecordData {

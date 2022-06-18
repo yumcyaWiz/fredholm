@@ -44,7 +44,15 @@ class Renderer
     if (m_materials) { m_materials.reset(); }
 
     // release GAS
-    if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
+    for (auto& gas_output_buffer : m_gas_output_buffers) {
+      if (gas_output_buffer) { gas_output_buffer.reset(); }
+    }
+
+    // release instances
+    if (m_instances) { m_instances.reset(); }
+
+    // release IAS
+    if (m_ias_output_buffer) { m_ias_output_buffer.reset(); }
 
     // release SBT records
     if (m_d_raygen_records) { m_d_raygen_records.reset(); }
@@ -301,6 +309,9 @@ class Renderer
 
     if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
+    m_submesh_offsets = scene.m_submesh_offsets;
+    m_submesh_n_faces = scene.m_submesh_n_faces;
+
     m_vertices = std::make_unique<DeviceBuffer<float3>>(scene.m_vertices);
     m_indices = std::make_unique<DeviceBuffer<uint3>>(scene.m_indices);
     m_normals = std::make_unique<DeviceBuffer<float3>>(scene.m_normals);
@@ -308,32 +319,37 @@ class Renderer
     m_material_ids = std::make_unique<DeviceBuffer<uint>>(scene.m_material_ids);
     m_materials = std::make_unique<DeviceBuffer<Material>>(scene.m_materials);
 
-    spdlog::info("[Renderer] number of vertices: {}", m_vertices->get_size());
+    spdlog::info("[Renderer] number of vertices: {}",
+                 m_indices->get_size() * 3);
     spdlog::info("[Renderer] number of faces: {}", m_indices->get_size());
-    spdlog::info("[Renderer] number of normals: {}", m_normals->get_size());
-    spdlog::info("[Renderer] number of texcoords: {}", m_texcoords->get_size());
     spdlog::info("[Renderer] number of materials: {}", m_materials->get_size());
   }
 
   void build_accel()
   {
-    spdlog::info("[Renderer] creating OptiX GAS");
+    spdlog::info("[Renderer] creating OptiX GAS, OptiX IAS");
 
     // GAS build option
     OptixAccelBuildOptions options = {};
     options.buildFlags = OPTIX_BUILD_FLAG_NONE;
     options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
-    // GAS input
-    const uint32_t num_faces = m_indices->get_size();
-    std::vector<OptixBuildInput> inputs(num_faces);
+    const uint32_t n_submeshes = m_submesh_offsets.size();
+
     // NOTE: need this, since vertexBuffers take a pointer to array of device
     // pointers
     const CUdeviceptr vertex_buffer =
         reinterpret_cast<CUdeviceptr>(m_vertices->get_device_ptr());
     const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
 
-    for (int f = 0; f < num_faces; ++f) {
+    // build GAS for each submesh
+    m_gas_handles.resize(n_submeshes);
+    m_gas_output_buffers.resize(n_submeshes);
+    for (int submesh_idx = 0; submesh_idx < n_submeshes; ++submesh_idx) {
+      const uint indices_offset = m_submesh_offsets[submesh_idx];
+      const uint n_faces = m_submesh_n_faces[submesh_idx];
+
+      // GAS input
       OptixBuildInput input = {};
       input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
       input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
@@ -342,32 +358,76 @@ class Renderer
       input.triangleArray.vertexBuffers = &vertex_buffer;
 
       input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
-      input.triangleArray.numIndexTriplets = 1;
+      input.triangleArray.numIndexTriplets = n_faces;
       input.triangleArray.indexStrideInBytes = sizeof(uint3);
-      input.triangleArray.indexBuffer =
-          reinterpret_cast<CUdeviceptr>(m_indices->get_device_ptr() + f);
+      input.triangleArray.indexBuffer = reinterpret_cast<CUdeviceptr>(
+          m_indices->get_device_ptr() + indices_offset);
 
       input.triangleArray.flags = flags;
       input.triangleArray.numSbtRecords = 1;
 
-      inputs[f] = input;
+      // compute GAS buffer size
+      OptixAccelBufferSizes gas_buffer_sizes;
+      OPTIX_CHECK(optixAccelComputeMemoryUsage(m_context, &options, &input, 1,
+                                               &gas_buffer_sizes));
+
+      // build GAS
+      DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
+      m_gas_output_buffers[submesh_idx] =
+          std::make_unique<DeviceBuffer<uint8_t>>(
+              gas_buffer_sizes.outputSizeInBytes);
+      OPTIX_CHECK(optixAccelBuild(
+          m_context, 0, &options, &input, 1,
+          reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
+          gas_buffer_sizes.tempSizeInBytes,
+          reinterpret_cast<CUdeviceptr>(
+              m_gas_output_buffers[submesh_idx]->get_device_ptr()),
+          gas_buffer_sizes.outputSizeInBytes, &m_gas_handles[submesh_idx],
+          nullptr, 0));
     }
 
-    // compute GAS buffer size
-    OptixAccelBufferSizes gas_buffer_sizes;
-    OPTIX_CHECK(optixAccelComputeMemoryUsage(m_context, &options, inputs.data(),
-                                             inputs.size(), &gas_buffer_sizes));
+    // create instances
+    std::vector<OptixInstance> instances(n_submeshes);
+    for (int submesh_idx = 0; submesh_idx < n_submeshes; ++submesh_idx) {
+      OptixInstance instance = {};
 
-    // build GAS
-    DeviceBuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
-    m_gas_output_buffer = std::make_unique<DeviceBuffer<uint8_t>>(
-        gas_buffer_sizes.outputSizeInBytes);
+      // identify matrix
+      float transform[] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+      memcpy(instance.transform, transform, sizeof(float) * 12);
+
+      instance.instanceId = submesh_idx;
+      // TODO: use count of ray type
+      instance.sbtOffset = 2 * m_submesh_offsets[submesh_idx];
+      instance.visibilityMask = 1;
+      instance.flags = OPTIX_INSTANCE_FLAG_NONE;
+      instance.traversableHandle = m_gas_handles[submesh_idx];
+
+      instances[submesh_idx] = instance;
+    }
+    m_instances = std::make_unique<DeviceBuffer<OptixInstance>>(instances);
+
+    // build single IAS
+    OptixBuildInput input = {};
+    input.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
+    input.instanceArray.instances =
+        reinterpret_cast<CUdeviceptr>(m_instances->get_device_ptr());
+    input.instanceArray.numInstances = n_submeshes;
+
+    // compute IAS buffer size
+    OptixAccelBufferSizes ias_buffer_sizes;
+    OPTIX_CHECK(optixAccelComputeMemoryUsage(m_context, &options, &input, 1,
+                                             &ias_buffer_sizes));
+
+    // build IAS
+    DeviceBuffer<uint8_t> ias_temp_buffer(ias_buffer_sizes.tempSizeInBytes);
+    m_ias_output_buffer = std::make_unique<DeviceBuffer<uint8_t>>(
+        ias_buffer_sizes.outputSizeInBytes);
     OPTIX_CHECK(optixAccelBuild(
-        m_context, 0, &options, inputs.data(), inputs.size(),
-        reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
-        gas_buffer_sizes.tempSizeInBytes,
-        reinterpret_cast<CUdeviceptr>(m_gas_output_buffer->get_device_ptr()),
-        gas_buffer_sizes.outputSizeInBytes, &m_gas_handle, nullptr, 0));
+        m_context, 0, &options, &input, 1,
+        reinterpret_cast<CUdeviceptr>(ias_temp_buffer.get_device_ptr()),
+        ias_buffer_sizes.tempSizeInBytes,
+        reinterpret_cast<CUdeviceptr>(m_ias_output_buffer->get_device_ptr()),
+        ias_buffer_sizes.outputSizeInBytes, &m_ias_handle, nullptr, 0));
   }
 
   // NOTE: need to call init_before_render after this
@@ -429,8 +489,9 @@ class Renderer
 
     params.materials = m_materials->get_device_ptr();
 
-    params.gas_handle = m_gas_handle;
+    params.ias_handle = m_ias_handle;
 
+    // TODO: maybe this is dangerous, since optixLaunch is async?
     DeviceObject d_params(params);
 
     // run pipeline
@@ -452,6 +513,9 @@ class Renderer
   uint32_t m_max_trace_depth = 3;
 
   // scene data on device
+  std::vector<uint> m_submesh_offsets = {};
+  std::vector<uint> m_submesh_n_faces = {};
+
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
   std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
   std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
@@ -463,8 +527,12 @@ class Renderer
   CUstream m_stream = 0;
   OptixDeviceContext m_context = 0;
 
-  OptixTraversableHandle m_gas_handle = 0;
-  std::unique_ptr<DeviceBuffer<uint8_t>> m_gas_output_buffer = nullptr;
+  std::vector<OptixTraversableHandle> m_gas_handles = {};
+  std::vector<std::unique_ptr<DeviceBuffer<uint8_t>>> m_gas_output_buffers = {};
+
+  std::unique_ptr<DeviceBuffer<OptixInstance>> m_instances = {};
+  OptixTraversableHandle m_ias_handle = {};
+  std::unique_ptr<DeviceBuffer<uint8_t>> m_ias_output_buffer = nullptr;
 
   OptixModule m_module = 0;
 

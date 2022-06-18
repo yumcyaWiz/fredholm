@@ -153,7 +153,7 @@ extern "C" __global__ void __raygen__rg()
     payload.throughput = make_float3(1);
     payload.done = false;
     for (int depth = 0; depth < params.max_depth; ++depth) {
-      trace_radiance(params.gas_handle, payload.origin, payload.direction, 0.0f,
+      trace_radiance(params.ias_handle, payload.origin, payload.direction, 0.0f,
                      1e9f, &payload);
 
       if (payload.done) { break; }
@@ -202,6 +202,10 @@ extern "C" __global__ void __closesthit__radiance()
   // get material info
   const uint material_id = sbt->material_ids[0];
   const Material& material = params.materials[material_id];
+
+  payload->radiance = make_float3(optixGetTriangleBarycentrics(), 1.0f);
+  payload->done = true;
+  return;
 
   // Le
   if (has_emission(material)) {
