@@ -17,6 +17,7 @@
 #include "io.h"
 #include "scene.h"
 #include "shared.h"
+#include "spdlog/spdlog.h"
 
 namespace fredholm
 {
@@ -79,6 +80,8 @@ class Renderer
 
   void create_context()
   {
+    spdlog::info("[Renderer] creating OptiX context");
+
     CUDA_CHECK(cudaFree(0));
 
     CUcontext cu_cxt = 0;
@@ -94,6 +97,8 @@ class Renderer
 
   void create_module(const std::filesystem::path& ptx_filepath)
   {
+    spdlog::info("[Renderer] creating OptiX module");
+
     OptixModuleCompileOptions options = {};
     options.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
     options.debugLevel = m_enable_validation_mode
@@ -103,6 +108,7 @@ class Renderer
                            ? OPTIX_COMPILE_OPTIMIZATION_LEVEL_0
                            : OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
 
+    spdlog::info("[Renderer] loading {}", ptx_filepath.generic_string());
     const std::vector<char> ptx = read_file(ptx_filepath);
 
     // TODO: move these outside this function as much as possible
@@ -133,6 +139,8 @@ class Renderer
   // TODO: take module and entry function name from outside?
   void create_program_group()
   {
+    spdlog::info("[Renderer] creating OptiX program groups");
+
     OptixProgramGroupOptions options = {};
 
     // create raygen program group
@@ -184,6 +192,8 @@ class Renderer
 
   void create_pipeline()
   {
+    spdlog::info("[Renderer] creating OptiX pipeline");
+
     OptixProgramGroup program_groups[] = {
         m_raygen_group, m_radiance_miss_group, m_shadow_miss_group,
         m_radiance_hit_group, m_shadow_hit_group};
@@ -224,6 +234,8 @@ class Renderer
 
   void create_sbt(const Scene& scene)
   {
+    spdlog::info("[Renderer] creating OptiX shader binding table");
+
     // fill raygen header
     OPTIX_CHECK(optixSbtRecordPackHeader(m_raygen_group, &m_raygen_record));
 
@@ -287,16 +299,25 @@ class Renderer
 
   void load_scene(const Scene& scene)
   {
+    spdlog::info("[Renderer] loading scene");
+
     if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
     m_vertices = std::make_unique<DeviceBuffer<float3>>(scene.m_vertices);
     m_indices = std::make_unique<DeviceBuffer<uint3>>(scene.m_indices);
     m_normals = std::make_unique<DeviceBuffer<float3>>(scene.m_normals);
     m_texcoords = std::make_unique<DeviceBuffer<float2>>(scene.m_texcoords);
+
+    spdlog::info("[Renderer] number of vertices: {}", m_vertices->get_size());
+    spdlog::info("[Renderer] number of faces: {}", m_indices->get_size());
+    spdlog::info("[Renderer] number of normals: {}", m_normals->get_size());
+    spdlog::info("[Renderer] number of texcoords: {}", m_texcoords->get_size());
   }
 
   void build_accel()
   {
+    spdlog::info("[Renderer] creating OptiX GAS");
+
     // GAS build option
     OptixAccelBuildOptions options = {};
     options.buildFlags = OPTIX_BUILD_FLAG_NONE;
@@ -353,6 +374,8 @@ class Renderer
   {
     m_width = width;
     m_height = height;
+
+    spdlog::info("[Renderer] resolution changed to ({}, {})", width, height);
   }
 
   void init_before_render()
@@ -465,8 +488,15 @@ class Renderer
   static void context_log_callback(unsigned int level, const char* tag,
                                    const char* message, void* cbdata)
   {
-    std::cerr << "[" << std::setw(2) << level << "][" << std::setw(12) << tag
-              << "]: " << message << std::endl;
+    if (level == 4) {
+      spdlog::info("[Renderer][{}] {}", tag, message);
+    } else if (level == 3) {
+      spdlog::warn("[Renderer][{}] {}", tag, message);
+    } else if (level == 2) {
+      spdlog::error("[Renderer][{}] {}", tag, message);
+    } else if (level == 1) {
+      spdlog::critical("[Renderer][{}] {}", tag, message);
+    }
   }
 
   static std::vector<char> read_file(const std::filesystem::path& filepath)

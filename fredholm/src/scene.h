@@ -12,8 +12,10 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 //
-#include "shared.h"
+#include "spdlog/spdlog.h"
 #include "sutil/vec_math.h"
+//
+#include "shared.h"
 
 namespace fredholm
 {
@@ -59,8 +61,8 @@ struct Scene {
   std::vector<float3> m_normals = {};
   std::vector<float3> m_tangents = {};
 
-  // per-face material
   std::vector<Material> m_materials;
+  // per-face material id
   std::vector<uint> m_material_ids;
 
   Scene() {}
@@ -94,13 +96,13 @@ struct Scene {
     tinyobj::ObjReader reader;
     if (!reader.ParseFromFile(filepath.generic_string(), reader_config)) {
       if (!reader.Error().empty()) {
-        std::cerr << "tinyobjloader: " << reader.Error();
+        spdlog::error("[tinyobjloader] {}", reader.Error());
       }
       throw std::runtime_error("failed to load " + filepath.generic_string());
     }
 
     if (!reader.Warning().empty()) {
-      std::cout << "tinyobjloader: " << reader.Warning();
+      spdlog::warn("[tinyobjloader] {}", reader.Warning());
     }
 
     const auto& attrib = reader.GetAttrib();
@@ -132,6 +134,8 @@ struct Scene {
       size_t index_offset = 0;
       for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f) {
         size_t fv = static_cast<size_t>(shapes[s].mesh.num_face_vertices[f]);
+
+        if (fv != 3) { throw std::runtime_error("not a triangle face"); }
 
         std::vector<glm::vec3> vertices_temp;
         std::vector<glm::vec3> normals_temp;
@@ -228,8 +232,8 @@ struct Scene {
                                      indices[3 * f + 2]));
     }
 
-    printf("number of vertices: %d\n", m_vertices.size());
-    printf("number of faces: %d\n", m_indices.size());
+    spdlog::info("[tinyobjloader] number of vertices: {}", m_vertices.size());
+    spdlog::info("[tinyobjloader] number of faces: {}", m_indices.size());
   }
 };
 

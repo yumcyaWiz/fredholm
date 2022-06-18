@@ -25,6 +25,7 @@ target_link_libraries(fredholm INTERFACE
     tinyobjloader
     sutil
     glm
+    spdlog::spdlog
 )
 
 # set modules source dir macro
