@@ -60,6 +60,7 @@ struct SurfaceInfo {
   float2 texcoord;     // texture coordinate
   float3 tangent;      // tangent vector in world space
   float3 bitangent;    // bitangent vector in world space
+  bool is_entering;
 };
 
 struct LaunchParams {
