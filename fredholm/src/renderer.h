@@ -40,6 +40,8 @@ class Renderer
     if (m_indices) { m_indices.reset(); }
     if (m_normals) { m_normals.reset(); }
     if (m_texcoords) { m_texcoords.reset(); }
+    if (m_material_ids) { m_material_ids.reset(); }
+    if (m_materials) { m_materials.reset(); }
 
     // release GAS
     if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
@@ -259,11 +261,11 @@ class Renderer
 
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
-      hit_record.data.material = scene.m_materials[material_id];
       hit_record.data.vertices = m_vertices->get_device_ptr();
       hit_record.data.indices = m_indices->get_device_ptr() + f;
       hit_record.data.normals = m_normals->get_device_ptr();
       hit_record.data.texcoords = m_texcoords->get_device_ptr();
+      hit_record.data.material_ids = m_material_ids->get_device_ptr() + f;
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
 
@@ -307,11 +309,14 @@ class Renderer
     m_indices = std::make_unique<DeviceBuffer<uint3>>(scene.m_indices);
     m_normals = std::make_unique<DeviceBuffer<float3>>(scene.m_normals);
     m_texcoords = std::make_unique<DeviceBuffer<float2>>(scene.m_texcoords);
+    m_material_ids = std::make_unique<DeviceBuffer<uint>>(scene.m_material_ids);
+    m_materials = std::make_unique<DeviceBuffer<Material>>(scene.m_materials);
 
     spdlog::info("[Renderer] number of vertices: {}", m_vertices->get_size());
     spdlog::info("[Renderer] number of faces: {}", m_indices->get_size());
     spdlog::info("[Renderer] number of normals: {}", m_normals->get_size());
     spdlog::info("[Renderer] number of texcoords: {}", m_texcoords->get_size());
+    spdlog::info("[Renderer] number of materials: {}", m_materials->get_size());
   }
 
   void build_accel()
@@ -426,6 +431,8 @@ class Renderer
     params.camera.up = camera.m_up;
     params.camera.f = camera.m_f;
 
+    params.materials = m_materials->get_device_ptr();
+
     params.gas_handle = m_gas_handle;
 
     DeviceObject d_params(params);
@@ -448,13 +455,16 @@ class Renderer
   uint32_t m_max_traversable_depth = 1;
   uint32_t m_max_trace_depth = 3;
 
+  // scene data on device
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
   std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
   std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
   std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
+  std::unique_ptr<DeviceBuffer<uint>> m_material_ids = nullptr;
+  std::unique_ptr<DeviceBuffer<Material>> m_materials = nullptr;
 
+  // optix handles
   CUstream m_stream = 0;
-
   OptixDeviceContext m_context = 0;
 
   OptixTraversableHandle m_gas_handle = 0;
@@ -471,15 +481,20 @@ class Renderer
   OptixPipelineCompileOptions m_pipeline_compile_options = {};
   OptixPipeline m_pipeline = 0;
 
+  OptixShaderBindingTable m_sbt = {};
+
+  // SBT records on host
   RayGenSbtRecord m_raygen_record = {};
   std::vector<MissSbtRecord> m_miss_records = {};
   std::vector<HitGroupSbtRecord> m_hit_group_records = {};
+
+  // SBT records on device
   std::unique_ptr<DeviceBuffer<RayGenSbtRecord>> m_d_raygen_records = nullptr;
   std::unique_ptr<DeviceBuffer<MissSbtRecord>> m_d_miss_records = nullptr;
   std::unique_ptr<DeviceBuffer<HitGroupSbtRecord>> m_d_hit_group_records =
       nullptr;
-  OptixShaderBindingTable m_sbt = {};
 
+  // LaunchParams data on device
   std::unique_ptr<DeviceBuffer<float4>> m_framebuffer;
   std::unique_ptr<DeviceBuffer<float4>> m_accumulation;
   std::unique_ptr<DeviceBuffer<uint>> m_sample_count;

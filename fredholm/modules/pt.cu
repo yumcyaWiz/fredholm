@@ -31,6 +31,9 @@ struct RadiancePayload {
   bool done = false;
 };
 
+struct ShadowPayload {
+};
+
 // upper-32bit + lower-32bit -> 64bit
 static __forceinline__ __device__ void* unpack_ptr(unsigned int i0,
                                                    unsigned int i1)
@@ -191,9 +194,13 @@ extern "C" __global__ void __closesthit__radiance()
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
 
+  // get material info
+  const uint material_id = sbt->material_ids[0];
+  const Material& material = params.materials[material_id];
+
   // Le
-  if (has_emission(sbt->material)) {
-    payload->radiance += payload->throughput * sbt->material.emission_color;
+  if (has_emission(material)) {
+    payload->radiance += payload->throughput * material.emission_color;
     payload->done = true;
     return;
   }
@@ -216,7 +223,7 @@ extern "C" __global__ void __closesthit__radiance()
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 
   // update payload
-  payload->throughput *= sbt->material.base_color;
+  payload->throughput *= material.base_color;
 
   // advance ray
   payload->origin = surf_info.x + RAY_EPS * surf_info.n_s;

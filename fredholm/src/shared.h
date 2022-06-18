@@ -75,6 +75,8 @@ struct LaunchParams {
 
   CameraParams camera;
 
+  Material* materials;
+
   OptixTraversableHandle gas_handle;
 };
 
@@ -86,11 +88,11 @@ struct MissSbtRecordData {
 };
 
 struct HitGroupSbtRecordData {
-  Material material;
   float3* vertices;
   uint3* indices;
   float3* normals;
   float2* texcoords;
+  uint* material_ids;
 };
 
 template <typename T>
