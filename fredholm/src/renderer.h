@@ -260,16 +260,19 @@ class Renderer
     m_miss_records.push_back(miss_record);
 
     // fill hitgroup record
-    // TODO: use per-material GAS and single IAS, to reduce the number of SBT
-    // records
-    for (size_t f = 0; f < m_indices->get_size(); ++f) {
+    for (size_t submesh_idx = 0; submesh_idx < m_submesh_offsets.size();
+         ++submesh_idx) {
+      const uint submesh_offset = m_submesh_offsets[submesh_idx];
+      const uint n_faces = m_submesh_n_faces[submesh_idx];
+
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
       hit_record.data.vertices = m_vertices->get_device_ptr();
-      hit_record.data.indices = m_indices->get_device_ptr() + f;
+      hit_record.data.indices = m_indices->get_device_ptr() + submesh_offset;
       hit_record.data.normals = m_normals->get_device_ptr();
       hit_record.data.texcoords = m_texcoords->get_device_ptr();
-      hit_record.data.material_ids = m_material_ids->get_device_ptr() + f;
+      hit_record.data.material_ids =
+          m_material_ids->get_device_ptr() + submesh_offset;
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
 
@@ -396,8 +399,8 @@ class Renderer
       memcpy(instance.transform, transform, sizeof(float) * 12);
 
       instance.instanceId = submesh_idx;
-      // TODO: use count of ray type
-      instance.sbtOffset = 2 * m_submesh_offsets[submesh_idx];
+      instance.sbtOffset =
+          static_cast<unsigned int>(RayType::RAY_TYPE_COUNT) * submesh_idx;
       instance.visibilityMask = 1;
       instance.flags = OPTIX_INSTANCE_FLAG_NONE;
       instance.traversableHandle = m_gas_handles[submesh_idx];

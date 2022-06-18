@@ -5,6 +5,12 @@
 namespace fredholm
 {
 
+enum class RayType : unsigned int {
+  RAY_TYPE_RADIANCE = 0,
+  RAY_TYPE_SHADOW = 1,
+  RAY_TYPE_COUNT
+};
+
 struct CameraParams {
   float3 origin;
   float3 forward;

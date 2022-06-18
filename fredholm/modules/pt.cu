@@ -13,12 +13,6 @@ extern "C" {
 __constant__ LaunchParams params;
 }
 
-enum class RayType : unsigned int {
-  RAY_TYPE_RADIANCE = 0,
-  RAY_TYPE_SHADOW = 1,
-  RAY_TYPE_COUNT
-};
-
 struct RadiancePayload {
   float3 origin;
   float3 direction;
@@ -198,14 +192,11 @@ extern "C" __global__ void __closesthit__radiance()
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
+  const uint prim_idx = optixGetPrimitiveIndex();
 
   // get material info
-  const uint material_id = sbt->material_ids[0];
+  const uint material_id = sbt->material_ids[prim_idx];
   const Material& material = params.materials[material_id];
-
-  payload->radiance = make_float3(optixGetTriangleBarycentrics(), 1.0f);
-  payload->done = true;
-  return;
 
   // Le
   if (has_emission(material)) {
@@ -218,7 +209,6 @@ extern "C" __global__ void __closesthit__radiance()
   const float3 ray_direction = optixGetWorldRayDirection();
   const float ray_tmax = optixGetRayTmax();
   const float2 barycentric = optixGetTriangleBarycentrics();
-  const uint prim_idx = optixGetPrimitiveIndex();
 
   SurfaceInfo surf_info;
   fill_surface_info(sbt->vertices, sbt->indices, sbt->normals, sbt->texcoords,
