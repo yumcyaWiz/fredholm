@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(fredholm LANGUAGES C CXX CUDA)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # C++ version and std
 if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 20)

@@ -78,6 +78,7 @@ struct MissSbtRecordData {
 struct HitGroupSbtRecordData {
   Material material;
   float3* vertices;
+  uint3* indices;
   float3* normals;
   float2* texcoords;
 };

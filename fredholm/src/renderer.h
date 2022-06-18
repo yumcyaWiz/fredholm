@@ -36,6 +36,7 @@ class Renderer
   {
     // release scene data
     if (m_vertices) { m_vertices.reset(); }
+    if (m_indices) { m_indices.reset(); }
     if (m_normals) { m_normals.reset(); }
     if (m_texcoords) { m_texcoords.reset(); }
 
@@ -43,9 +44,9 @@ class Renderer
     if (m_gas_output_buffer) { m_gas_output_buffer.reset(); }
 
     // release SBT records
-    if (m_raygen_records_d) { m_raygen_records_d.reset(); }
-    if (m_miss_records_d) { m_miss_records_d.reset(); }
-    if (m_hit_group_records_d) { m_hit_group_records_d.reset(); }
+    if (m_d_raygen_records) { m_d_raygen_records.reset(); }
+    if (m_d_miss_records) { m_d_miss_records.reset(); }
+    if (m_d_hit_group_records) { m_d_hit_group_records.reset(); }
 
     // release pipeline
     if (m_pipeline) { OPTIX_CHECK(optixPipelineDestroy(m_pipeline)); }
@@ -247,9 +248,10 @@ class Renderer
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
       hit_record.data.material = scene.m_materials[material_id];
-      hit_record.data.vertices = m_vertices->get_device_ptr() + 3 * f;
-      hit_record.data.normals = m_normals->get_device_ptr() + 3 * f;
-      hit_record.data.texcoords = m_texcoords->get_device_ptr() + 3 * f;
+      hit_record.data.vertices = m_vertices->get_device_ptr();
+      hit_record.data.indices = m_indices->get_device_ptr() + f;
+      hit_record.data.normals = m_normals->get_device_ptr();
+      hit_record.data.texcoords = m_texcoords->get_device_ptr();
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
 
@@ -261,24 +263,24 @@ class Renderer
 
     // allocate SBT records on device
     std::vector<RayGenSbtRecord> raygen_sbt_records = {m_raygen_record};
-    m_raygen_records_d =
+    m_d_raygen_records =
         std::make_unique<DeviceBuffer<RayGenSbtRecord>>(raygen_sbt_records);
-    m_miss_records_d =
+    m_d_miss_records =
         std::make_unique<DeviceBuffer<MissSbtRecord>>(m_miss_records);
-    m_hit_group_records_d =
+    m_d_hit_group_records =
         std::make_unique<DeviceBuffer<HitGroupSbtRecord>>(m_hit_group_records);
 
     // fill SBT
     m_sbt.raygenRecord =
-        reinterpret_cast<CUdeviceptr>(m_raygen_records_d->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_d_raygen_records->get_device_ptr());
 
     m_sbt.missRecordBase =
-        reinterpret_cast<CUdeviceptr>(m_miss_records_d->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_d_miss_records->get_device_ptr());
     m_sbt.missRecordStrideInBytes = sizeof(MissSbtRecord);
     m_sbt.missRecordCount = m_miss_records.size();
 
     m_sbt.hitgroupRecordBase =
-        reinterpret_cast<CUdeviceptr>(m_hit_group_records_d->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_d_hit_group_records->get_device_ptr());
     m_sbt.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
     m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
@@ -288,6 +290,7 @@ class Renderer
     if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
     m_vertices = std::make_unique<DeviceBuffer<float3>>(scene.m_vertices);
+    m_indices = std::make_unique<DeviceBuffer<uint3>>(scene.m_indices);
     m_normals = std::make_unique<DeviceBuffer<float3>>(scene.m_normals);
     m_texcoords = std::make_unique<DeviceBuffer<float2>>(scene.m_texcoords);
   }
@@ -300,27 +303,29 @@ class Renderer
     options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
     // GAS input
-    // TODO: use indices
-    uint32_t num_faces = m_vertices->get_size() / 3;
+    const uint32_t num_faces = m_indices->get_size();
     std::vector<OptixBuildInput> inputs(num_faces);
     // NOTE: need this, since vertexBuffers take a pointer to array of device
     // pointers
-    std::vector<CUdeviceptr> per_face_vertex_buffers(num_faces);
+    const CUdeviceptr vertex_buffer =
+        reinterpret_cast<CUdeviceptr>(m_vertices->get_device_ptr());
+    const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
 
     for (int f = 0; f < num_faces; ++f) {
       OptixBuildInput input = {};
       input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
       input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-      input.triangleArray.numVertices = 3;
+      input.triangleArray.numVertices = m_vertices->get_size();
       input.triangleArray.vertexStrideInBytes = sizeof(float3);
+      input.triangleArray.vertexBuffers = &vertex_buffer;
 
-      per_face_vertex_buffers[f] =
-          reinterpret_cast<CUdeviceptr>(m_vertices->get_device_ptr() + 3 * f);
-      input.triangleArray.vertexBuffers = &per_face_vertex_buffers[f];
+      input.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+      input.triangleArray.numIndexTriplets = 1;
+      input.triangleArray.indexStrideInBytes = sizeof(uint3);
+      input.triangleArray.indexBuffer =
+          reinterpret_cast<CUdeviceptr>(m_indices->get_device_ptr() + f);
 
-      const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
       input.triangleArray.flags = flags;
-
       input.triangleArray.numSbtRecords = 1;
 
       inputs[f] = input;
@@ -421,6 +426,7 @@ class Renderer
   uint32_t m_max_trace_depth = 3;
 
   std::unique_ptr<DeviceBuffer<float3>> m_vertices = nullptr;
+  std::unique_ptr<DeviceBuffer<uint3>> m_indices = nullptr;
   std::unique_ptr<DeviceBuffer<float3>> m_normals = nullptr;
   std::unique_ptr<DeviceBuffer<float2>> m_texcoords = nullptr;
 
@@ -445,9 +451,9 @@ class Renderer
   RayGenSbtRecord m_raygen_record = {};
   std::vector<MissSbtRecord> m_miss_records = {};
   std::vector<HitGroupSbtRecord> m_hit_group_records = {};
-  std::unique_ptr<DeviceBuffer<RayGenSbtRecord>> m_raygen_records_d = nullptr;
-  std::unique_ptr<DeviceBuffer<MissSbtRecord>> m_miss_records_d = nullptr;
-  std::unique_ptr<DeviceBuffer<HitGroupSbtRecord>> m_hit_group_records_d =
+  std::unique_ptr<DeviceBuffer<RayGenSbtRecord>> m_d_raygen_records = nullptr;
+  std::unique_ptr<DeviceBuffer<MissSbtRecord>> m_d_miss_records = nullptr;
+  std::unique_ptr<DeviceBuffer<HitGroupSbtRecord>> m_d_hit_group_records =
       nullptr;
   OptixShaderBindingTable m_sbt = {};
 

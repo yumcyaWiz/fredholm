@@ -170,10 +170,11 @@ extern "C" __global__ void __closesthit__radiance()
 
   // compute shading normal
   const int prim_idx = optixGetPrimitiveIndex();
+  const uint3 indices = sbt->indices[prim_idx];
   const float2 barycentric = optixGetTriangleBarycentrics();
-  const float3 n0 = sbt->normals[3 * prim_idx + 0];
-  const float3 n1 = sbt->normals[3 * prim_idx + 1];
-  const float3 n2 = sbt->normals[3 * prim_idx + 2];
+  const float3 n0 = sbt->normals[indices.x];
+  const float3 n1 = sbt->normals[indices.y];
+  const float3 n2 = sbt->normals[indices.z];
   const float3 n = (1.0f - barycentric.x - barycentric.y) * n0 +
                    barycentric.x * n1 + barycentric.y * n2;
 
