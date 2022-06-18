@@ -25,6 +25,7 @@ target_link_libraries(fredholm INTERFACE
     tinyobjloader
     sutil
     glm
+    stb
     spdlog::spdlog
 )
 

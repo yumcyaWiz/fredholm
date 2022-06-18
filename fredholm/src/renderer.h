@@ -12,6 +12,7 @@
 
 #include "camera.h"
 #include "device/buffer.h"
+#include "device/texture.h"
 #include "device/util.h"
 #include "io.h"
 #include "scene.h"
