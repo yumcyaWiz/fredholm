@@ -15,6 +15,7 @@
 #include "tiny_obj_loader.h"
 //
 #include "spdlog/spdlog.h"
+#include "stb_image.h"
 #include "sutil/vec_math.h"
 //
 #include "shared.h"
@@ -56,6 +57,40 @@ struct hash<fredholm::Vertex> {
 namespace fredholm
 {
 
+struct Texture {
+ public:
+  Texture(const std::filesystem::path& filepath)
+  {
+    // read image with stb_image
+    int w, h, c;
+    unsigned char* img = stbi_load(filepath.c_str(), &w, &h, &c, 4);
+    if (!img) {
+      throw std::runtime_error("failed to load " + filepath.generic_string());
+    }
+
+    m_width = w;
+    m_height = h;
+
+    data.resize(4 * m_width * m_height);
+    for (int j = 0; j < m_height; ++j) {
+      for (int i = 0; i < m_width; ++i) {
+        const int idx = 4 * i + 4 * m_width * j;
+        data[idx + 0] = img[idx + 0];
+        data[idx + 1] = img[idx + 1];
+        data[idx + 2] = img[idx + 2];
+        data[idx + 3] = img[idx + 3];
+      }
+    }
+
+    stbi_image_free(img);
+  }
+
+ private:
+  uint32_t m_width;
+  uint32_t m_height;
+  std::vector<unsigned char> data;
+};
+
 // TODO: add transform in each submesh
 struct Scene {
   // offset of each sub-mesh in index buffer
@@ -72,6 +107,7 @@ struct Scene {
   std::vector<uint> m_material_ids = {};
 
   std::vector<Material> m_materials;
+  std::vector<Texture> m_textures;
 
   Scene() {}
 
@@ -118,7 +154,10 @@ struct Scene {
     const auto& shapes = reader.GetShapes();
     const auto& tinyobj_materials = reader.GetMaterials();
 
-    // load material
+    // load material and textures
+    // key: texture filepath, value: texture id in m_textures
+    std::unordered_map<std::string, unsigned int> unique_textures = {};
+
     m_materials.resize(tinyobj_materials.size());
     // TODO: load more parameters
     for (int i = 0; i < m_materials.size(); ++i) {
@@ -126,6 +165,21 @@ struct Scene {
       // base color
       m_materials[i].base_color =
           make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+
+      // base color(texture)
+      if (!m.diffuse_texname.empty()) {
+        if (unique_textures.count(m.diffuse_texname) == 0) {
+          // load texture id
+          unique_textures[m.diffuse_texname] = m_textures.size();
+          // load texture
+          m_textures.push_back(
+              Texture(filepath.parent_path() / m.diffuse_texname));
+        }
+
+        // set texture id on material
+        m_materials[i].base_color_texture_id =
+            unique_textures[m.diffuse_texname];
+      }
 
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
@@ -257,6 +311,7 @@ struct Scene {
     spdlog::info("[tinyobjloader] number of sub meshes: {}",
                  m_submesh_offsets.size());
     spdlog::info("[tinyobjloader] number of materials: {}", m_materials.size());
+    spdlog::info("[tinyobjloader] number of textures: {}", m_textures.size());
   }
 };
 

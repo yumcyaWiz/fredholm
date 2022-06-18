@@ -26,10 +26,10 @@ struct RNGState {
 
 // similar to arnold standard surface
 // https://autodesk.github.io/standard-surface/
-// TODO: support texture input
 struct Material {
   float base = 0.8;
   float3 base_color = make_float3(1, 1, 1);
+  int base_color_texture_id = -1;
   float diffuse_roughness = 0;
 
   float specular = 0;
