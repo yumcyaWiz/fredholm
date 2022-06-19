@@ -153,6 +153,14 @@ int main()
         if (ImGui::InputFloat("FOV", &controller.m_imgui_fov)) {
           controller.update_camera();
         }
+        if (ImGui::InputFloat("Movement speed",
+                              &controller.m_imgui_movement_speed)) {
+          controller.update_camera();
+        }
+        if (ImGui::InputFloat("Rotation speed",
+                              &controller.m_imgui_rotation_speed)) {
+          controller.update_camera();
+        }
       }
     }
     ImGui::End();

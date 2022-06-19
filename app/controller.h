@@ -19,6 +19,8 @@ class Controller
   float m_imgui_origin[3] = {0, 1, 5};
   float m_imgui_forward[3] = {0, 0, -1};
   float m_imgui_fov = 90.0f;
+  float m_imgui_movement_speed = 1.0f;
+  float m_imgui_rotation_speed = 0.1f;
 
   Controller()
   {
@@ -40,6 +42,8 @@ class Controller
   void update_camera()
   {
     init_camera();
+    m_camera->m_movement_speed = m_imgui_movement_speed;
+    m_camera->m_look_around_speed = m_imgui_rotation_speed;
 
     init_render_states();
   }
