@@ -4,6 +4,7 @@
 #include <optix_stack_size.h>
 #include <optix_stubs.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -25,13 +26,10 @@ namespace fredholm
 class Renderer
 {
  public:
-  Renderer() { CUDA_CHECK(cudaStreamCreate(&m_stream)); }
-
-  Renderer(uint32_t width, uint32_t height, bool enable_validation_mode = false)
-      : m_width(width),
-        m_height(height),
-        m_enable_validation_mode(enable_validation_mode)
+  Renderer(bool enable_validation_mode = false)
   {
+    m_enable_validation_mode = enable_validation_mode;
+
     CUDA_CHECK(cudaStreamCreate(&m_stream));
   }
 
@@ -461,16 +459,13 @@ class Renderer
         ias_buffer_sizes.outputSizeInBytes, &m_ias_handle, nullptr, 0));
   }
 
-  // NOTE: need to call init_before_render after this
-  void set_render_resolution(uint32_t width, uint32_t height)
+  void set_resolution(uint32_t width, uint32_t height)
   {
     m_width = width;
     m_height = height;
-
-    spdlog::info("[Renderer] resolution changed to ({}, {})", width, height);
   }
 
-  void init_before_render()
+  void init_render_states()
   {
     // init accumulation buffer
     m_accumulation =

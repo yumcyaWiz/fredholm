@@ -39,26 +39,26 @@ void handle_input(GLFWwindow* window, const ImGuiIO& io,
   // move camera
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     camera.move(fredholm::CameraMovement::FORWARD, io.DeltaTime);
-    renderer.init_before_render();
+    renderer.init_render_states();
   }
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
     camera.move(fredholm::CameraMovement::LEFT, io.DeltaTime);
-    renderer.init_before_render();
+    renderer.init_render_states();
   }
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
     camera.move(fredholm::CameraMovement::BACKWARD, io.DeltaTime);
-    renderer.init_before_render();
+    renderer.init_render_states();
   }
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
     camera.move(fredholm::CameraMovement::RIGHT, io.DeltaTime);
-    renderer.init_before_render();
+    renderer.init_render_states();
   }
 
   // camera look around
   if (!io.WantCaptureMouse &&
       glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
     camera.lookAround(io.MouseDelta.x, io.MouseDelta.y);
-    renderer.init_before_render();
+    renderer.init_render_states();
   }
 }
 
@@ -117,7 +117,7 @@ int main()
   bool enable_validation_mode = true;
 #endif
 
-  fredholm::Renderer renderer(width, height, enable_validation_mode);
+  fredholm::Renderer renderer(enable_validation_mode);
   renderer.create_context();
   renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "pt.ptx");
   renderer.create_program_group();
@@ -130,7 +130,8 @@ int main()
   renderer.build_accel();
   renderer.create_sbt();
 
-  renderer.init_before_render();
+  renderer.set_resolution(width, height);
+  renderer.init_render_states();
 
   const float3 cam_origin = make_float3(0.0f, 1.0f, 5.0f);
   const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
