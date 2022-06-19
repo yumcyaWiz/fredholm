@@ -69,6 +69,10 @@ struct SurfaceInfo {
   bool is_entering;
 };
 
+struct ShadingParams {
+  float3 base_color;
+};
+
 struct LaunchParams {
   float4* framebuffer;
   float4* accumulation;
@@ -83,6 +87,7 @@ struct LaunchParams {
   CameraParams camera;
 
   Material* materials;
+  cudaTextureObject_t* textures;
 
   OptixTraversableHandle ias_handle;
 };

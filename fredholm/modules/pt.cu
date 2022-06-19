@@ -124,6 +124,18 @@ static __forceinline__ __device__ void fill_surface_info(
   orthonormal_basis(info.n_s, info.tangent, info.bitangent);
 }
 
+static __forceinline__ __device__ ShadingParams fill_shading_params(
+    const Material& material, const SurfaceInfo& surf_info,
+    const cudaTextureObject_t* textures, ShadingParams& shading_params)
+{
+  shading_params.base_color =
+      material.base_color_texture_id >= 0
+          ? make_float3(tex2D<float4>(textures[material.base_color_texture_id],
+                                      surf_info.texcoord.x,
+                                      surf_info.texcoord.y))
+          : material.base_color;
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -215,6 +227,9 @@ extern "C" __global__ void __closesthit__radiance()
                     ray_origin, ray_direction, ray_tmax, barycentric, prim_idx,
                     surf_info);
 
+  ShadingParams shading_params;
+  fill_shading_params(material, surf_info, params.textures, shading_params);
+
   // sample next ray direction
   const float3 wi = sample_cosine_weighted_hemisphere(frandom(payload->rng),
                                                       frandom(payload->rng));
@@ -222,7 +237,7 @@ extern "C" __global__ void __closesthit__radiance()
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 
   // update payload
-  payload->throughput *= material.base_color;
+  payload->throughput *= shading_params.base_color;
 
   // advance ray
   payload->origin = surf_info.x + RAY_EPS * surf_info.n_s;

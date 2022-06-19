@@ -510,6 +510,7 @@ class Renderer
     params.camera.f = camera.m_f;
 
     params.materials = m_materials->get_device_ptr();
+    params.textures = m_texture_objects->get_device_ptr();
 
     params.ias_handle = m_ias_handle;
 
