@@ -26,9 +26,13 @@ namespace fredholm
 class Renderer
 {
  public:
-  Renderer(bool enable_validation_mode = false)
+  Renderer()
   {
-    m_enable_validation_mode = enable_validation_mode;
+#ifdef NDEBUG
+    m_enable_validation_mode = false;
+#else
+    m_enable_validation_mode = true;
+#endif
 
     CUDA_CHECK(cudaStreamCreate(&m_stream));
   }

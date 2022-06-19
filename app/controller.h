@@ -9,6 +9,12 @@
 #include "renderer.h"
 #include "scene.h"
 
+struct CameraSettings {
+  float3 origin;
+  float3 forward;
+  float fov;
+};
+
 struct Controller {
   std::unique_ptr<fredholm::Camera> camera = nullptr;
   std::unique_ptr<fredholm::Scene> scene = nullptr;
@@ -21,6 +27,24 @@ struct Controller {
     camera = std::make_unique<fredholm::Camera>();
     scene = std::make_unique<fredholm::Scene>();
     renderer = std::make_unique<fredholm::Renderer>();
+  }
+
+  void init_camera(const CameraSettings& params)
+  {
+    camera = std::make_unique<fredholm::Camera>(params.origin, params.forward,
+                                                params.fov);
+  }
+
+  void move_camera(const fredholm::CameraMovement& direction, float dt)
+  {
+    camera->move(direction, dt);
+    init_render_states();
+  }
+
+  void rotate_camera(float dphi, float dtheta)
+  {
+    camera->lookAround(dphi, dtheta);
+    init_render_states();
   }
 
   void init_renderer()
@@ -41,8 +65,24 @@ struct Controller {
     renderer->create_sbt();
   }
 
-  void init_render_state(const RenderSettings& settings)
+  void set_resolution(uint32_t width, uint32_t height)
   {
-    renderer->init_render_states();
+    framebuffer = std::make_unique<app::CUDAGLBuffer<float4>>(width, height);
+    renderer->set_resolution(width, height);
+  }
+
+  void init_render_states() { renderer->init_render_states(); }
+
+  void render(uint32_t n_samples, uint32_t max_depth)
+  {
+    renderer->render(*camera, framebuffer->get_device_ptr(), n_samples,
+                     max_depth);
+    // TODO: Is is safe to remove this?
+    renderer->wait_for_completion();
+  }
+
+  const gcss::Buffer<float4>& get_gl_framebuffer() const
+  {
+    return framebuffer->get_gl_buffer();
   }
 };

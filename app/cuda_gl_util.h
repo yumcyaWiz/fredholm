@@ -41,6 +41,10 @@ struct CUDAGLBuffer {
 
   ~CUDAGLBuffer() {}
 
+  const gcss::Buffer<T>& get_gl_buffer() const { return m_buffer; }
+
+  T* get_device_ptr() const { return m_d_buffer; }
+
   gcss::Buffer<T> m_buffer;
   cudaGraphicsResource* m_resource;
   T* m_d_buffer;

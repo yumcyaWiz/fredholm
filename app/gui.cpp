@@ -19,6 +19,7 @@
 #include "shader.h"
 //
 #include "camera.h"
+#include "controller.h"
 #include "cuda_gl_util.h"
 #include "device/util.h"
 #include "scene.h"
@@ -28,8 +29,7 @@ static void glfw_error_callback(int error, const char* description)
   spdlog::error("Glfw Error %d: %s\n", error, description);
 }
 
-void handle_input(GLFWwindow* window, const ImGuiIO& io,
-                  fredholm::Camera& camera, fredholm::Renderer& renderer)
+void handle_input(GLFWwindow* window, const ImGuiIO& io, Controller& controller)
 {
   // close window
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -38,27 +38,22 @@ void handle_input(GLFWwindow* window, const ImGuiIO& io,
 
   // move camera
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    camera.move(fredholm::CameraMovement::FORWARD, io.DeltaTime);
-    renderer.init_render_states();
+    controller.move_camera(fredholm::CameraMovement::FORWARD, io.DeltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    camera.move(fredholm::CameraMovement::LEFT, io.DeltaTime);
-    renderer.init_render_states();
+    controller.move_camera(fredholm::CameraMovement::LEFT, io.DeltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    camera.move(fredholm::CameraMovement::BACKWARD, io.DeltaTime);
-    renderer.init_render_states();
+    controller.move_camera(fredholm::CameraMovement::BACKWARD, io.DeltaTime);
   }
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    camera.move(fredholm::CameraMovement::RIGHT, io.DeltaTime);
-    renderer.init_render_states();
+    controller.move_camera(fredholm::CameraMovement::RIGHT, io.DeltaTime);
   }
 
   // camera look around
   if (!io.WantCaptureMouse &&
       glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
-    camera.lookAround(io.MouseDelta.x, io.MouseDelta.y);
-    renderer.init_render_states();
+    controller.rotate_camera(io.MouseDelta.x, io.MouseDelta.y);
   }
 }
 
@@ -70,8 +65,8 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width,
 
 int main()
 {
-  const uint32_t width = 1024;
-  const uint32_t height = 1024;
+  const uint32_t width = 512;
+  const uint32_t height = 512;
 
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
@@ -107,35 +102,18 @@ int main()
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
-  // prepare framebuffer
-  app::CUDAGLBuffer<float4> framebuffer(width, height);
+  Controller controller;
+  controller.init_renderer();
+  controller.load_scene(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
+                        "salle_de_bain/salle_de_bain.obj");
+  controller.set_resolution(width, height);
+  controller.init_render_states();
 
-  // setup renderer
-#ifdef NDEBUG
-  bool enable_validation_mode = false;
-#else
-  bool enable_validation_mode = true;
-#endif
-
-  fredholm::Renderer renderer(enable_validation_mode);
-  renderer.create_context();
-  renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "pt.ptx");
-  renderer.create_program_group();
-  renderer.create_pipeline();
-
-  fredholm::Scene scene;
-  scene.load_obj(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
-                 "salle_de_bain/salle_de_bain.obj");
-  renderer.load_scene(scene);
-  renderer.build_accel();
-  renderer.create_sbt();
-
-  renderer.set_resolution(width, height);
-  renderer.init_render_states();
-
-  const float3 cam_origin = make_float3(0.0f, 1.0f, 5.0f);
-  const float3 cam_forward = make_float3(0.0f, 0.0f, -1.0f);
-  fredholm::Camera camera(cam_origin, cam_forward);
+  CameraSettings camera_settings;
+  camera_settings.origin = make_float3(0, 1, 5);
+  camera_settings.forward = make_float3(0, 0, -1);
+  camera_settings.fov = 0.5f * M_PI;
+  controller.init_camera(camera_settings);
 
   // prepare quad
   gcss::Quad quad;
@@ -157,7 +135,7 @@ int main()
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    handle_input(window, io, camera, renderer);
+    handle_input(window, io, controller);
 
     // start imgui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -170,15 +148,13 @@ int main()
     ImGui::End();
 
     // render
-    renderer.render(camera, framebuffer.m_d_buffer, 1, 100);
-    // TODO: Is is safe to remove this?
-    renderer.wait_for_completion();
+    controller.render(1, 100);
 
     // render texture
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, width, height);
     fragment_shader.setUniform("resolution", glm::vec2(width, height));
-    framebuffer.m_buffer.bindToShaderStorageBuffer(0);
+    controller.get_gl_framebuffer().bindToShaderStorageBuffer(0);
     quad.draw(render_pipeline);
 
     // render imgui
