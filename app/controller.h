@@ -37,6 +37,13 @@ class Controller
                                                   deg2rad(m_imgui_fov));
   }
 
+  void update_camera()
+  {
+    init_camera();
+
+    init_render_states();
+  }
+
   void move_camera(const fredholm::CameraMovement& direction, float dt)
   {
     m_camera->move(direction, dt);

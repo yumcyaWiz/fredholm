@@ -136,16 +136,24 @@ int main()
 
     ImGui::Begin("UI");
     {
-      if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
-        controller.update_resolution();
+      {
+        if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
+          controller.update_resolution();
+        }
       }
 
       ImGui::Separator();
 
-      ImGui::Text("Origin: (%f, %f, %f)\n", controller.m_imgui_origin[0],
-                  controller.m_imgui_origin[1], controller.m_imgui_origin[2]);
-      ImGui::Text("Forward: (%f, %f, %f)\n", controller.m_imgui_forward[0],
-                  controller.m_imgui_forward[1], controller.m_imgui_forward[2]);
+      {
+        ImGui::Text("Origin: (%f, %f, %f)\n", controller.m_imgui_origin[0],
+                    controller.m_imgui_origin[1], controller.m_imgui_origin[2]);
+        ImGui::Text("Forward: (%f, %f, %f)\n", controller.m_imgui_forward[0],
+                    controller.m_imgui_forward[1],
+                    controller.m_imgui_forward[2]);
+        if (ImGui::InputFloat("FOV", &controller.m_imgui_fov)) {
+          controller.update_camera();
+        }
+      }
     }
     ImGui::End();
 
