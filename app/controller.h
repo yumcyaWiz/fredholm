@@ -9,16 +9,16 @@
 #include "renderer.h"
 #include "scene.h"
 
-struct CameraSettings {
-  float3 origin;
-  float3 forward;
-  float fov;
-};
+inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
 class Controller
 {
  public:
   int m_imgui_resolution[2] = {512, 512};
+
+  float m_imgui_origin[3] = {0, 1, 5};
+  float m_imgui_forward[3] = {0, 0, -1};
+  float m_imgui_fov = 90.0f;
 
   Controller()
   {
@@ -27,24 +27,33 @@ class Controller
     m_renderer = std::make_unique<fredholm::Renderer>();
   }
 
-  uint32_t get_width() const { return m_imgui_resolution[0]; }
-  uint32_t get_height() const { return m_imgui_resolution[1]; }
-
-  void init_camera(const CameraSettings& params)
+  void init_camera()
   {
-    m_camera = std::make_unique<fredholm::Camera>(params.origin, params.forward,
-                                                  params.fov);
+    const float3 origin =
+        make_float3(m_imgui_origin[0], m_imgui_origin[1], m_imgui_origin[2]);
+    const float3 forward =
+        make_float3(m_imgui_forward[0], m_imgui_forward[1], m_imgui_forward[2]);
+    m_camera = std::make_unique<fredholm::Camera>(origin, forward,
+                                                  deg2rad(m_imgui_fov));
   }
 
   void move_camera(const fredholm::CameraMovement& direction, float dt)
   {
     m_camera->move(direction, dt);
+    m_imgui_origin[0] = m_camera->m_origin.x;
+    m_imgui_origin[1] = m_camera->m_origin.y;
+    m_imgui_origin[2] = m_camera->m_origin.z;
+
     init_render_states();
   }
 
   void rotate_camera(float dphi, float dtheta)
   {
     m_camera->lookAround(dphi, dtheta);
+    m_imgui_forward[0] = m_camera->m_forward.x;
+    m_imgui_forward[1] = m_camera->m_forward.y;
+    m_imgui_forward[2] = m_camera->m_forward.z;
+
     init_render_states();
   }
 

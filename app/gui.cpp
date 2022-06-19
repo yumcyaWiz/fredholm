@@ -98,18 +98,14 @@ int main()
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
+  // prepare controller
   Controller controller;
   controller.init_renderer();
   controller.load_scene(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
                         "salle_de_bain/salle_de_bain.obj");
   controller.init_render_states();
   controller.init_framebuffer();
-
-  CameraSettings camera_settings;
-  camera_settings.origin = make_float3(0, 1, 5);
-  camera_settings.forward = make_float3(0, 0, -1);
-  camera_settings.fov = 0.5f * M_PI;
-  controller.init_camera(camera_settings);
+  controller.init_camera();
 
   // prepare quad
   gcss::Quad quad;
@@ -143,19 +139,26 @@ int main()
       if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
         controller.update_resolution();
       }
+
+      ImGui::Separator();
+
+      ImGui::Text("Origin: (%f, %f, %f)\n", controller.m_imgui_origin[0],
+                  controller.m_imgui_origin[1], controller.m_imgui_origin[2]);
+      ImGui::Text("Forward: (%f, %f, %f)\n", controller.m_imgui_forward[0],
+                  controller.m_imgui_forward[1], controller.m_imgui_forward[2]);
     }
     ImGui::End();
-
-    const uint32_t width = controller.get_width();
-    const uint32_t height = controller.get_height();
 
     // render
     controller.render(1, 100);
 
     // render texture
     glClear(GL_COLOR_BUFFER_BIT);
-    glViewport(0, 0, width, height);
-    fragment_shader.setUniform("resolution", glm::vec2(width, height));
+    glViewport(0, 0, controller.m_imgui_resolution[0],
+               controller.m_imgui_resolution[1]);
+    fragment_shader.setUniform("resolution",
+                               glm::vec2(controller.m_imgui_resolution[0],
+                                         controller.m_imgui_resolution[1]));
     controller.get_gl_framebuffer().bindToShaderStorageBuffer(0);
     quad.draw(render_pipeline);
 
