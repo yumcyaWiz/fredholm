@@ -25,6 +25,8 @@ namespace fredholm
 class Renderer
 {
  public:
+  Renderer() { CUDA_CHECK(cudaStreamCreate(&m_stream)); }
+
   Renderer(uint32_t width, uint32_t height, bool enable_validation_mode = false)
       : m_width(width),
         m_height(height),
@@ -35,6 +37,11 @@ class Renderer
 
   ~Renderer() noexcept(false)
   {
+    // release framebuffer data
+    if (m_accumulation) { m_accumulation.reset(); }
+    if (m_sample_count) { m_sample_count.reset(); }
+    if (m_rng_states) { m_rng_states.reset(); }
+
     // release scene data
     if (m_vertices) { m_vertices.reset(); }
     if (m_indices) { m_indices.reset(); }
@@ -465,9 +472,6 @@ class Renderer
 
   void init_before_render()
   {
-    // init framebuffer
-    m_framebuffer = std::make_unique<CUDABuffer<float4>>(m_width * m_height, 0);
-
     // init accumulation buffer
     m_accumulation =
         std::make_unique<CUDABuffer<float4>>(m_width * m_height, 0);
@@ -586,7 +590,6 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
-  std::unique_ptr<CUDABuffer<float4>> m_framebuffer;
   std::unique_ptr<CUDABuffer<float4>> m_accumulation;
   std::unique_ptr<CUDABuffer<uint>> m_sample_count;
   std::unique_ptr<CUDABuffer<RNGState>> m_rng_states;
