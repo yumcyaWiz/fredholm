@@ -58,7 +58,10 @@ namespace fredholm
 {
 
 struct Texture {
- public:
+  uint32_t m_width;
+  uint32_t m_height;
+  std::vector<unsigned char> m_data;
+
   Texture(const std::filesystem::path& filepath)
   {
     // read image with stb_image
@@ -71,24 +74,19 @@ struct Texture {
     m_width = w;
     m_height = h;
 
-    data.resize(4 * m_width * m_height);
+    m_data.resize(4 * m_width * m_height);
     for (int j = 0; j < m_height; ++j) {
       for (int i = 0; i < m_width; ++i) {
         const int idx = 4 * i + 4 * m_width * j;
-        data[idx + 0] = img[idx + 0];
-        data[idx + 1] = img[idx + 1];
-        data[idx + 2] = img[idx + 2];
-        data[idx + 3] = img[idx + 3];
+        m_data[idx + 0] = img[idx + 0];
+        m_data[idx + 1] = img[idx + 1];
+        m_data[idx + 2] = img[idx + 2];
+        m_data[idx + 3] = img[idx + 3];
       }
     }
 
     stbi_image_free(img);
   }
-
- private:
-  uint32_t m_width;
-  uint32_t m_height;
-  std::vector<unsigned char> data;
 };
 
 // TODO: add transform in each submesh

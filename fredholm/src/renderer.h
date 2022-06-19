@@ -43,6 +43,11 @@ class Renderer
     if (m_material_ids) { m_material_ids.reset(); }
     if (m_materials) { m_materials.reset(); }
 
+    if (m_textures.size() > 0) {
+      for (auto& texture : m_textures) { texture.reset(); }
+    }
+    if (m_texture_objects) { m_texture_objects.reset(); }
+
     // release GAS
     for (auto& gas_output_buffer : m_gas_output_buffers) {
       if (gas_output_buffer) { gas_output_buffer.reset(); }
@@ -251,7 +256,7 @@ class Renderer
 
     // fill miss record
     MissSbtRecord miss_record = {};
-    miss_record.data.bg_color = make_float3(0.0f);
+    miss_record.data.bg_color = make_float3(1.0f);
     OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_miss_group, &miss_record));
     m_miss_records.push_back(miss_record);
 
@@ -322,10 +327,25 @@ class Renderer
     m_material_ids = std::make_unique<CUDABuffer<uint>>(scene.m_material_ids);
     m_materials = std::make_unique<CUDABuffer<Material>>(scene.m_materials);
 
+    m_textures.resize(scene.m_textures.size());
+    for (int i = 0; i < scene.m_textures.size(); ++i) {
+      const auto& tex = scene.m_textures[i];
+      m_textures[i] = std::make_unique<CUDATexture>(tex.m_width, tex.m_width,
+                                                    tex.m_data.data());
+    }
+
+    std::vector<cudaTextureObject_t> texture_objects(m_textures.size());
+    for (int i = 0; i < m_textures.size(); ++i) {
+      texture_objects[i] = m_textures[i]->get_texture_object();
+    }
+    m_texture_objects =
+        std::make_unique<CUDABuffer<cudaTextureObject_t>>(texture_objects);
+
     spdlog::info("[Renderer] number of vertices: {}",
                  m_indices->get_size() * 3);
     spdlog::info("[Renderer] number of faces: {}", m_indices->get_size());
     spdlog::info("[Renderer] number of materials: {}", m_materials->get_size());
+    spdlog::info("[Renderer] number of textures: {}", m_textures.size());
   }
 
   // TODO: separate GAS, IAS build(when setting transform, only IAS should be
@@ -523,7 +543,11 @@ class Renderer
   std::unique_ptr<CUDABuffer<float3>> m_normals = nullptr;
   std::unique_ptr<CUDABuffer<float2>> m_texcoords = nullptr;
   std::unique_ptr<CUDABuffer<uint>> m_material_ids = nullptr;
+
   std::unique_ptr<CUDABuffer<Material>> m_materials = nullptr;
+
+  std::vector<std::unique_ptr<CUDATexture>> m_textures = {};
+  std::unique_ptr<CUDABuffer<cudaTextureObject_t>> m_texture_objects = {};
 
   // optix handles
   CUstream m_stream = 0;

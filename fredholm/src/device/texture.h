@@ -60,6 +60,8 @@ class CUDATexture
     CUDA_CHECK(cudaFreeArray(m_array));
   }
 
+  cudaTextureObject_t get_texture_object() const { return m_texture_object; }
+
  private:
   cudaArray_t m_array = {};
   cudaTextureObject_t m_texture_object = {};
