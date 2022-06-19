@@ -467,6 +467,8 @@ class Renderer
   {
     m_width = width;
     m_height = height;
+
+    init_render_states();
   }
 
   void init_render_states()

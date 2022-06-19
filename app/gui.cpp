@@ -65,9 +65,6 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width,
 
 int main()
 {
-  const uint32_t width = 512;
-  const uint32_t height = 512;
-
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
   if (!glfwInit()) { return EXIT_FAILURE; }
@@ -76,8 +73,7 @@ int main()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow* window =
-      glfwCreateWindow(width, height, "fredholm", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(512, 512, "fredholm", nullptr, nullptr);
   if (!window) { return EXIT_FAILURE; }
   glfwMakeContextCurrent(window);
 
@@ -106,8 +102,8 @@ int main()
   controller.init_renderer();
   controller.load_scene(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
                         "salle_de_bain/salle_de_bain.obj");
-  controller.set_resolution(width, height);
   controller.init_render_states();
+  controller.init_framebuffer();
 
   CameraSettings camera_settings;
   camera_settings.origin = make_float3(0, 1, 5);
@@ -144,8 +140,14 @@ int main()
 
     ImGui::Begin("UI");
     {
+      if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
+        controller.update_resolution();
+      }
     }
     ImGui::End();
+
+    const uint32_t width = controller.get_width();
+    const uint32_t height = controller.get_height();
 
     // render
     controller.render(1, 100);

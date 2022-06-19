@@ -35,11 +35,16 @@ struct CUDAGLBuffer {
         m_resource(other.m_resource),
         m_d_buffer(other.m_d_buffer)
   {
-    CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_resource));
-    CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
   }
 
-  ~CUDAGLBuffer() {}
+  ~CUDAGLBuffer() noexcept(false)
+  {
+    // TODO: CUDA call (cudaGraphicsUnmapResources(1, &m_resource) ) failed with
+    // error: 'invalid OpenGL or DirectX context'
+    // this is because OpenGL context is destroyed before this call?
+    // CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_resource));
+    // CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
+  }
 
   const gcss::Buffer<T>& get_gl_buffer() const { return m_buffer; }
 
