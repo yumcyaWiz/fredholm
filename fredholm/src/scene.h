@@ -60,13 +60,14 @@ namespace fredholm
 struct Texture {
   uint32_t m_width;
   uint32_t m_height;
-  std::vector<unsigned char> m_data;
+  std::vector<uchar4> m_data;
 
   Texture(const std::filesystem::path& filepath)
   {
     // read image with stb_image
     int w, h, c;
-    unsigned char* img = stbi_load(filepath.c_str(), &w, &h, &c, 4);
+    unsigned char* img =
+        stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
     if (!img) {
       throw std::runtime_error("failed to load " + filepath.generic_string());
     }
@@ -74,14 +75,15 @@ struct Texture {
     m_width = w;
     m_height = h;
 
-    m_data.resize(4 * m_width * m_height);
+    m_data.resize(m_width * m_height);
     for (int j = 0; j < m_height; ++j) {
       for (int i = 0; i < m_width; ++i) {
-        const int idx = 4 * i + 4 * m_width * j;
-        m_data[idx + 0] = img[idx + 0];
-        m_data[idx + 1] = img[idx + 1];
-        m_data[idx + 2] = img[idx + 2];
-        m_data[idx + 3] = img[idx + 3];
+        const int idx_data = i + m_width * j;
+        const int idx_img = 4 * i + 4 * m_width * j;
+        m_data[idx_data].x = img[idx_img + 0];
+        m_data[idx_data].y = img[idx_img + 1];
+        m_data[idx_data].z = img[idx_img + 2];
+        m_data[idx_data].w = img[idx_img + 3];
       }
     }
 

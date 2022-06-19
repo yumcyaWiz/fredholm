@@ -125,7 +125,7 @@ int main()
 
   fredholm::Scene scene;
   scene.load_obj(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
-                 "CornellBox-Original.obj");
+                 "salle_de_bain/salle_de_bain.obj");
   renderer.load_scene(scene);
   renderer.build_accel();
   renderer.create_sbt();

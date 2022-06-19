@@ -33,7 +33,7 @@ struct Camera {
   Camera(const float3& origin, const float3& forward, float fov = 0.5f * M_PI)
       : m_origin(origin),
         m_forward(forward),
-        m_movement_speed(1.0f),
+        m_movement_speed(10.0f),
         m_look_around_speed(0.1f),
         m_phi(270.0f),
         m_theta(90.0f)

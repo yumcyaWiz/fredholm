@@ -330,7 +330,7 @@ class Renderer
     m_textures.resize(scene.m_textures.size());
     for (int i = 0; i < scene.m_textures.size(); ++i) {
       const auto& tex = scene.m_textures[i];
-      m_textures[i] = std::make_unique<CUDATexture>(tex.m_width, tex.m_width,
+      m_textures[i] = std::make_unique<CUDATexture>(tex.m_width, tex.m_height,
                                                     tex.m_data.data());
     }
 

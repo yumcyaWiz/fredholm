@@ -70,7 +70,7 @@ struct SurfaceInfo {
 };
 
 struct ShadingParams {
-  float3 base_color;
+  float3 base_color = make_float3(0, 0, 0);
 };
 
 struct LaunchParams {
