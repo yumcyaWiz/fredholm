@@ -32,30 +32,34 @@ struct Camera {
 
   Camera()
       : m_origin(make_float3(0, 0, 0)),
-        m_forward(make_float3(0, 0, -1)),
         m_movement_speed(10.0f),
         m_look_around_speed(0.1f),
         m_phi(270.0f),
-        m_theta(90.0f),
-        m_f(1.0f)
+        m_theta(90.0f)
   {
-    m_right = normalize(cross(m_forward, make_float3(0.0f, 1.0f, 0.0f)));
-    m_up = normalize(cross(m_right, m_forward));
+    set_forward(make_float3(0, 0, -1));
+    set_fov(0.5f * M_PI);
   }
 
   Camera(const float3& origin, const float3& forward, float fov = 0.5f * M_PI)
       : m_origin(origin),
-        m_forward(forward),
         m_movement_speed(1.0f),
         m_look_around_speed(0.1f),
         m_phi(270.0f),
         m_theta(90.0f)
   {
+    set_forward(forward);
+    set_fov(fov);
+  }
+
+  void set_forward(const float3& forward)
+  {
+    m_forward = forward;
     m_right = normalize(cross(m_forward, make_float3(0.0f, 1.0f, 0.0f)));
     m_up = normalize(cross(m_right, m_forward));
-
-    m_f = 1.0f / std::tan(0.5f * fov);
   }
+
+  void set_fov(float fov) { m_f = 1.0f / std::tan(0.5f * fov); }
 
   void move(const CameraMovement& direction, float dt)
   {
