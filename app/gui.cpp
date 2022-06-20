@@ -145,6 +145,7 @@ int main()
         if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
           controller.update_resolution();
         }
+        ImGui::Text("spp: %d", controller.m_imgui_n_samples);
       }
 
       ImGui::Separator();

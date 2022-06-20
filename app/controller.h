@@ -15,6 +15,7 @@ class Controller
 {
  public:
   int m_imgui_resolution[2] = {512, 512};
+  int m_imgui_n_samples = 0;
 
   float m_imgui_origin[3] = {0, 1, 5};
   float m_imgui_forward[3] = {0, 0, -1};
@@ -93,7 +94,11 @@ class Controller
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 
-  void init_render_states() { m_renderer->init_render_states(); }
+  void init_render_states()
+  {
+    m_imgui_n_samples = 0;
+    m_renderer->init_render_states();
+  }
 
   void render(uint32_t n_samples, uint32_t max_depth)
   {
@@ -101,6 +106,8 @@ class Controller
                        max_depth);
     // TODO: Is is safe to remove this?
     m_renderer->wait_for_completion();
+
+    m_imgui_n_samples++;
   }
 
   const gcss::Buffer<float4>& get_gl_framebuffer() const
