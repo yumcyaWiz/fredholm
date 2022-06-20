@@ -494,11 +494,11 @@ class Renderer
     m_rng_states = std::make_unique<CUDABuffer<RNGState>>(rng_states);
   }
 
-  void render(const Camera& camera, float4* d_framebuffer, uint32_t n_samples,
-              uint32_t max_depth)
+  void render(const Camera& camera, const RenderLayer& render_layer,
+              uint32_t n_samples, uint32_t max_depth)
   {
     LaunchParams params;
-    params.framebuffer = d_framebuffer;
+    params.render_layer = render_layer;
     params.accumulation = m_accumulation->get_device_ptr();
     params.sample_count = m_sample_count->get_device_ptr();
     params.rng_states = m_rng_states->get_device_ptr();

@@ -8,14 +8,18 @@
 #include "cuda_gl_util.h"
 #include "renderer.h"
 #include "scene.h"
+#include "shared.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
+
+enum class AOVType : int { BEAUTY, POSITION, NORMAL, DEPTH, ALBEDO };
 
 class Controller
 {
  public:
   int m_imgui_resolution[2] = {512, 512};
   int m_imgui_n_samples = 0;
+  AOVType m_imgui_aov_type = AOVType::BEAUTY;
 
   float m_imgui_origin[3] = {0, 1, 5};
   float m_imgui_forward[3] = {0, 0, -1};
@@ -73,9 +77,17 @@ class Controller
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 
-  void init_framebuffer()
+  void init_render_layers()
   {
-    m_framebuffer = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_beauty = std::make_unique<app::CUDAGLBuffer<float4>>(
+        m_imgui_resolution[0], m_imgui_resolution[1]);
+    m_layer_position = std::make_unique<app::CUDAGLBuffer<float4>>(
+        m_imgui_resolution[0], m_imgui_resolution[1]);
+    m_layer_normal = std::make_unique<app::CUDAGLBuffer<float4>>(
+        m_imgui_resolution[0], m_imgui_resolution[1]);
+    m_layer_depth = std::make_unique<app::CUDAGLBuffer<float4>>(
+        m_imgui_resolution[0], m_imgui_resolution[1]);
+    m_layer_albedo = std::make_unique<app::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 
@@ -90,7 +102,7 @@ class Controller
 
   void update_resolution()
   {
-    init_framebuffer();
+    init_render_layers();
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 
@@ -102,8 +114,14 @@ class Controller
 
   void render(uint32_t n_samples, uint32_t max_depth)
   {
-    m_renderer->render(*m_camera, m_framebuffer->get_device_ptr(), n_samples,
-                       max_depth);
+    fredholm::RenderLayer render_layers;
+    render_layers.beauty = m_layer_beauty->get_device_ptr();
+    render_layers.position = m_layer_position->get_device_ptr();
+    render_layers.normal = m_layer_normal->get_device_ptr();
+    render_layers.depth = m_layer_depth->get_device_ptr();
+    render_layers.albedo = m_layer_albedo->get_device_ptr();
+
+    m_renderer->render(*m_camera, render_layers, n_samples, max_depth);
     // TODO: Is is safe to remove this?
     m_renderer->wait_for_completion();
 
@@ -112,13 +130,34 @@ class Controller
 
   const gcss::Buffer<float4>& get_gl_framebuffer() const
   {
-    return m_framebuffer->get_gl_buffer();
+    switch (m_imgui_aov_type) {
+      case AOVType::BEAUTY: {
+        return m_layer_beauty->get_gl_buffer();
+      } break;
+      case AOVType::POSITION: {
+        return m_layer_position->get_gl_buffer();
+      } break;
+      case AOVType::NORMAL: {
+        return m_layer_normal->get_gl_buffer();
+      } break;
+      case AOVType::DEPTH: {
+        return m_layer_depth->get_gl_buffer();
+      } break;
+      case AOVType::ALBEDO: {
+        return m_layer_albedo->get_gl_buffer();
+      } break;
+    }
   }
 
  private:
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
 
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_framebuffer = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_position = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_normal = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_depth = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
+
   std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
 };

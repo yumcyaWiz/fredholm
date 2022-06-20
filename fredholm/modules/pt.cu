@@ -23,6 +23,12 @@ struct RadiancePayload {
   RNGState rng;
 
   bool done = false;
+
+  bool firsthit = true;
+  float3 position = make_float3(0);
+  float3 normal = make_float3(0);
+  float depth = 0;
+  float3 albedo = make_float3(0);
 };
 
 struct ShadowPayload {
@@ -95,6 +101,7 @@ static __forceinline__ __device__ void fill_surface_info(
     const float3& ray_direction, float ray_tmax, const float2& barycentric,
     uint prim_idx, SurfaceInfo& info)
 {
+  info.t = ray_tmax;
   info.x = ray_origin + ray_tmax * ray_direction;
   info.barycentric = barycentric;
 
@@ -170,7 +177,7 @@ extern "C" __global__ void __raygen__rg()
     params.sample_count[image_idx] += 1;
   }
 
-  // save RNG state for next sampling
+  // save RNG state for next render call
   params.rng_states[image_idx].state = payload.rng.state;
   params.rng_states[image_idx].inc = payload.rng.inc;
 
@@ -183,8 +190,15 @@ extern "C" __global__ void __raygen__rg()
   radiance.y = pow(radiance.y, 1.0f / 2.2f);
   radiance.z = pow(radiance.z, 1.0f / 2.2f);
 
-  // write radiance to frame buffer
-  params.framebuffer[image_idx] = make_float4(radiance, 1.0f);
+  // write results to render layers
+  params.render_layer.beauty[image_idx] = make_float4(radiance, 1.0f);
+  params.render_layer.position[image_idx] =
+      make_float4(0.5f * (payload.position + 1.0f), 1.0f);
+  params.render_layer.normal[image_idx] =
+      make_float4(0.5f * (payload.normal + 1.0f), 1.0f);
+  params.render_layer.depth[image_idx] =
+      make_float4(payload.depth, payload.depth, payload.depth, 1.0f);
+  params.render_layer.albedo[image_idx] = make_float4(payload.albedo, 1.0f);
 }
 
 extern "C" __global__ void __miss__radiance()
@@ -210,13 +224,6 @@ extern "C" __global__ void __closesthit__radiance()
   const uint material_id = sbt->material_ids[prim_idx];
   const Material& material = params.materials[material_id];
 
-  // Le
-  if (has_emission(material)) {
-    payload->radiance += payload->throughput * material.emission_color;
-    payload->done = true;
-    return;
-  }
-
   const float3 ray_origin = optixGetWorldRayOrigin();
   const float3 ray_direction = optixGetWorldRayDirection();
   const float ray_tmax = optixGetRayTmax();
@@ -229,6 +236,23 @@ extern "C" __global__ void __closesthit__radiance()
 
   ShadingParams shading_params;
   fill_shading_params(material, surf_info, params.textures, shading_params);
+
+  // fill position, normal, depth, albedo
+  if (payload->firsthit) {
+    payload->position = surf_info.x;
+    payload->normal = surf_info.n_s;
+    payload->depth = surf_info.t;
+    payload->albedo = shading_params.base_color;
+
+    payload->firsthit = false;
+  }
+
+  // Le
+  if (has_emission(material)) {
+    payload->radiance += payload->throughput * material.emission_color;
+    payload->done = true;
+    return;
+  }
 
   // sample next ray direction
   const float3 wi = sample_cosine_weighted_hemisphere(frandom(payload->rng),

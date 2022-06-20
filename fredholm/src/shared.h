@@ -59,6 +59,7 @@ struct Material {
 };
 
 struct SurfaceInfo {
+  float t;             // ray tmax
   float3 x;            // shading position
   float3 n_g;          // geometric normal in world space
   float3 n_s;          // shading normal in world space
@@ -73,8 +74,16 @@ struct ShadingParams {
   float3 base_color = make_float3(0, 0, 0);
 };
 
+struct RenderLayer {
+  float4* beauty;
+  float4* position;
+  float4* depth;
+  float4* normal;
+  float4* albedo;
+};
+
 struct LaunchParams {
-  float4* framebuffer;
+  RenderLayer render_layer;
   float4* accumulation;
   uint* sample_count;
   RNGState* rng_states;

@@ -109,7 +109,7 @@ int main()
   controller.load_scene(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
                         "salle_de_bain/salle_de_bain.obj");
   controller.init_render_states();
-  controller.init_framebuffer();
+  controller.init_render_layers();
   controller.init_camera();
 
   // prepare quad
@@ -145,6 +145,12 @@ int main()
         if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
           controller.update_resolution();
         }
+        if (ImGui::Combo("AOV",
+                         reinterpret_cast<int*>(&controller.m_imgui_aov_type),
+                         "Beauty\0Position\0Normal\0Depth\0Albedo\0\0")) {
+          controller.init_render_states();
+        }
+
         ImGui::Text("spp: %d", controller.m_imgui_n_samples);
       }
 
