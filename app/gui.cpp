@@ -188,6 +188,8 @@ int main()
     fragment_shader.setUniform("resolution",
                                glm::vec2(controller.m_imgui_resolution[0],
                                          controller.m_imgui_resolution[1]));
+    fragment_shader.setUniform("aov_type",
+                               static_cast<int>(controller.m_imgui_aov_type));
     controller.get_gl_framebuffer().bindToShaderStorageBuffer(0);
     quad.draw(render_pipeline);
 

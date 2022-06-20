@@ -154,6 +154,13 @@ extern "C" __global__ void __raygen__rg()
   payload.rng.state = params.rng_states[image_idx].state;
   payload.rng.inc = params.rng_states[image_idx].inc;
 
+  uint n_spp = params.sample_count[image_idx];
+  float3 beauty = make_float3(params.render_layer.beauty[image_idx]);
+  float3 position = make_float3(params.render_layer.position[image_idx]);
+  float3 normal = make_float3(params.render_layer.normal[image_idx]);
+  float depth = params.render_layer.depth[image_idx].x;
+  float3 albedo = make_float3(params.render_layer.albedo[image_idx]);
+
   for (int spp = 0; spp < params.n_samples; ++spp) {
     // generate initial ray from camera
     const float2 uv =
@@ -165,40 +172,37 @@ extern "C" __global__ void __raygen__rg()
     payload.radiance = make_float3(0);
     payload.throughput = make_float3(1);
     payload.done = false;
-    for (int depth = 0; depth < params.max_depth; ++depth) {
+    for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth) {
       trace_radiance(params.ias_handle, payload.origin, payload.direction, 0.0f,
                      1e9f, &payload);
 
       if (payload.done) { break; }
     }
 
-    // accumulate contribution
-    params.accumulation[image_idx] += make_float4(payload.radiance, 1.0f);
-    params.sample_count[image_idx] += 1;
+    // take streaming average
+    const float coef = 1.0f / (n_spp + 1.0f);
+    beauty = coef * (n_spp * beauty + payload.radiance);
+    position = coef * (n_spp * position + payload.position);
+    normal = coef * (n_spp * normal + payload.normal);
+    depth = coef * (n_spp * depth + payload.depth);
+    albedo = coef * (n_spp * albedo + payload.albedo);
+
+    n_spp++;
   }
+
+  // update total number of samples
+  params.sample_count[image_idx] = n_spp;
 
   // save RNG state for next render call
   params.rng_states[image_idx].state = payload.rng.state;
   params.rng_states[image_idx].inc = payload.rng.inc;
 
-  // take average
-  float3 radiance = make_float3(params.accumulation[image_idx]);
-  radiance /= params.sample_count[image_idx];
-
-  // gamma correction
-  radiance.x = pow(radiance.x, 1.0f / 2.2f);
-  radiance.y = pow(radiance.y, 1.0f / 2.2f);
-  radiance.z = pow(radiance.z, 1.0f / 2.2f);
-
-  // write results to render layers
-  params.render_layer.beauty[image_idx] = make_float4(radiance, 1.0f);
-  params.render_layer.position[image_idx] =
-      make_float4(0.5f * (payload.position + 1.0f), 1.0f);
-  params.render_layer.normal[image_idx] =
-      make_float4(0.5f * (payload.normal + 1.0f), 1.0f);
-  params.render_layer.depth[image_idx] =
-      make_float4(payload.depth, payload.depth, payload.depth, 1.0f);
-  params.render_layer.albedo[image_idx] = make_float4(payload.albedo, 1.0f);
+  // write results in render layers
+  params.render_layer.beauty[image_idx] = make_float4(beauty, 1.0f);
+  params.render_layer.position[image_idx] = make_float4(position, 1.0f);
+  params.render_layer.normal[image_idx] = make_float4(normal, 1.0f);
+  params.render_layer.depth[image_idx] = make_float4(depth, depth, depth, 1.0f);
+  params.render_layer.albedo[image_idx] = make_float4(albedo, 1.0f);
 }
 
 extern "C" __global__ void __miss__radiance()
@@ -260,7 +264,7 @@ extern "C" __global__ void __closesthit__radiance()
   const float3 wi_world =
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 
-  // update payload
+  // update throughput
   payload->throughput *= shading_params.base_color;
 
   // advance ray

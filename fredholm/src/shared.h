@@ -84,7 +84,6 @@ struct RenderLayer {
 
 struct LaunchParams {
   RenderLayer render_layer;
-  float4* accumulation;
   uint* sample_count;
   RNGState* rng_states;
 

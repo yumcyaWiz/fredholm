@@ -40,7 +40,6 @@ class Renderer
   ~Renderer() noexcept(false)
   {
     // release framebuffer data
-    if (m_accumulation) { m_accumulation.reset(); }
     if (m_sample_count) { m_sample_count.reset(); }
     if (m_rng_states) { m_rng_states.reset(); }
 
@@ -473,10 +472,6 @@ class Renderer
 
   void init_render_states()
   {
-    // init accumulation buffer
-    m_accumulation =
-        std::make_unique<CUDABuffer<float4>>(m_width * m_height, 0);
-
     // init sample count buffer
     m_sample_count = std::make_unique<CUDABuffer<uint>>(m_width * m_height, 0);
 
@@ -499,7 +494,6 @@ class Renderer
   {
     LaunchParams params;
     params.render_layer = render_layer;
-    params.accumulation = m_accumulation->get_device_ptr();
     params.sample_count = m_sample_count->get_device_ptr();
     params.rng_states = m_rng_states->get_device_ptr();
 
@@ -591,7 +585,6 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
-  std::unique_ptr<CUDABuffer<float4>> m_accumulation;
   std::unique_ptr<CUDABuffer<uint>> m_sample_count;
   std::unique_ptr<CUDABuffer<RNGState>> m_rng_states;
 
