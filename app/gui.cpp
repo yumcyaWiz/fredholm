@@ -145,6 +145,14 @@ int main()
         if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
           controller.update_resolution();
         }
+
+        if (ImGui::InputInt("Max samples", &controller.m_imgui_max_samples)) {
+          controller.init_render_states();
+        }
+        if (ImGui::InputInt("Max depth", &controller.m_imgui_max_depth)) {
+          controller.init_render_states();
+        }
+
         if (ImGui::Combo("AOV",
                          reinterpret_cast<int*>(&controller.m_imgui_aov_type),
                          "Beauty\0Position\0Normal\0Depth\0Albedo\0\0")) {
@@ -179,7 +187,7 @@ int main()
     ImGui::End();
 
     // render
-    controller.render(1, 100);
+    controller.render();
 
     // render texture
     glClear(GL_COLOR_BUFFER_BIT);
