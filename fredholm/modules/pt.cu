@@ -156,9 +156,9 @@ extern "C" __global__ void __raygen__rg()
 
   uint n_spp = params.sample_count[image_idx];
   float3 beauty = make_float3(params.render_layer.beauty[image_idx]);
-  float3 position = make_float3(params.render_layer.position[image_idx]);
-  float3 normal = make_float3(params.render_layer.normal[image_idx]);
-  float depth = params.render_layer.depth[image_idx].x;
+  float3 position = params.render_layer.position[image_idx];
+  float3 normal = params.render_layer.normal[image_idx];
+  float depth = params.render_layer.depth[image_idx];
   float3 albedo = make_float3(params.render_layer.albedo[image_idx]);
 
   for (int spp = 0; spp < params.n_samples; ++spp) {
@@ -199,9 +199,9 @@ extern "C" __global__ void __raygen__rg()
 
   // write results in render layers
   params.render_layer.beauty[image_idx] = make_float4(beauty, 1.0f);
-  params.render_layer.position[image_idx] = make_float4(position, 1.0f);
-  params.render_layer.normal[image_idx] = make_float4(normal, 1.0f);
-  params.render_layer.depth[image_idx] = make_float4(depth, depth, depth, 1.0f);
+  params.render_layer.position[image_idx] = position;
+  params.render_layer.normal[image_idx] = normal;
+  params.render_layer.depth[image_idx] = depth;
   params.render_layer.albedo[image_idx] = make_float4(albedo, 1.0f);
 }
 

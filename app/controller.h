@@ -29,6 +29,17 @@ class Controller
   float m_imgui_movement_speed = 1.0f;
   float m_imgui_rotation_speed = 0.1f;
 
+  std::unique_ptr<fredholm::Camera> m_camera = nullptr;
+  std::unique_ptr<fredholm::Scene> m_scene = nullptr;
+
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float3>> m_layer_position = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float3>> m_layer_normal = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float>> m_layer_depth = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
+
+  std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
+
   Controller()
   {
     m_camera = std::make_unique<fredholm::Camera>();
@@ -83,11 +94,11 @@ class Controller
   {
     m_layer_beauty = std::make_unique<app::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_position = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_position = std::make_unique<app::CUDAGLBuffer<float3>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_normal = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_normal = std::make_unique<app::CUDAGLBuffer<float3>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_depth = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_depth = std::make_unique<app::CUDAGLBuffer<float>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
     m_layer_albedo = std::make_unique<app::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
@@ -131,37 +142,4 @@ class Controller
       m_imgui_n_samples++;
     }
   }
-
-  const gcss::Buffer<float4>& get_gl_framebuffer() const
-  {
-    switch (m_imgui_aov_type) {
-      case AOVType::BEAUTY: {
-        return m_layer_beauty->get_gl_buffer();
-      } break;
-      case AOVType::POSITION: {
-        return m_layer_position->get_gl_buffer();
-      } break;
-      case AOVType::NORMAL: {
-        return m_layer_normal->get_gl_buffer();
-      } break;
-      case AOVType::DEPTH: {
-        return m_layer_depth->get_gl_buffer();
-      } break;
-      case AOVType::ALBEDO: {
-        return m_layer_albedo->get_gl_buffer();
-      } break;
-    }
-  }
-
- private:
-  std::unique_ptr<fredholm::Camera> m_camera = nullptr;
-  std::unique_ptr<fredholm::Scene> m_scene = nullptr;
-
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_position = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_normal = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_depth = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
-
-  std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
 };

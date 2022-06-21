@@ -189,7 +189,7 @@ int main()
     // render
     controller.render();
 
-    // render texture
+    // render AOVs
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, controller.m_imgui_resolution[0],
                controller.m_imgui_resolution[1]);
@@ -198,7 +198,11 @@ int main()
                                          controller.m_imgui_resolution[1]));
     fragment_shader.setUniform("aov_type",
                                static_cast<int>(controller.m_imgui_aov_type));
-    controller.get_gl_framebuffer().bindToShaderStorageBuffer(0);
+    controller.m_layer_beauty->get_gl_buffer().bindToShaderStorageBuffer(0);
+    controller.m_layer_position->get_gl_buffer().bindToShaderStorageBuffer(1);
+    controller.m_layer_normal->get_gl_buffer().bindToShaderStorageBuffer(2);
+    controller.m_layer_depth->get_gl_buffer().bindToShaderStorageBuffer(3);
+    controller.m_layer_albedo->get_gl_buffer().bindToShaderStorageBuffer(4);
     quad.draw(render_pipeline);
 
     // render imgui
