@@ -25,11 +25,7 @@ class Denoiser
     init_layers();
   }
 
-  ~Denoiser() noexcept(false)
-  {
-    OPTIX_CHECK(optixDenoiserDestroy(m_denoiser));
-    OPTIX_CHECK(optixDeviceContextDestroy(m_context));
-  }
+  ~Denoiser() noexcept(false) { OPTIX_CHECK(optixDenoiserDestroy(m_denoiser)); }
 
   void init_denoiser()
   {
@@ -81,7 +77,7 @@ class Denoiser
     OPTIX_CHECK(optixDenoiserInvoke(
         m_denoiser, nullptr, &m_params,
         reinterpret_cast<CUdeviceptr>(m_state->get_device_ptr()), m_state_size,
-        nullptr, &m_layer, 1, 0, 0,
+        &m_guide_layer, &m_layer, 1, 0, 0,
         reinterpret_cast<CUdeviceptr>(m_scratch->get_device_ptr()),
         m_scratch_size));
   }
@@ -97,6 +93,7 @@ class Denoiser
   OptixDeviceContext m_context = nullptr;
   OptixDenoiser m_denoiser = nullptr;
   OptixDenoiserParams m_params = {};
+  OptixDenoiserGuideLayer m_guide_layer = {};
   OptixDenoiserLayer m_layer = {};
 
   uint32_t m_state_size = 0;
