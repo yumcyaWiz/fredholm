@@ -105,12 +105,15 @@ int main()
 
   // prepare controller
   Controller controller;
+  controller.init_camera();
+
   controller.init_renderer();
   controller.load_scene(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
-                        "salle_de_bain/salle_de_bain.obj");
+                        "sponza/sponza.obj");
   controller.init_render_states();
   controller.init_render_layers();
-  controller.init_camera();
+
+  controller.init_denoiser();
 
   // prepare quad
   gcss::Quad quad;
@@ -153,9 +156,9 @@ int main()
           controller.init_render_states();
         }
 
-        if (ImGui::Combo("AOV",
-                         reinterpret_cast<int*>(&controller.m_imgui_aov_type),
-                         "Beauty\0Position\0Normal\0Depth\0Albedo\0\0")) {
+        if (ImGui::Combo(
+                "AOV", reinterpret_cast<int*>(&controller.m_imgui_aov_type),
+                "Beauty\0Denoised\0Position\0Normal\0Depth\0Albedo\0\0")) {
           controller.init_render_states();
         }
 
@@ -189,6 +192,11 @@ int main()
     // render
     controller.render();
 
+    // denoise
+    if (controller.m_imgui_aov_type == AOVType::DENOISED) {
+      controller.denoise();
+    }
+
     // render AOVs
     glClear(GL_COLOR_BUFFER_BIT);
     glViewport(0, 0, controller.m_imgui_resolution[0],
@@ -199,10 +207,11 @@ int main()
     fragment_shader.setUniform("aov_type",
                                static_cast<int>(controller.m_imgui_aov_type));
     controller.m_layer_beauty->get_gl_buffer().bindToShaderStorageBuffer(0);
-    controller.m_layer_position->get_gl_buffer().bindToShaderStorageBuffer(1);
-    controller.m_layer_normal->get_gl_buffer().bindToShaderStorageBuffer(2);
-    controller.m_layer_depth->get_gl_buffer().bindToShaderStorageBuffer(3);
-    controller.m_layer_albedo->get_gl_buffer().bindToShaderStorageBuffer(4);
+    controller.m_layer_denoised->get_gl_buffer().bindToShaderStorageBuffer(1);
+    controller.m_layer_position->get_gl_buffer().bindToShaderStorageBuffer(2);
+    controller.m_layer_normal->get_gl_buffer().bindToShaderStorageBuffer(3);
+    controller.m_layer_depth->get_gl_buffer().bindToShaderStorageBuffer(4);
+    controller.m_layer_albedo->get_gl_buffer().bindToShaderStorageBuffer(5);
     quad.draw(render_pipeline);
 
     // render imgui

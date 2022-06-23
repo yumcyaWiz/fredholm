@@ -525,6 +525,8 @@ class Renderer
 
   void wait_for_completion() { CUDA_SYNC_CHECK(); }
 
+  OptixDeviceContext get_context() const { return m_context; }
+
  private:
   uint32_t m_width = 0;
   uint32_t m_height = 0;

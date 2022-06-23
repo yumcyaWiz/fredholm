@@ -6,13 +6,14 @@
 
 #include "camera.h"
 #include "cuda_gl_util.h"
+#include "denoiser.h"
 #include "renderer.h"
 #include "scene.h"
 #include "shared.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
-enum class AOVType : int { BEAUTY, POSITION, NORMAL, DEPTH, ALBEDO };
+enum class AOVType : int { BEAUTY, DENOISED, POSITION, NORMAL, DEPTH, ALBEDO };
 
 class Controller
 {
@@ -37,8 +38,10 @@ class Controller
   std::unique_ptr<app::CUDAGLBuffer<float3>> m_layer_normal = nullptr;
   std::unique_ptr<app::CUDAGLBuffer<float>> m_layer_depth = nullptr;
   std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
 
   std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
+  std::unique_ptr<fredholm::Denoiser> m_denoiser = nullptr;
 
   Controller()
   {
@@ -90,6 +93,15 @@ class Controller
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 
+  void init_denoiser()
+  {
+    m_layer_denoised = std::make_unique<app::CUDAGLBuffer<float4>>(
+        m_imgui_resolution[0], m_imgui_resolution[1]);
+    m_denoiser = std::make_unique<fredholm::Denoiser>(
+        m_renderer->get_context(), m_imgui_resolution[0], m_imgui_resolution[1],
+        m_layer_beauty->get_device_ptr(), m_layer_denoised->get_device_ptr());
+  }
+
   void init_render_layers()
   {
     m_layer_beauty = std::make_unique<app::CUDAGLBuffer<float4>>(
@@ -117,6 +129,8 @@ class Controller
   {
     init_render_layers();
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
+
+    init_denoiser();
   }
 
   void init_render_states()
@@ -141,5 +155,11 @@ class Controller
 
       m_imgui_n_samples++;
     }
+  }
+
+  void denoise()
+  {
+    m_denoiser->denoise();
+    m_denoiser->wait_for_completion();
   }
 };

@@ -84,10 +84,9 @@ class Denoiser
         nullptr, &m_layer, 1, 0, 0,
         reinterpret_cast<CUdeviceptr>(m_scratch->get_device_ptr()),
         m_scratch_size));
-
-    // TODO: remove this?
-    CUDA_SYNC_CHECK();
   }
+
+  void wait_for_completion() const { CUDA_SYNC_CHECK(); }
 
  private:
   uint32_t m_width = 0;
