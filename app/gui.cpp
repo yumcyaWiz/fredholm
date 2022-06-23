@@ -156,11 +156,9 @@ int main()
           controller.init_render_states();
         }
 
-        if (ImGui::Combo(
-                "AOV", reinterpret_cast<int*>(&controller.m_imgui_aov_type),
-                "Beauty\0Denoised\0Position\0Normal\0Depth\0Albedo\0\0")) {
-          controller.init_render_states();
-        }
+        ImGui::Combo("AOV",
+                     reinterpret_cast<int*>(&controller.m_imgui_aov_type),
+                     "Beauty\0Denoised\0Position\0Normal\0Depth\0Albedo\0\0");
 
         ImGui::Text("spp: %d", controller.m_imgui_n_samples);
       }
