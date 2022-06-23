@@ -99,7 +99,8 @@ class Controller
         m_imgui_resolution[0], m_imgui_resolution[1]);
     m_denoiser = std::make_unique<fredholm::Denoiser>(
         m_renderer->get_context(), m_imgui_resolution[0], m_imgui_resolution[1],
-        m_layer_beauty->get_device_ptr(), m_layer_denoised->get_device_ptr());
+        m_layer_beauty->get_device_ptr(), m_layer_normal->get_device_ptr(),
+        m_layer_albedo->get_device_ptr(), m_layer_denoised->get_device_ptr());
   }
 
   void init_render_layers()

@@ -14,11 +14,14 @@ class Denoiser
 {
  public:
   Denoiser(OptixDeviceContext context, uint32_t width, uint32_t height,
-           const float4* d_beauty, const float4* d_denoised)
+           const float4* d_beauty, const float4* d_normal,
+           const float4* d_albedo, const float4* d_denoised)
       : m_context(context),
         m_width(width),
         m_height(height),
         m_d_beauty(d_beauty),
+        m_d_normal(d_normal),
+        m_d_albedo(d_albedo),
         m_d_denoised(d_denoised)
   {
     init_denoiser();
@@ -30,9 +33,8 @@ class Denoiser
   void init_denoiser()
   {
     OptixDenoiserOptions options = {};
-    // TODO: set these
-    options.guideAlbedo = 0;
-    options.guideNormal = 0;
+    options.guideAlbedo = 1;
+    options.guideNormal = 1;
 
     // create denoiser
     OptixDenoiserModelKind model_kind = OPTIX_DENOISER_MODEL_KIND_HDR;
@@ -68,6 +70,9 @@ class Denoiser
 
   void init_layers()
   {
+    m_guide_layer.normal = create_optix_image_2d(m_width, m_height, m_d_normal);
+    m_guide_layer.albedo = create_optix_image_2d(m_width, m_height, m_d_albedo);
+
     m_layer.input = create_optix_image_2d(m_width, m_height, m_d_beauty);
     m_layer.output = create_optix_image_2d(m_width, m_height, m_d_denoised);
   }
@@ -88,6 +93,8 @@ class Denoiser
   uint32_t m_width = 0;
   uint32_t m_height = 0;
   const float4* m_d_beauty = nullptr;
+  const float4* m_d_normal = nullptr;
+  const float4* m_d_albedo = nullptr;
   const float4* m_d_denoised = nullptr;
 
   OptixDeviceContext m_context = nullptr;
