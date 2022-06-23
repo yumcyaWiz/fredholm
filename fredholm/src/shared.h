@@ -76,9 +76,9 @@ struct ShadingParams {
 
 struct RenderLayer {
   float4* beauty;
-  float3* position;
+  float4* position;
   float* depth;
-  float3* normal;
+  float4* normal;
   float4* albedo;
 };
 

@@ -34,8 +34,8 @@ class Controller
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
 
   std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float3>> m_layer_position = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float3>> m_layer_normal = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_position = nullptr;
+  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_normal = nullptr;
   std::unique_ptr<app::CUDAGLBuffer<float>> m_layer_depth = nullptr;
   std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
   std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
@@ -106,9 +106,9 @@ class Controller
   {
     m_layer_beauty = std::make_unique<app::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_position = std::make_unique<app::CUDAGLBuffer<float3>>(
+    m_layer_position = std::make_unique<app::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_normal = std::make_unique<app::CUDAGLBuffer<float3>>(
+    m_layer_normal = std::make_unique<app::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
     m_layer_depth = std::make_unique<app::CUDAGLBuffer<float>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);

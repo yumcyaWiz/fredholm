@@ -6,17 +6,11 @@ layout(std430, binding = 0) buffer layout_beauty {
 layout(std430, binding = 1) buffer layout_denoised {
   vec4 denoised[];
 };
-
-// NOTE: avoid padding problem
-// https://community.khronos.org/t/size-of-elements-of-arrays-in-shader-storage-buffer-objects/69803/6
-struct Vec3 {
-  float x, y, z;
-};
 layout(std430, binding = 2) buffer layout_position {
-  Vec3 position[];
+  vec4 position[];
 };
 layout(std430, binding = 3) buffer layout_normal {
-  Vec3 normal[];
+  vec4 normal[];
 };
 
 layout(std430, binding = 4) buffer layout_depth {
@@ -51,13 +45,12 @@ void main() {
   }
   // position
   else if(aov_type == 2) {
-    Vec3 v = position[idx];
-    color = vec3(v.x, v.y, v.z);
+    color = position[idx].xyz;
   }
   // normal
   else if(aov_type == 3) {
-    Vec3 v = normal[idx];
-    color = 0.5 * (vec3(v.x, v.y, v.z) + 1.0);
+    color = normal[idx].xyz;
+    color = 0.5 * (color + 1.0);
   }
   // depth
   else if(aov_type == 4) {
