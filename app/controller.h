@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "camera.h"
-#include "cuda_gl_util.h"
+#include "cwl/buffer.h"
 #include "denoiser.h"
 #include "renderer.h"
 #include "scene.h"
@@ -33,12 +33,12 @@ class Controller
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
 
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_position = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_normal = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float>> m_layer_depth = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
-  std::unique_ptr<app::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_position = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_normal = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float>> m_layer_depth = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
 
   std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
   std::unique_ptr<fredholm::Denoiser> m_denoiser = nullptr;
@@ -95,7 +95,7 @@ class Controller
 
   void init_denoiser()
   {
-    m_layer_denoised = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_denoised = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
     m_denoiser = std::make_unique<fredholm::Denoiser>(
         m_renderer->get_context(), m_imgui_resolution[0], m_imgui_resolution[1],
@@ -105,15 +105,15 @@ class Controller
 
   void init_render_layers()
   {
-    m_layer_beauty = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_beauty = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_position = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_position = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_normal = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_normal = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_depth = std::make_unique<app::CUDAGLBuffer<float>>(
+    m_layer_depth = std::make_unique<cwl::CUDAGLBuffer<float>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
-    m_layer_albedo = std::make_unique<app::CUDAGLBuffer<float4>>(
+    m_layer_albedo = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 

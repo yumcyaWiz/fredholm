@@ -14,14 +14,12 @@
 #include "renderer.h"
 #include "spdlog/spdlog.h"
 //
+#include "gcss/quad.h"
+#include "gcss/shader.h"
 #include "gcss/texture.h"
-#include "quad.h"
-#include "shader.h"
 //
 #include "camera.h"
 #include "controller.h"
-#include "cuda_gl_util.h"
-#include "device/util.h"
 #include "scene.h"
 
 static void glfw_error_callback(int error, const char* description)

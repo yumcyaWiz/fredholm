@@ -2,20 +2,6 @@
 # add_executable(cui "cui.cpp")
 # target_link_libraries(cui PRIVATE fredholm)
 
-# OpenGL
-find_package(OpenGL REQUIRED)
-
-# gcss
-add_library(gcss INTERFACE)
-target_include_directories(gcss INTERFACE "gcss/")
-target_link_libraries(gcss INTERFACE
-    OpenGL::GL
-    glad
-    glm
-    stb
-    spdlog::spdlog
-)
-
 # gui
 add_executable(gui "gui.cpp")
 target_link_libraries(gui PRIVATE
@@ -26,7 +12,7 @@ target_link_libraries(gui PRIVATE
     glfw
     imgui
     imgui_glfw_opengl3
-    CUDA::cudart
+    cwl
     fredholm
 )
 

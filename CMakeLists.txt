@@ -28,8 +28,17 @@ find_package(CUDAToolkit REQUIRED)
 set(OptiX_INSTALL_DIR "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64")
 find_package(OptiX REQUIRED)
 
+# OpenGL
+find_package(OpenGL REQUIRED)
+
 # external
 add_subdirectory("externals/")
+
+# gcss
+add_subdirectory("gcss/")
+
+# cwl
+add_subdirectory("cwl/")
 
 # fredholm
 add_subdirectory("fredholm/")

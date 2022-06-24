@@ -17,11 +17,10 @@ target_link_libraries(modules PRIVATE
 # fredholm
 add_library(fredholm INTERFACE)
 target_include_directories(fredholm INTERFACE
-    ${OptiX_INCLUDE}
     "src/"
 )
 target_link_libraries(fredholm INTERFACE
-    CUDA::cudart
+    cwl
     tinyobjloader
     sutil
     glm

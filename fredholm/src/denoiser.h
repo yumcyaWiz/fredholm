@@ -4,8 +4,8 @@
 
 #include <memory>
 
-#include "device/buffer.h"
-#include "device/util.h"
+#include "cwl/buffer.h"
+#include "cwl/util.h"
 
 namespace fredholm
 {
@@ -50,8 +50,8 @@ class Denoiser
     m_state_size = static_cast<uint32_t>(denoiser_sizes.stateSizeInBytes);
 
     // allocate state, scratch buffer
-    m_scratch = std::make_unique<CUDABuffer<uint8_t>>(m_scratch_size);
-    m_state = std::make_unique<CUDABuffer<uint8_t>>(m_state_size);
+    m_scratch = std::make_unique<cwl::CUDABuffer<uint8_t>>(m_scratch_size);
+    m_state = std::make_unique<cwl::CUDABuffer<uint8_t>>(m_state_size);
 
     // setup denoiser
     OPTIX_CHECK(optixDenoiserSetup(
@@ -105,8 +105,8 @@ class Denoiser
 
   uint32_t m_state_size = 0;
   uint32_t m_scratch_size = 0;
-  std::unique_ptr<CUDABuffer<uint8_t>> m_state;
-  std::unique_ptr<CUDABuffer<uint8_t>> m_scratch;
+  std::unique_ptr<cwl::CUDABuffer<uint8_t>> m_state;
+  std::unique_ptr<cwl::CUDABuffer<uint8_t>> m_scratch;
 
   static OptixImage2D create_optix_image_2d(uint32_t width, uint32_t height,
                                             const float4* d_image)

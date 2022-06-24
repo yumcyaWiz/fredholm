@@ -57,7 +57,7 @@
     }                                                                      \
   } while (0)
 
-namespace fredholm
+namespace cwl
 {
 
 // RAII wrapper for objects on device
@@ -84,4 +84,4 @@ class DeviceObject
   T* m_device_ptr;
 };
 
-}  // namespace fredholm
+}  // namespace cwl

@@ -3,9 +3,9 @@
 
 #include <filesystem>
 
-#include "device/util.h"
+#include "cwl/util.h"
 
-namespace fredholm
+namespace cwl
 {
 
 // RAII wrapper for CUDA texture object
@@ -67,4 +67,4 @@ class CUDATexture
   cudaTextureObject_t m_texture_object = {};
 };
 
-}  // namespace fredholm
+}  // namespace cwl

@@ -12,9 +12,9 @@
 #include <stdexcept>
 
 #include "camera.h"
-#include "device/buffer.h"
-#include "device/texture.h"
-#include "device/util.h"
+#include "cwl/buffer.h"
+#include "cwl/texture.h"
+#include "cwl/util.h"
 #include "io.h"
 #include "scene.h"
 #include "shared.h"
@@ -298,11 +298,12 @@ class Renderer
     // allocate SBT records on device
     std::vector<RayGenSbtRecord> raygen_sbt_records = {m_raygen_record};
     m_d_raygen_records =
-        std::make_unique<CUDABuffer<RayGenSbtRecord>>(raygen_sbt_records);
+        std::make_unique<cwl::CUDABuffer<RayGenSbtRecord>>(raygen_sbt_records);
     m_d_miss_records =
-        std::make_unique<CUDABuffer<MissSbtRecord>>(m_miss_records);
+        std::make_unique<cwl::CUDABuffer<MissSbtRecord>>(m_miss_records);
     m_d_hit_group_records =
-        std::make_unique<CUDABuffer<HitGroupSbtRecord>>(m_hit_group_records);
+        std::make_unique<cwl::CUDABuffer<HitGroupSbtRecord>>(
+            m_hit_group_records);
 
     // fill SBT
     m_sbt.raygenRecord =
@@ -328,18 +329,20 @@ class Renderer
     m_submesh_offsets = scene.m_submesh_offsets;
     m_submesh_n_faces = scene.m_submesh_n_faces;
 
-    m_vertices = std::make_unique<CUDABuffer<float3>>(scene.m_vertices);
-    m_indices = std::make_unique<CUDABuffer<uint3>>(scene.m_indices);
-    m_normals = std::make_unique<CUDABuffer<float3>>(scene.m_normals);
-    m_texcoords = std::make_unique<CUDABuffer<float2>>(scene.m_texcoords);
-    m_material_ids = std::make_unique<CUDABuffer<uint>>(scene.m_material_ids);
-    m_materials = std::make_unique<CUDABuffer<Material>>(scene.m_materials);
+    m_vertices = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_vertices);
+    m_indices = std::make_unique<cwl::CUDABuffer<uint3>>(scene.m_indices);
+    m_normals = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_normals);
+    m_texcoords = std::make_unique<cwl::CUDABuffer<float2>>(scene.m_texcoords);
+    m_material_ids =
+        std::make_unique<cwl::CUDABuffer<uint>>(scene.m_material_ids);
+    m_materials =
+        std::make_unique<cwl::CUDABuffer<Material>>(scene.m_materials);
 
     m_textures.resize(scene.m_textures.size());
     for (int i = 0; i < scene.m_textures.size(); ++i) {
       const auto& tex = scene.m_textures[i];
-      m_textures[i] = std::make_unique<CUDATexture>(tex.m_width, tex.m_height,
-                                                    tex.m_data.data());
+      m_textures[i] = std::make_unique<cwl::CUDATexture>(
+          tex.m_width, tex.m_height, tex.m_data.data());
     }
 
     std::vector<cudaTextureObject_t> texture_objects(m_textures.size());
@@ -347,7 +350,7 @@ class Renderer
       texture_objects[i] = m_textures[i]->get_texture_object();
     }
     m_texture_objects =
-        std::make_unique<CUDABuffer<cudaTextureObject_t>>(texture_objects);
+        std::make_unique<cwl::CUDABuffer<cudaTextureObject_t>>(texture_objects);
 
     spdlog::info("[Renderer] number of vertices: {}",
                  m_indices->get_size() * 3);
@@ -405,9 +408,11 @@ class Renderer
                                                &gas_buffer_sizes));
 
       // build GAS
-      CUDABuffer<uint8_t> gas_temp_buffer(gas_buffer_sizes.tempSizeInBytes);
-      m_gas_output_buffers[submesh_idx] = std::make_unique<CUDABuffer<uint8_t>>(
-          gas_buffer_sizes.outputSizeInBytes);
+      cwl::CUDABuffer<uint8_t> gas_temp_buffer(
+          gas_buffer_sizes.tempSizeInBytes);
+      m_gas_output_buffers[submesh_idx] =
+          std::make_unique<cwl::CUDABuffer<uint8_t>>(
+              gas_buffer_sizes.outputSizeInBytes);
       OPTIX_CHECK(optixAccelBuild(
           m_context, 0, &options, &input, 1,
           reinterpret_cast<CUdeviceptr>(gas_temp_buffer.get_device_ptr()),
@@ -436,7 +441,7 @@ class Renderer
 
       instances[submesh_idx] = instance;
     }
-    m_instances = std::make_unique<CUDABuffer<OptixInstance>>(instances);
+    m_instances = std::make_unique<cwl::CUDABuffer<OptixInstance>>(instances);
 
     // build single IAS
     OptixBuildInput input = {};
@@ -451,8 +456,8 @@ class Renderer
                                              &ias_buffer_sizes));
 
     // build IAS
-    CUDABuffer<uint8_t> ias_temp_buffer(ias_buffer_sizes.tempSizeInBytes);
-    m_ias_output_buffer = std::make_unique<CUDABuffer<uint8_t>>(
+    cwl::CUDABuffer<uint8_t> ias_temp_buffer(ias_buffer_sizes.tempSizeInBytes);
+    m_ias_output_buffer = std::make_unique<cwl::CUDABuffer<uint8_t>>(
         ias_buffer_sizes.outputSizeInBytes);
     OPTIX_CHECK(optixAccelBuild(
         m_context, 0, &options, &input, 1,
@@ -473,7 +478,8 @@ class Renderer
   void init_render_states()
   {
     // init sample count buffer
-    m_sample_count = std::make_unique<CUDABuffer<uint>>(m_width * m_height, 0);
+    m_sample_count =
+        std::make_unique<cwl::CUDABuffer<uint>>(m_width * m_height, 0);
 
     // init RNG state buffer
     // TODO: apply some hash function
@@ -486,7 +492,7 @@ class Renderer
       }
     }
 
-    m_rng_states = std::make_unique<CUDABuffer<RNGState>>(rng_states);
+    m_rng_states = std::make_unique<cwl::CUDABuffer<RNGState>>(rng_states);
   }
 
   void render(const Camera& camera, const RenderLayer& render_layer,
@@ -514,7 +520,7 @@ class Renderer
     params.ias_handle = m_ias_handle;
 
     // TODO: maybe this is dangerous, since optixLaunch is async?
-    DeviceObject d_params(params);
+    cwl::DeviceObject d_params(params);
 
     // run pipeline
     OPTIX_CHECK(
@@ -540,27 +546,28 @@ class Renderer
   std::vector<uint> m_submesh_offsets = {};
   std::vector<uint> m_submesh_n_faces = {};
 
-  std::unique_ptr<CUDABuffer<float3>> m_vertices = nullptr;
-  std::unique_ptr<CUDABuffer<uint3>> m_indices = nullptr;
-  std::unique_ptr<CUDABuffer<float3>> m_normals = nullptr;
-  std::unique_ptr<CUDABuffer<float2>> m_texcoords = nullptr;
-  std::unique_ptr<CUDABuffer<uint>> m_material_ids = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float3>> m_vertices = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<uint3>> m_indices = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float3>> m_normals = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float2>> m_texcoords = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<uint>> m_material_ids = nullptr;
 
-  std::unique_ptr<CUDABuffer<Material>> m_materials = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<Material>> m_materials = nullptr;
 
-  std::vector<std::unique_ptr<CUDATexture>> m_textures = {};
-  std::unique_ptr<CUDABuffer<cudaTextureObject_t>> m_texture_objects = {};
+  std::vector<std::unique_ptr<cwl::CUDATexture>> m_textures = {};
+  std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_texture_objects = {};
 
   // optix handles
   CUstream m_stream = 0;
   OptixDeviceContext m_context = 0;
 
   std::vector<OptixTraversableHandle> m_gas_handles = {};
-  std::vector<std::unique_ptr<CUDABuffer<uint8_t>>> m_gas_output_buffers = {};
+  std::vector<std::unique_ptr<cwl::CUDABuffer<uint8_t>>> m_gas_output_buffers =
+      {};
 
-  std::unique_ptr<CUDABuffer<OptixInstance>> m_instances = {};
+  std::unique_ptr<cwl::CUDABuffer<OptixInstance>> m_instances = {};
   OptixTraversableHandle m_ias_handle = {};
-  std::unique_ptr<CUDABuffer<uint8_t>> m_ias_output_buffer = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<uint8_t>> m_ias_output_buffer = nullptr;
 
   OptixModule m_module = 0;
 
@@ -581,14 +588,15 @@ class Renderer
   std::vector<HitGroupSbtRecord> m_hit_group_records = {};
 
   // SBT records on device
-  std::unique_ptr<CUDABuffer<RayGenSbtRecord>> m_d_raygen_records = nullptr;
-  std::unique_ptr<CUDABuffer<MissSbtRecord>> m_d_miss_records = nullptr;
-  std::unique_ptr<CUDABuffer<HitGroupSbtRecord>> m_d_hit_group_records =
+  std::unique_ptr<cwl::CUDABuffer<RayGenSbtRecord>> m_d_raygen_records =
+      nullptr;
+  std::unique_ptr<cwl::CUDABuffer<MissSbtRecord>> m_d_miss_records = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<HitGroupSbtRecord>> m_d_hit_group_records =
       nullptr;
 
   // LaunchParams data on device
-  std::unique_ptr<CUDABuffer<uint>> m_sample_count;
-  std::unique_ptr<CUDABuffer<RNGState>> m_rng_states;
+  std::unique_ptr<cwl::CUDABuffer<uint>> m_sample_count;
+  std::unique_ptr<cwl::CUDABuffer<RNGState>> m_rng_states;
 
   static void context_log_callback(unsigned int level, const char* tag,
                                    const char* message, void* cbdata)
