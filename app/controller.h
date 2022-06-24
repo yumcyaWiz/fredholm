@@ -1,15 +1,14 @@
 #pragma once
-#include <cuda_runtime.h>
 
 #include <filesystem>
 #include <memory>
 
-#include "camera.h"
 #include "cwl/buffer.h"
-#include "denoiser.h"
-#include "renderer.h"
-#include "scene.h"
-#include "shared.h"
+#include "fredholm/camera.h"
+#include "fredholm/denoiser.h"
+#include "fredholm/renderer.h"
+#include "fredholm/scene.h"
+#include "fredholm/shared.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 

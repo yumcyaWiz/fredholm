@@ -5,7 +5,8 @@
 
 #include "glad/gl.h"
 #include "glm/glm.hpp"
-#define STB_IMAGE_IMPLEMENTATION
+
+// #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 //
 #include "spdlog/spdlog.h"

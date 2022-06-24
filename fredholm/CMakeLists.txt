@@ -8,7 +8,7 @@ set_target_properties(modules PROPERTIES
 )
 target_include_directories(modules PRIVATE
     ${OptiX_INCLUDE}
-    "src/"
+    "include/"
 )
 target_link_libraries(modules PRIVATE
     sutil
@@ -17,7 +17,7 @@ target_link_libraries(modules PRIVATE
 # fredholm
 add_library(fredholm INTERFACE)
 target_include_directories(fredholm INTERFACE
-    "src/"
+    "include/"
 )
 target_link_libraries(fredholm INTERFACE
     cwl

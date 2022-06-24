@@ -1,8 +1,8 @@
 #include <optix.h>
 
+#include "fredholm/shared.h"
 #include "math.cu"
 #include "sampling.cu"
-#include "shared.h"
 #include "sutil/vec_math.h"
 
 #define RAY_EPS 0.001f

@@ -11,14 +11,16 @@
 #include <memory>
 #include <stdexcept>
 
-#include "camera.h"
+#include "spdlog/spdlog.h"
+//
 #include "cwl/buffer.h"
 #include "cwl/texture.h"
 #include "cwl/util.h"
-#include "io.h"
-#include "scene.h"
-#include "shared.h"
-#include "spdlog/spdlog.h"
+//
+#include "fredholm/camera.h"
+#include "fredholm/io.h"
+#include "fredholm/scene.h"
+#include "fredholm/shared.h"
 
 namespace fredholm
 {

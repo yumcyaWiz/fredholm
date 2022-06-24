@@ -15,10 +15,11 @@
 #include "tiny_obj_loader.h"
 //
 #include "spdlog/spdlog.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "sutil/vec_math.h"
 //
-#include "shared.h"
+#include "fredholm/shared.h"
 
 namespace fredholm
 {

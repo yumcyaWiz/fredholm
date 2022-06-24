@@ -4,23 +4,16 @@
 
 #include "glad/gl.h"
 //
-#include <cuda_gl_interop.h>
-#include <cuda_runtime.h>
-
 #include "GLFW/glfw3.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "renderer.h"
 #include "spdlog/spdlog.h"
 //
 #include "gcss/quad.h"
 #include "gcss/shader.h"
-#include "gcss/texture.h"
 //
-#include "camera.h"
 #include "controller.h"
-#include "scene.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
