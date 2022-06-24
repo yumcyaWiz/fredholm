@@ -164,7 +164,7 @@ extern "C" __global__ void __raygen__rg()
   for (int spp = 0; spp < params.n_samples; ++spp) {
     // generate initial ray from camera
     const float2 uv =
-        make_float2((2.0f * (idx.x + frandom(payload.rng)) - dim.x) / dim.x,
+        make_float2((2.0f * (idx.x + frandom(payload.rng)) - dim.x) / dim.y,
                     (2.0f * (idx.y + frandom(payload.rng)) - dim.y) / dim.y);
     sample_ray_pinhole_camera(uv, payload.origin, payload.direction);
 
