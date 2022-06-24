@@ -40,6 +40,9 @@ add_subdirectory("gcss/")
 # cwl
 add_subdirectory("cwl/")
 
+# optwl
+add_subdirectory("optwl/")
+
 # fredholm
 add_subdirectory("fredholm/")
 

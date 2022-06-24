@@ -89,6 +89,20 @@ class Denoiser
 
   void wait_for_completion() const { CUDA_SYNC_CHECK(); }
 
+  static void log_callback(unsigned int level, const char* tag,
+                           const char* message, void* cbdata)
+  {
+    if (level == 4) {
+      spdlog::info("[Denoiser][{}] {}", tag, message);
+    } else if (level == 3) {
+      spdlog::warn("[Denoiser][{}] {}", tag, message);
+    } else if (level == 2) {
+      spdlog::error("[Denoiser][{}] {}", tag, message);
+    } else if (level == 1) {
+      spdlog::critical("[Denoiser][{}] {}", tag, message);
+    }
+  }
+
  private:
   uint32_t m_width = 0;
   uint32_t m_height = 0;

@@ -4,6 +4,9 @@
 #include <memory>
 
 #include "cwl/buffer.h"
+//
+#include "optwl/optwl.h"
+//
 #include "fredholm/camera.h"
 #include "fredholm/denoiser.h"
 #include "fredholm/renderer.h"
@@ -39,6 +42,7 @@ class Controller
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
 
+  std::unique_ptr<optwl::Context> m_context = nullptr;
   std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
   std::unique_ptr<fredholm::Denoiser> m_denoiser = nullptr;
 
@@ -46,7 +50,12 @@ class Controller
   {
     m_camera = std::make_unique<fredholm::Camera>();
     m_scene = std::make_unique<fredholm::Scene>();
-    m_renderer = std::make_unique<fredholm::Renderer>();
+
+    // init CUDA
+    CUDA_CHECK(cudaFree(0));
+
+    m_context = std::make_unique<optwl::Context>();
+    m_renderer = std::make_unique<fredholm::Renderer>(m_context->m_context);
   }
 
   void init_camera()
@@ -84,7 +93,6 @@ class Controller
 
   void init_renderer()
   {
-    m_renderer->create_context();
     m_renderer->create_module(std::filesystem::path(MODULES_SOURCE_DIR) /
                               "pt.ptx");
     m_renderer->create_program_group();
@@ -97,7 +105,7 @@ class Controller
     m_layer_denoised = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
     m_denoiser = std::make_unique<fredholm::Denoiser>(
-        m_renderer->get_context(), m_imgui_resolution[0], m_imgui_resolution[1],
+        m_context->m_context, m_imgui_resolution[0], m_imgui_resolution[1],
         m_layer_beauty->get_device_ptr(), m_layer_normal->get_device_ptr(),
         m_layer_albedo->get_device_ptr(), m_layer_denoised->get_device_ptr());
   }

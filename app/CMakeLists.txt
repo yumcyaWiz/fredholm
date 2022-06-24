@@ -13,6 +13,7 @@ target_link_libraries(gui PRIVATE
     imgui
     imgui_glfw_opengl3
     cwl
+    optwl
     fredholm
 )
 

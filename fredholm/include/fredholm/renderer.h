@@ -28,7 +28,7 @@ namespace fredholm
 class Renderer
 {
  public:
-  Renderer()
+  Renderer(const OptixDeviceContext& context) : m_context(context)
   {
 #ifdef NDEBUG
     m_enable_validation_mode = false;
@@ -97,27 +97,7 @@ class Renderer
     // release module
     if (m_module) { OPTIX_CHECK(optixModuleDestroy(m_module)); }
 
-    // release context
-    if (m_context) { OPTIX_CHECK(optixDeviceContextDestroy(m_context)); }
-
     CUDA_CHECK(cudaStreamDestroy(m_stream));
-  }
-
-  void create_context()
-  {
-    spdlog::info("[Renderer] creating OptiX context");
-
-    CUDA_CHECK(cudaFree(0));
-
-    CUcontext cu_cxt = 0;
-    OPTIX_CHECK(optixInit());
-    OptixDeviceContextOptions options = {};
-    options.validationMode = m_enable_validation_mode
-                                 ? OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_ALL
-                                 : OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_OFF;
-    options.logCallbackFunction = &context_log_callback;
-    options.logCallbackLevel = 4;
-    OPTIX_CHECK(optixDeviceContextCreate(cu_cxt, &options, &m_context));
   }
 
   void create_module(const std::filesystem::path& ptx_filepath)
@@ -533,7 +513,19 @@ class Renderer
 
   void wait_for_completion() { CUDA_SYNC_CHECK(); }
 
-  OptixDeviceContext get_context() const { return m_context; }
+  static void log_callback(unsigned int level, const char* tag,
+                           const char* message, void* cbdata)
+  {
+    if (level == 4) {
+      spdlog::info("[Renderer][{}] {}", tag, message);
+    } else if (level == 3) {
+      spdlog::warn("[Renderer][{}] {}", tag, message);
+    } else if (level == 2) {
+      spdlog::error("[Renderer][{}] {}", tag, message);
+    } else if (level == 1) {
+      spdlog::critical("[Renderer][{}] {}", tag, message);
+    }
+  }
 
  private:
   uint32_t m_width = 0;
@@ -599,20 +591,6 @@ class Renderer
   // LaunchParams data on device
   std::unique_ptr<cwl::CUDABuffer<uint>> m_sample_count;
   std::unique_ptr<cwl::CUDABuffer<RNGState>> m_rng_states;
-
-  static void context_log_callback(unsigned int level, const char* tag,
-                                   const char* message, void* cbdata)
-  {
-    if (level == 4) {
-      spdlog::info("[Renderer][{}] {}", tag, message);
-    } else if (level == 3) {
-      spdlog::warn("[Renderer][{}] {}", tag, message);
-    } else if (level == 2) {
-      spdlog::error("[Renderer][{}] {}", tag, message);
-    } else if (level == 1) {
-      spdlog::critical("[Renderer][{}] {}", tag, message);
-    }
-  }
 
   static std::vector<char> read_file(const std::filesystem::path& filepath)
   {
