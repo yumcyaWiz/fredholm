@@ -147,9 +147,9 @@ int main()
           controller.init_render_states();
         }
 
-        ImGui::Combo("AOV",
-                     reinterpret_cast<int*>(&controller.m_imgui_aov_type),
-                     "Beauty\0Denoised\0Position\0Normal\0Depth\0Albedo\0\0");
+        ImGui::Combo(
+            "AOV", reinterpret_cast<int*>(&controller.m_imgui_aov_type),
+            "Beauty\0Denoised\0Position\0Normal\0Depth\0TexCoord\0Albedo\0\0");
 
         ImGui::Text("spp: %d", controller.m_imgui_n_samples);
       }
@@ -200,7 +200,8 @@ int main()
     controller.m_layer_position->get_gl_buffer().bindToShaderStorageBuffer(2);
     controller.m_layer_normal->get_gl_buffer().bindToShaderStorageBuffer(3);
     controller.m_layer_depth->get_gl_buffer().bindToShaderStorageBuffer(4);
-    controller.m_layer_albedo->get_gl_buffer().bindToShaderStorageBuffer(5);
+    controller.m_layer_texcoord->get_gl_buffer().bindToShaderStorageBuffer(5);
+    controller.m_layer_albedo->get_gl_buffer().bindToShaderStorageBuffer(6);
     quad.draw(render_pipeline);
 
     // render imgui

@@ -79,6 +79,7 @@ struct RenderLayer {
   float4* position;
   float* depth;
   float4* normal;
+  float4* texcoord;
   float4* albedo;
 };
 

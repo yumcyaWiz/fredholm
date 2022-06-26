@@ -15,7 +15,15 @@
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
-enum class AOVType : int { BEAUTY, DENOISED, POSITION, NORMAL, DEPTH, ALBEDO };
+enum class AOVType : int {
+  BEAUTY,
+  DENOISED,
+  POSITION,
+  NORMAL,
+  TEXCOORD,
+  DEPTH,
+  ALBEDO
+};
 
 class Controller
 {
@@ -39,6 +47,7 @@ class Controller
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_position = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_normal = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float>> m_layer_depth = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_texcoord = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
 
@@ -120,6 +129,8 @@ class Controller
         m_imgui_resolution[0], m_imgui_resolution[1]);
     m_layer_depth = std::make_unique<cwl::CUDAGLBuffer<float>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
+    m_layer_texcoord = std::make_unique<cwl::CUDAGLBuffer<float4>>(
+        m_imgui_resolution[0], m_imgui_resolution[1]);
     m_layer_albedo = std::make_unique<cwl::CUDAGLBuffer<float4>>(
         m_imgui_resolution[0], m_imgui_resolution[1]);
   }
@@ -155,6 +166,7 @@ class Controller
       render_layers.position = m_layer_position->get_device_ptr();
       render_layers.normal = m_layer_normal->get_device_ptr();
       render_layers.depth = m_layer_depth->get_device_ptr();
+      render_layers.texcoord = m_layer_texcoord->get_device_ptr();
       render_layers.albedo = m_layer_albedo->get_device_ptr();
 
       m_renderer->render(*m_camera, render_layers, 1, m_imgui_max_depth);

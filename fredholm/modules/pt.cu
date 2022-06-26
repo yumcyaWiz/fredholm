@@ -28,6 +28,7 @@ struct RadiancePayload {
   float3 position = make_float3(0);
   float3 normal = make_float3(0);
   float depth = 0;
+  float2 texcoord = make_float2(0);
   float3 albedo = make_float3(0);
 };
 
@@ -159,6 +160,7 @@ extern "C" __global__ void __raygen__rg()
   float3 position = make_float3(params.render_layer.position[image_idx]);
   float3 normal = make_float3(params.render_layer.normal[image_idx]);
   float depth = params.render_layer.depth[image_idx];
+  float2 texcoord = make_float2(params.render_layer.texcoord[image_idx]);
   float3 albedo = make_float3(params.render_layer.albedo[image_idx]);
 
   for (int spp = 0; spp < params.n_samples; ++spp) {
@@ -185,6 +187,7 @@ extern "C" __global__ void __raygen__rg()
     position = coef * (n_spp * position + payload.position);
     normal = coef * (n_spp * normal + payload.normal);
     depth = coef * (n_spp * depth + payload.depth);
+    texcoord = coef * (n_spp * texcoord + payload.texcoord);
     albedo = coef * (n_spp * albedo + payload.albedo);
 
     n_spp++;
@@ -202,6 +205,7 @@ extern "C" __global__ void __raygen__rg()
   params.render_layer.position[image_idx] = make_float4(position, 1.0f);
   params.render_layer.normal[image_idx] = make_float4(normal, 1.0f);
   params.render_layer.depth[image_idx] = depth;
+  params.render_layer.texcoord[image_idx] = make_float4(texcoord, 0.0f, 1.0f);
   params.render_layer.albedo[image_idx] = make_float4(albedo, 1.0f);
 }
 
@@ -246,6 +250,7 @@ extern "C" __global__ void __closesthit__radiance()
     payload->position = surf_info.x;
     payload->normal = surf_info.n_s;
     payload->depth = surf_info.t;
+    payload->texcoord = surf_info.texcoord;
     payload->albedo = shading_params.base_color;
 
     payload->firsthit = false;

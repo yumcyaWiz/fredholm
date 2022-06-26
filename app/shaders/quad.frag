@@ -12,11 +12,13 @@ layout(std430, binding = 2) buffer layout_position {
 layout(std430, binding = 3) buffer layout_normal {
   vec4 normal[];
 };
-
 layout(std430, binding = 4) buffer layout_depth {
   float depth[];
 };
-layout(std430, binding = 5) buffer layout_albedo {
+layout(std430, binding = 5) buffer layout_texcoord {
+  vec4 texcoord[];
+};
+layout(std430, binding = 6) buffer layout_albedo {
   vec4 albedo[];
 };
 
@@ -56,8 +58,12 @@ void main() {
   else if(aov_type == 4) {
     color = vec3(depth[idx]);
   }
-  // albedo
+  // texcoord
   else if(aov_type == 5) {
+    color = texcoord[idx].xyz;
+  }
+  // albedo
+  else if(aov_type == 6) {
     color = albedo[idx].xyz;
     color = pow(color, vec3(1.0 / 2.2));
   }
