@@ -3,6 +3,9 @@
 #include <filesystem>
 #include <memory>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+//
 #include "cwl/buffer.h"
 //
 #include "optwl/optwl.h"
@@ -33,6 +36,7 @@ class Controller
   int m_imgui_max_samples = 100;
   int m_imgui_max_depth = 100;
   AOVType m_imgui_aov_type = AOVType::BEAUTY;
+  char m_imgui_filename[256] = "output.png";
 
   float m_imgui_origin[3] = {0, 1, 5};
   float m_imgui_forward[3] = {0, 0, -1};
@@ -181,5 +185,64 @@ class Controller
   {
     m_denoiser->denoise();
     m_denoiser->wait_for_completion();
+  }
+
+  void save_image() const
+  {
+    // copy image from device to host
+    std::vector<float4> image_f4;
+    switch (m_imgui_aov_type) {
+      case AOVType::BEAUTY: {
+        m_layer_beauty->copy_from_device_to_host(image_f4);
+      } break;
+      case AOVType::DENOISED: {
+        m_layer_denoised->copy_from_device_to_host(image_f4);
+      } break;
+      case AOVType::POSITION: {
+        m_layer_position->copy_from_device_to_host(image_f4);
+      } break;
+      case AOVType::NORMAL: {
+        m_layer_normal->copy_from_device_to_host(image_f4);
+      } break;
+      // TODO: handle depth case
+      case AOVType::DEPTH: {
+      } break;
+      case AOVType::TEXCOORD: {
+        m_layer_texcoord->copy_from_device_to_host(image_f4);
+      } break;
+      case AOVType::ALBEDO: {
+        m_layer_albedo->copy_from_device_to_host(image_f4);
+      } break;
+    }
+
+    // convert float4 to uchar4
+    std::vector<uchar4> image_c4(image_f4.size());
+    for (int j = 0; j < m_imgui_resolution[1]; ++j) {
+      for (int i = 0; i < m_imgui_resolution[0]; ++i) {
+        const int idx = i + m_imgui_resolution[0] * j;
+        float4 v = image_f4[idx];
+
+        // gamma correction
+        v.x = std::pow(v.x, 1.0f / 2.2f);
+        v.y = std::pow(v.y, 1.0f / 2.2f);
+        v.z = std::pow(v.z, 1.0f / 2.2f);
+
+        image_c4[idx].x =
+            static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
+        image_c4[idx].y =
+            static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
+        image_c4[idx].z =
+            static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
+        image_c4[idx].w =
+            static_cast<unsigned char>(std::clamp(255.0f * v.w, 0.0f, 255.0f));
+      }
+    }
+
+    // save image
+    stbi_write_png(m_imgui_filename, m_imgui_resolution[0],
+                   m_imgui_resolution[1], 4, image_c4.data(),
+                   sizeof(uchar4) * m_imgui_resolution[0]);
+
+    spdlog::info("[GUI] image saved as {}", m_imgui_filename);
   }
 };

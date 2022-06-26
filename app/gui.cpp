@@ -152,6 +152,9 @@ int main()
             "Beauty\0Denoised\0Position\0Normal\0Depth\0TexCoord\0Albedo\0\0");
 
         ImGui::Text("spp: %d", controller.m_imgui_n_samples);
+
+        ImGui::InputText("filename", controller.m_imgui_filename, 256);
+        if (ImGui::Button("Save image")) { controller.save_image(); }
       }
 
       ImGui::Separator();

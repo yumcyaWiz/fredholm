@@ -51,6 +51,13 @@ class CUDABuffer
                           cudaMemcpyHostToDevice));
   }
 
+  void copy_from_device_to_host(std::vector<T>& value)
+  {
+    value.resize(m_buffer_size);
+    CUDA_CHECK(cudaMemcpy(value.data(), m_d_ptr, m_buffer_size * sizeof(T),
+                          cudaMemcpyDeviceToHost));
+  }
+
   T* get_device_ptr() const { return m_d_ptr; }
 
   uint32_t get_size() const { return m_buffer_size; }
@@ -63,12 +70,13 @@ class CUDABuffer
 };
 
 // TODO: remove dependency on gcss
+// TODO: remove width, height
 template <typename T>
 struct CUDAGLBuffer {
-  CUDAGLBuffer(uint32_t width, uint32_t height)
+  CUDAGLBuffer(uint32_t width, uint32_t height) : m_buffer_size(width * height)
   {
     // create gl buffer
-    std::vector<T> data(width * height);
+    std::vector<T> data(m_buffer_size);
     m_buffer.setData(data, GL_STATIC_DRAW);
 
     // get cuda device ptr from OpenGL texture
@@ -100,11 +108,19 @@ struct CUDAGLBuffer {
     // CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
   }
 
+  void copy_from_device_to_host(std::vector<T>& value)
+  {
+    value.resize(m_buffer_size);
+    CUDA_CHECK(cudaMemcpy(value.data(), m_d_buffer, m_buffer_size * sizeof(T),
+                          cudaMemcpyDeviceToHost));
+  }
+
   const gcss::Buffer<T>& get_gl_buffer() const { return m_buffer; }
 
   T* get_device_ptr() const { return m_d_buffer; }
 
   gcss::Buffer<T> m_buffer;
+  uint32_t m_buffer_size;
   cudaGraphicsResource* m_resource;
   T* m_d_buffer;
 };
