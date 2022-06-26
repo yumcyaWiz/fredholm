@@ -116,7 +116,7 @@ class Controller
   void init_denoiser()
   {
     m_layer_denoised = std::make_unique<cwl::CUDAGLBuffer<float4>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
     m_denoiser = std::make_unique<fredholm::Denoiser>(
         m_context->m_context, m_imgui_resolution[0], m_imgui_resolution[1],
         m_layer_beauty->get_device_ptr(), m_layer_normal->get_device_ptr(),
@@ -126,17 +126,17 @@ class Controller
   void init_render_layers()
   {
     m_layer_beauty = std::make_unique<cwl::CUDAGLBuffer<float4>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
     m_layer_position = std::make_unique<cwl::CUDAGLBuffer<float4>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
     m_layer_normal = std::make_unique<cwl::CUDAGLBuffer<float4>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
     m_layer_depth = std::make_unique<cwl::CUDAGLBuffer<float>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
     m_layer_texcoord = std::make_unique<cwl::CUDAGLBuffer<float4>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
     m_layer_albedo = std::make_unique<cwl::CUDAGLBuffer<float4>>(
-        m_imgui_resolution[0], m_imgui_resolution[1]);
+        m_imgui_resolution[0] * m_imgui_resolution[1]);
   }
 
   // TODO: clear scene before loading

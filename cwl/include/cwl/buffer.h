@@ -70,10 +70,9 @@ class CUDABuffer
 };
 
 // TODO: remove dependency on gcss
-// TODO: remove width, height
 template <typename T>
 struct CUDAGLBuffer {
-  CUDAGLBuffer(uint32_t width, uint32_t height) : m_buffer_size(width * height)
+  CUDAGLBuffer(uint32_t buffer_size) : m_buffer_size(buffer_size)
   {
     // create gl buffer
     std::vector<T> data(m_buffer_size);
