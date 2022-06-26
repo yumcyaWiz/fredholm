@@ -123,6 +123,8 @@ static __forceinline__ __device__ void fill_surface_info(
   const float2 tex2 = texcoords[idx.z];
   info.texcoord = (1.0f - info.barycentric.x - info.barycentric.y) * tex0 +
                   info.barycentric.x * tex1 + info.barycentric.y * tex2;
+  // flip y component
+  info.texcoord.y = 1.0f - info.texcoord.y;
 
   // flip normal
   info.is_entering = dot(-ray_direction, info.n_s) > 0;
