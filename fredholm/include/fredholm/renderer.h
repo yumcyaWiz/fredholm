@@ -182,6 +182,9 @@ class Renderer
     hitgroup_program_group_desc.hitgroup.moduleCH = m_module;
     hitgroup_program_group_desc.hitgroup.entryFunctionNameCH =
         "__closesthit__radiance";
+    hitgroup_program_group_desc.hitgroup.moduleAH = m_module;
+    hitgroup_program_group_desc.hitgroup.entryFunctionNameAH =
+        "__anyhit__radiance";
     sizeof_log = sizeof(log);
     OPTIX_CHECK_LOG(optixProgramGroupCreate(
         m_context, &hitgroup_program_group_desc, 1, &options, log, &sizeof_log,
@@ -189,6 +192,8 @@ class Renderer
 
     hitgroup_program_group_desc.hitgroup.entryFunctionNameCH =
         "__closesthit__shadow";
+    hitgroup_program_group_desc.hitgroup.entryFunctionNameAH =
+        "__anyhit__shadow";
     sizeof_log = sizeof(log);
     OPTIX_CHECK_LOG(optixProgramGroupCreate(
         m_context, &hitgroup_program_group_desc, 1, &options, log, &sizeof_log,

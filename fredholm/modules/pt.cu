@@ -223,6 +223,42 @@ extern "C" __global__ void __miss__radiance()
 
 extern "C" __global__ void __miss__shadow() {}
 
+extern "C" __global__ void __anyhit__radiance()
+{
+  const HitGroupSbtRecordData* sbt =
+      reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
+  const uint prim_idx = optixGetPrimitiveIndex();
+
+  // get material info
+  const uint material_id = sbt->material_ids[prim_idx];
+  const Material& material = params.materials[material_id];
+
+  if (material.alpha_texture_id > 0) {
+    // fill surface info
+    const float2 barycentric = optixGetTriangleBarycentrics();
+
+    // calc texcoord
+    const uint3 idx = sbt->indices[prim_idx];
+    const float2 tex0 = sbt->texcoords[idx.x];
+    const float2 tex1 = sbt->texcoords[idx.y];
+    const float2 tex2 = sbt->texcoords[idx.z];
+    float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                      barycentric.x * tex1 + barycentric.y * tex2;
+    texcoord.y = 1.0f - texcoord.y;
+
+    // fetch alpha texture
+    const float alpha =
+        tex2D<float4>(params.textures[material.alpha_texture_id], texcoord.x,
+                      texcoord.y)
+            .x;
+
+    // ignore intersection
+    if (alpha < 0.5) { optixIgnoreIntersection(); }
+  }
+}
+
+extern "C" __global__ void __anyhit__shadow() {}
+
 extern "C" __global__ void __closesthit__radiance()
 {
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
