@@ -239,6 +239,10 @@ class Renderer
 
   void create_sbt()
   {
+    // clear previous sbt records
+    m_miss_records.clear();
+    m_hit_group_records.clear();
+
     spdlog::info("[Renderer] creating OptiX shader binding table");
 
     // fill raygen header

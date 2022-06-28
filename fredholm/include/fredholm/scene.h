@@ -131,6 +131,7 @@ struct Scene {
     m_material_ids.clear();
 
     m_materials.clear();
+    m_textures.clear();
   }
 
   void load_obj(const std::filesystem::path& filepath)

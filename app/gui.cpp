@@ -99,8 +99,7 @@ int main()
   controller.init_camera();
 
   controller.init_renderer();
-  controller.load_scene(std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" /
-                        "sponza/sponza.obj");
+  controller.load_scene();
   controller.init_render_states();
   controller.init_render_layers();
 
@@ -136,6 +135,11 @@ int main()
     ImGui::Begin("UI");
     {
       {
+        if (ImGui::Combo("Scene", &controller.m_imgui_scene_id,
+                         "Sponza\0Salle de bain\0Rungholt\0\0")) {
+          controller.load_scene();
+        }
+
         if (ImGui::InputInt2("Resolution", controller.m_imgui_resolution)) {
           controller.update_resolution();
         }

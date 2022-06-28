@@ -28,9 +28,15 @@ enum class AOVType : int {
   ALBEDO
 };
 
+static std::vector<std::filesystem::path> scene_filepaths = {
+    "../resources/sponza/sponza.obj",
+    "../resources/salle_de_bain/salle_de_bain.obj",
+    "../resources/rungholt/rungholt.obj"};
+
 class Controller
 {
  public:
+  int m_imgui_scene_id = 0;
   int m_imgui_resolution[2] = {512, 512};
   int m_imgui_n_samples = 0;
   int m_imgui_max_samples = 100;
@@ -139,10 +145,10 @@ class Controller
         m_imgui_resolution[0] * m_imgui_resolution[1]);
   }
 
-  // TODO: clear scene before loading
-  void load_scene(const std::filesystem::path& filepath)
+  void load_scene()
   {
-    m_scene->load_obj(filepath);
+    m_scene->load_obj(scene_filepaths[m_imgui_scene_id]);
+
     m_renderer->load_scene(*m_scene);
     m_renderer->build_accel();
     m_renderer->create_sbt();
