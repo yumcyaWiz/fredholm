@@ -183,6 +183,19 @@ struct Scene {
             unique_textures[m.diffuse_texname];
       }
 
+      if (!m.alpha_texname.empty()) {
+        if (unique_textures.count(m.alpha_texname) == 0) {
+          // load texture id
+          unique_textures[m.alpha_texname] = m_textures.size();
+          // load texture
+          m_textures.push_back(
+              Texture(filepath.parent_path() / m.alpha_texname));
+        }
+
+        // set texture id on material
+        m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
+      }
+
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
         m_materials[i].emission = 1.0f;
