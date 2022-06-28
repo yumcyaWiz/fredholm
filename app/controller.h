@@ -229,9 +229,13 @@ class Controller
         float4 v = image_f4[idx];
 
         // gamma correction
-        v.x = std::pow(v.x, 1.0f / 2.2f);
-        v.y = std::pow(v.y, 1.0f / 2.2f);
-        v.z = std::pow(v.z, 1.0f / 2.2f);
+        if (m_imgui_aov_type == AOVType::BEAUTY ||
+            m_imgui_aov_type == AOVType::DENOISED ||
+            m_imgui_aov_type == AOVType::ALBEDO) {
+          v.x = std::pow(v.x, 1.0f / 2.2f);
+          v.y = std::pow(v.y, 1.0f / 2.2f);
+          v.z = std::pow(v.z, 1.0f / 2.2f);
+        }
 
         image_c4[idx].x =
             static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
