@@ -1,3 +1,0 @@
-# gcss
-
-OpenGL wrapping library.

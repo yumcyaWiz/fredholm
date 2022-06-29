@@ -1,5 +1,4 @@
-#ifndef _CSS_TEXTURE_H
-#define _CSS_TEXTURE_H
+#pragma once
 #include <filesystem>
 #include <vector>
 
@@ -11,7 +10,7 @@
 //
 #include "spdlog/spdlog.h"
 
-namespace gcss
+namespace oglw
 {
 class Texture
 {
@@ -175,6 +174,4 @@ class Texture
   }
 };
 
-}  // namespace gcss
-
-#endif
+}  // namespace oglw

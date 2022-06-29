@@ -1,5 +1,4 @@
-#ifndef _CSS_QUAD_H
-#define _CSS_QUAD_H
+#pragma once
 #include <vector>
 
 #include "glad/gl.h"
@@ -8,7 +7,7 @@
 #include "shader.h"
 #include "vertex-array-object.h"
 
-namespace gcss
+namespace oglw
 {
 
 class Quad
@@ -53,6 +52,4 @@ class Quad
   }
 };
 
-}  // namespace gcss
-
-#endif
+}  // namespace oglw

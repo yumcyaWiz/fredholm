@@ -34,8 +34,8 @@ find_package(OpenGL REQUIRED)
 # external
 add_subdirectory("externals/")
 
-# gcss
-add_subdirectory("gcss/")
+# oglw
+add_subdirectory("oglw/")
 
 # cwl
 add_subdirectory("cwl/")

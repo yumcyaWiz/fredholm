@@ -10,8 +10,8 @@
 #include "imgui_impl_opengl3.h"
 #include "spdlog/spdlog.h"
 //
-#include "gcss/quad.h"
-#include "gcss/shader.h"
+#include "oglw/quad.h"
+#include "oglw/shader.h"
 //
 #include "controller.h"
 
@@ -106,18 +106,18 @@ int main()
   controller.init_denoiser();
 
   // prepare quad
-  gcss::Quad quad;
+  oglw::Quad quad;
 
   // prepare shaders
-  gcss::VertexShader vertex_shader(
+  oglw::VertexShader vertex_shader(
       std::filesystem::path(CMAKE_CURRENT_SOURCE_DIR) / "shaders" /
       "quad.vert");
-  gcss::FragmentShader fragment_shader(
+  oglw::FragmentShader fragment_shader(
       std::filesystem::path(CMAKE_CURRENT_SOURCE_DIR) / "shaders" /
       "quad.frag");
 
   // create render pipeline
-  gcss::Pipeline render_pipeline;
+  oglw::Pipeline render_pipeline;
   render_pipeline.attachVertexShader(vertex_shader);
   render_pipeline.attachFragmentShader(fragment_shader);
 

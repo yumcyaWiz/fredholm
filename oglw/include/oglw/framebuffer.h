@@ -1,20 +1,21 @@
-#ifndef _FRAMEBUFFER_H
-#define _FRAMEBUFFER_H
+#pragma once
 #include "glad/gl.h"
 #include "spdlog/spdlog.h"
 //
 #include "texture.h"
 
-namespace gcss {
+namespace oglw
+{
 
-class FrameBuffer {
+class FrameBuffer
+{
  private:
   GLuint framebuffer;
   std::vector<GLenum> attachments;
 
  public:
-  FrameBuffer(const std::vector<GLenum>& attachments)
-      : attachments(attachments) {
+  FrameBuffer(const std::vector<GLenum>& attachments) : attachments(attachments)
+  {
     glCreateFramebuffers(1, &framebuffer);
     glNamedFramebufferDrawBuffers(framebuffer, this->attachments.size(),
                                   this->attachments.data());
@@ -25,7 +26,8 @@ class FrameBuffer {
   FrameBuffer(const FrameBuffer& other) = delete;
 
   FrameBuffer(FrameBuffer&& other)
-      : framebuffer(other.framebuffer), attachments(other.attachments) {
+      : framebuffer(other.framebuffer), attachments(other.attachments)
+  {
     other.framebuffer = 0;
   }
 
@@ -33,7 +35,8 @@ class FrameBuffer {
 
   FrameBuffer& operator=(const FrameBuffer& other) = delete;
 
-  FrameBuffer& operator=(FrameBuffer&& other) {
+  FrameBuffer& operator=(FrameBuffer&& other)
+  {
     if (this != &other) {
       release();
 
@@ -46,7 +49,8 @@ class FrameBuffer {
     return *this;
   }
 
-  void release() {
+  void release()
+  {
     if (framebuffer) {
       spdlog::info("[FrameBuffer] release framebuffer {:x}", framebuffer);
 
@@ -55,7 +59,8 @@ class FrameBuffer {
     }
   }
 
-  void bindTexture(const Texture& texture, std::size_t attachment_index) const {
+  void bindTexture(const Texture& texture, std::size_t attachment_index) const
+  {
     glNamedFramebufferTexture(framebuffer, attachments.at(attachment_index),
                               texture.getTextureName(), 0);
   }
@@ -65,6 +70,4 @@ class FrameBuffer {
   void deactivate() const { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 };
 
-}  // namespace gcss
-
-#endif
+}  // namespace oglw

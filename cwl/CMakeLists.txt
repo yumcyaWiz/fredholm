@@ -6,5 +6,5 @@ target_include_directories(cwl INTERFACE
 )
 target_link_libraries(cwl INTERFACE
     CUDA::cudart
-    gcss
+    oglw
 )

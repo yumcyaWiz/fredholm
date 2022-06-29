@@ -1,12 +1,10 @@
-#ifndef _GCSS_VERTEX_ARRAY_OBJECT
-#define _GCSS_VERTEX_ARRAY_OBJECT
-
+#pragma once
 #include "glad/gl.h"
 #include "spdlog/spdlog.h"
 //
 #include "buffer.h"
 
-namespace gcss
+namespace oglw
 {
 
 class VertexArrayObject
@@ -75,6 +73,4 @@ class VertexArrayObject
   }
 };
 
-}  // namespace gcss
-
-#endif
+}  // namespace oglw

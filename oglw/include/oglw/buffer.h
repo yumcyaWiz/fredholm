@@ -1,11 +1,10 @@
-#ifndef _GCSS_BUFFER_H
-#define _GCSS_BUFFER_H
+#pragma once
 #include <vector>
 
 #include "glad/gl.h"
 #include "spdlog/spdlog.h"
 
-namespace gcss
+namespace oglw
 {
 
 template <typename T>
@@ -75,6 +74,4 @@ class Buffer
   }
 };
 
-}  // namespace gcss
-
-#endif
+}  // namespace oglw

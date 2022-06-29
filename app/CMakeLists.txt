@@ -8,7 +8,7 @@ target_link_libraries(gui PRIVATE
     spdlog::spdlog
     OpenGL::GL
     glad
-    gcss
+    oglw
     glfw
     imgui
     imgui_glfw_opengl3

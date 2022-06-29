@@ -1,10 +1,9 @@
-#ifndef _GCSS_CAMERA_H
-#define _GCSS_CAMERA_H
-
+#pragma once
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
-namespace gcss {
+namespace oglw
+{
 
 enum class CameraMovement {
   FORWARD,
@@ -15,7 +14,8 @@ enum class CameraMovement {
   DOWN,
 };
 
-class Camera {
+class Camera
+{
  private:
   glm::vec3 camPos;
   glm::vec3 camForward;
@@ -44,24 +44,30 @@ class Camera {
         movementSpeed{1.0f},
         lookAroundSpeed{0.1f},
         phi{270.0f},
-        theta{90.0f} {}
+        theta{90.0f}
+  {
+  }
 
-  glm::mat4 computeViewMatrix() const {
+  glm::mat4 computeViewMatrix() const
+  {
     return glm::lookAt(camPos, camPos + camForward, camUp);
   }
 
-  glm::mat4 computeProjectionMatrix(uint32_t width, uint32_t height) const {
+  glm::mat4 computeProjectionMatrix(uint32_t width, uint32_t height) const
+  {
     return glm::perspective(glm::radians(fov),
                             static_cast<float>(width) / height, znear, zfar);
   }
 
-  glm::mat4 computeViewProjectionmatrix(uint32_t width, uint32_t height) const {
+  glm::mat4 computeViewProjectionmatrix(uint32_t width, uint32_t height) const
+  {
     return computeProjectionMatrix(width, height) * computeViewMatrix();
   }
 
   void reset() { *this = Camera(); }
 
-  void move(const CameraMovement& direction, float dt) {
+  void move(const CameraMovement& direction, float dt)
+  {
     const float velocity = movementSpeed * dt;
     switch (direction) {
       case CameraMovement::FORWARD:
@@ -85,7 +91,8 @@ class Camera {
     }
   }
 
-  void lookAround(float d_phi, float d_theta) {
+  void lookAround(float d_phi, float d_theta)
+  {
     // update phi, theta
     phi += lookAroundSpeed * d_phi;
     if (phi < 0.0f) phi = 360.0f;
@@ -106,7 +113,8 @@ class Camera {
   }
 
   void getRay(const glm::vec2& window, const glm::uvec2& resolution,
-              glm::vec3& origin, glm::vec3& direction) const {
+              glm::vec3& origin, glm::vec3& direction) const
+  {
     const glm::mat4 view = computeViewMatrix();
     const glm::mat4 projection =
         computeProjectionMatrix(resolution.x, resolution.y);
@@ -122,6 +130,4 @@ class Camera {
   }
 };
 
-}  // namespace gcss
-
-#endif
+}  // namespace oglw

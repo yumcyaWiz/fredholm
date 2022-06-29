@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "cwl/util.h"
-#include "gcss/buffer.h"
+#include "oglw/buffer.h"
 
 namespace cwl
 {
@@ -114,11 +114,11 @@ struct CUDAGLBuffer {
                           cudaMemcpyDeviceToHost));
   }
 
-  const gcss::Buffer<T>& get_gl_buffer() const { return m_buffer; }
+  const oglw::Buffer<T>& get_gl_buffer() const { return m_buffer; }
 
   T* get_device_ptr() const { return m_d_buffer; }
 
-  gcss::Buffer<T> m_buffer;
+  oglw::Buffer<T> m_buffer;
   uint32_t m_buffer_size;
   cudaGraphicsResource* m_resource;
   T* m_d_buffer;
