@@ -72,7 +72,9 @@ __forceinline__ __device__ float abs_cos_phi(const float3& w)
   return fabs(cos_phi(w));
 }
 
-struct MicrofacetReflection {
+class MicrofacetReflection
+{
+ public:
   __device__ MicrofacetReflection() {}
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -84,12 +86,15 @@ struct MicrofacetReflection {
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
   }
 
+  __device__ float3 sample(const float3& wo, float3& wi, float& pdf) const {}
+
   __device__ float pdf(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
     return 0.25f * D_visible(wo, wh) / abs_cos_theta(wo);
   }
 
+ private:
   __device__ float D(const float3& wh) const
   {
     const float t = wh.x * wh.x / (alpha.x * alpha.x) +
@@ -118,6 +123,31 @@ struct MicrofacetReflection {
   __device__ float G2(const float3& wo, const float3& wi) const
   {
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
+  }
+
+  // https://jcgt.org/published/0007/04/01/
+  __device__ float3 sample_vndf(const float3& wo, const float2& u) const
+  {
+    const float3 Vh =
+        normalize(make_float3(alpha.x * wo.x, wo.y, alpha.y * wo.z));
+
+    const float lensq = Vh.x * Vh.x + Vh.z * Vh.z;
+    const float3 T1 = lensq > 0 ? make_float3(Vh.z, 0, -Vh.x) / sqrtf(lensq)
+                                : make_float3(0, 0, 1);
+    const float3 T2 = cross(Vh, T1);
+
+    const float r = sqrtf(u.x);
+    const float phi = 2.0f * M_PI * u.y;
+    const float t1 = r * cosf(phi);
+    float t2 = r * sinf(phi);
+    const float s = 0.5f * (1.0f + Vh.y);
+    t2 = (1.0f - s) * sqrtf(fmax(1.0f - t1 * t1, 0.0f)) + s * t2;
+    const float3 Nh =
+        t1 * T1 + t2 * T2 + sqrtf(fmax(1.0f - t1 * t1 - t2 * t2, 0.0f)) * Vh;
+    const float3 Ne = normalize(
+        make_float3(alpha.x * Nh.x, fmax(0.0f, Nh.y), alpha.y * Nh.z));
+
+    return Ne;
   }
 
   float2 alpha;
