@@ -1,3 +1,5 @@
+#include "sutil/vec_math.h"
+
 __forceinline__ __device__ float cos_theta(const float3& w) { return w.y; }
 
 __forceinline__ __device__ float cos2_theta(const float3& w)
@@ -73,6 +75,15 @@ __forceinline__ __device__ float abs_cos_phi(const float3& w)
 struct MicrofacetReflection {
   __device__ MicrofacetReflection() {}
 
+  __device__ float3 eval(const float3& wo, const float3& wi)
+  {
+    const float3 wh = normalize(wo + wi);
+    const float3 f = make_float3(1.0f);
+    const float d = D(wh);
+    const float g = G2(wo, wi);
+    return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
+  }
+
   __device__ float D(const float3& w)
   {
     const float t = w.x * w.x / (alpha.x * alpha.x) +
@@ -80,9 +91,20 @@ struct MicrofacetReflection {
     return 1.0f / (M_PI * alpha.x * alpha.y * t * t);
   }
 
-  __device__ float G(const float3& w) {}
+  __device__ float lambda(const float3& w)
+  {
+    const float a0 = sqrtf(cos2_phi(w) * alpha.x * alpha.x +
+                           sin2_phi(w) * alpha.y * alpha.y);
+    const float a = 1.0f / (a0 * tan_theta(w));
+    return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / (a * a)));
+  }
 
-  __device__ float lambda(const float3& w) {}
+  __device__ float G1(const float3& w) { return 1.0f / (1.0f + lambda(w)); }
+
+  __device__ float G2(const float3& wo, const float3& wi)
+  {
+    return 1.0f / (1.0f + lambda(wo) + lambda(wi));
+  }
 
   float2 alpha;
 };
