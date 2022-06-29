@@ -1,5 +1,6 @@
 #include <optix.h>
 
+#include "bxdf.cu"
 #include "fredholm/shared.h"
 #include "math.cu"
 #include "sampling.cu"

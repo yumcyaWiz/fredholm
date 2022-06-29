@@ -72,10 +72,20 @@ __forceinline__ __device__ float abs_cos_phi(const float3& w)
   return fabs(cos_phi(w));
 }
 
+__forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
+{
+  return -w + 2.0f * dot(w, n) * n;
+}
+
 class MicrofacetReflection
 {
  public:
-  __device__ MicrofacetReflection() {}
+  __device__ MicrofacetReflection(float roughness, float anisotropy)
+  {
+    // Revisiting Physically Based Shading at Imageworks p.24
+    alpha.x = roughness * roughness * (1.0f + anisotropy);
+    alpha.y = roughness * roughness * (1.0f - anisotropy);
+  }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
@@ -86,9 +96,23 @@ class MicrofacetReflection
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
   }
 
-  __device__ float3 sample(const float3& wo, float3& wi, float& pdf) const {}
+  __device__ float3 sample(const float3& wo, const float2& u, float3& f,
+                           float& pdf) const
+  {
+    // sample half-vector
+    const float3 wh = sample_vndf(wo, u);
 
-  __device__ float pdf(const float3& wo, const float3& wi) const
+    // compute incident direction
+    const float3 wi = reflect(wo, wh);
+
+    // evaluate BxDF and pdf
+    f = eval(wo, wi);
+    pdf = eval_pdf(wo, wi);
+
+    return wi;
+  }
+
+  __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
     return 0.25f * D_visible(wo, wh) / abs_cos_theta(wo);

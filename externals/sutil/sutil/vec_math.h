@@ -578,7 +578,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float3 floor(const float3& v)
 }
 
 /** reflect */
-SUTIL_INLINE SUTIL_HOSTDEVICE float3 reflect(const float3& i, const float3& n)
+SUTIL_INLINE SUTIL_HOSTDEVICE float3 reflect_sutil(const float3& i,
+                                                   const float3& n)
 {
   return i - 2.0f * n * dot(n, i);
 }
