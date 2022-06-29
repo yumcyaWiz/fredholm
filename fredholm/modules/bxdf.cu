@@ -75,7 +75,7 @@ __forceinline__ __device__ float abs_cos_phi(const float3& w)
 struct MicrofacetReflection {
   __device__ MicrofacetReflection() {}
 
-  __device__ float3 eval(const float3& wo, const float3& wi)
+  __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
     const float3 f = make_float3(1.0f);
@@ -84,14 +84,25 @@ struct MicrofacetReflection {
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
   }
 
-  __device__ float D(const float3& w)
+  __device__ float pdf(const float3& wo, const float3& wi) const
   {
-    const float t = w.x * w.x / (alpha.x * alpha.x) +
-                    w.z * w.z / (alpha.y * alpha.y) + w.y * w.y;
+    const float3 wh = normalize(wo + wi);
+    return 0.25f * D_visible(wo, wh) / abs_cos_theta(wo);
+  }
+
+  __device__ float D(const float3& wh) const
+  {
+    const float t = wh.x * wh.x / (alpha.x * alpha.x) +
+                    wh.z * wh.z / (alpha.y * alpha.y) + wh.y * wh.y;
     return 1.0f / (M_PI * alpha.x * alpha.y * t * t);
   }
 
-  __device__ float lambda(const float3& w)
+  __device__ float D_visible(const float3& w, const float3& wh) const
+  {
+    return G1(w) * fabs(dot(w, wh)) * D(wh) / abs_cos_theta(w);
+  }
+
+  __device__ float lambda(const float3& w) const
   {
     const float a0 = sqrtf(cos2_phi(w) * alpha.x * alpha.x +
                            sin2_phi(w) * alpha.y * alpha.y);
@@ -99,9 +110,12 @@ struct MicrofacetReflection {
     return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / (a * a)));
   }
 
-  __device__ float G1(const float3& w) { return 1.0f / (1.0f + lambda(w)); }
+  __device__ float G1(const float3& w) const
+  {
+    return 1.0f / (1.0f + lambda(w));
+  }
 
-  __device__ float G2(const float3& wo, const float3& wi)
+  __device__ float G2(const float3& wo, const float3& wi) const
   {
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
   }
