@@ -233,7 +233,7 @@ extern "C" __global__ void __anyhit__radiance()
   const uint material_id = sbt->material_ids[prim_idx];
   const Material& material = params.materials[material_id];
 
-  if (material.alpha_texture_id > 0) {
+  if (material.alpha_texture_id >= 0) {
     // fill surface info
     const float2 barycentric = optixGetTriangleBarycentrics();
 

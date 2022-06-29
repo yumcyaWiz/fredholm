@@ -42,21 +42,21 @@ class Renderer
   ~Renderer() noexcept(false)
   {
     // release framebuffer data
-    if (m_sample_count) { m_sample_count.reset(); }
-    if (m_rng_states) { m_rng_states.reset(); }
+    if (m_d_sample_count) { m_d_sample_count.reset(); }
+    if (m_d_rng_states) { m_d_rng_states.reset(); }
 
     // release scene data
-    if (m_vertices) { m_vertices.reset(); }
-    if (m_indices) { m_indices.reset(); }
-    if (m_normals) { m_normals.reset(); }
-    if (m_texcoords) { m_texcoords.reset(); }
-    if (m_material_ids) { m_material_ids.reset(); }
-    if (m_materials) { m_materials.reset(); }
+    if (m_d_vertices) { m_d_vertices.reset(); }
+    if (m_d_indices) { m_d_indices.reset(); }
+    if (m_d_normals) { m_d_normals.reset(); }
+    if (m_d_texcoords) { m_d_texcoords.reset(); }
+    if (m_d_material_ids) { m_d_material_ids.reset(); }
+    if (m_d_materials) { m_d_materials.reset(); }
 
-    if (m_textures.size() > 0) {
-      for (auto& texture : m_textures) { texture.reset(); }
+    if (m_d_textures.size() > 0) {
+      for (auto& texture : m_d_textures) { texture.reset(); }
     }
-    if (m_texture_objects) { m_texture_objects.reset(); }
+    if (m_d_texture_objects) { m_d_texture_objects.reset(); }
 
     // release GAS
     for (auto& gas_output_buffer : m_gas_output_buffers) {
@@ -271,12 +271,12 @@ class Renderer
 
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
-      hit_record.data.vertices = m_vertices->get_device_ptr();
-      hit_record.data.indices = m_indices->get_device_ptr() + submesh_offset;
-      hit_record.data.normals = m_normals->get_device_ptr();
-      hit_record.data.texcoords = m_texcoords->get_device_ptr();
+      hit_record.data.vertices = m_d_vertices->get_device_ptr();
+      hit_record.data.indices = m_d_indices->get_device_ptr() + submesh_offset;
+      hit_record.data.normals = m_d_normals->get_device_ptr();
+      hit_record.data.texcoords = m_d_texcoords->get_device_ptr();
       hit_record.data.material_ids =
-          m_material_ids->get_device_ptr() + submesh_offset;
+          m_d_material_ids->get_device_ptr() + submesh_offset;
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
 
@@ -320,34 +320,36 @@ class Renderer
     m_submesh_offsets = scene.m_submesh_offsets;
     m_submesh_n_faces = scene.m_submesh_n_faces;
 
-    m_vertices = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_vertices);
-    m_indices = std::make_unique<cwl::CUDABuffer<uint3>>(scene.m_indices);
-    m_normals = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_normals);
-    m_texcoords = std::make_unique<cwl::CUDABuffer<float2>>(scene.m_texcoords);
-    m_material_ids =
+    m_d_vertices = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_vertices);
+    m_d_indices = std::make_unique<cwl::CUDABuffer<uint3>>(scene.m_indices);
+    m_d_normals = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_normals);
+    m_d_texcoords =
+        std::make_unique<cwl::CUDABuffer<float2>>(scene.m_texcoords);
+    m_d_material_ids =
         std::make_unique<cwl::CUDABuffer<uint>>(scene.m_material_ids);
-    m_materials =
+    m_d_materials =
         std::make_unique<cwl::CUDABuffer<Material>>(scene.m_materials);
 
-    m_textures.resize(scene.m_textures.size());
+    m_d_textures.resize(scene.m_textures.size());
     for (int i = 0; i < scene.m_textures.size(); ++i) {
       const auto& tex = scene.m_textures[i];
-      m_textures[i] = std::make_unique<cwl::CUDATexture>(
+      m_d_textures[i] = std::make_unique<cwl::CUDATexture>(
           tex.m_width, tex.m_height, tex.m_data.data());
     }
 
-    std::vector<cudaTextureObject_t> texture_objects(m_textures.size());
-    for (int i = 0; i < m_textures.size(); ++i) {
-      texture_objects[i] = m_textures[i]->get_texture_object();
+    std::vector<cudaTextureObject_t> texture_objects(m_d_textures.size());
+    for (int i = 0; i < m_d_textures.size(); ++i) {
+      texture_objects[i] = m_d_textures[i]->get_texture_object();
     }
-    m_texture_objects =
+    m_d_texture_objects =
         std::make_unique<cwl::CUDABuffer<cudaTextureObject_t>>(texture_objects);
 
     spdlog::info("[Renderer] number of vertices: {}",
-                 m_indices->get_size() * 3);
-    spdlog::info("[Renderer] number of faces: {}", m_indices->get_size());
-    spdlog::info("[Renderer] number of materials: {}", m_materials->get_size());
-    spdlog::info("[Renderer] number of textures: {}", m_textures.size());
+                 m_d_indices->get_size() * 3);
+    spdlog::info("[Renderer] number of faces: {}", m_d_indices->get_size());
+    spdlog::info("[Renderer] number of materials: {}",
+                 m_d_materials->get_size());
+    spdlog::info("[Renderer] number of textures: {}", m_d_textures.size());
   }
 
   // TODO: separate GAS, IAS build(when setting transform, only IAS should be
@@ -366,7 +368,8 @@ class Renderer
     // NOTE: need this, since vertexBuffers take a pointer to array of device
     // pointers
     const CUdeviceptr vertex_buffer =
-        reinterpret_cast<CUdeviceptr>(m_vertices->get_device_ptr());
+        reinterpret_cast<CUdeviceptr>(m_d_vertices->get_device_ptr());
+
     const uint32_t flags[1] = {OPTIX_GEOMETRY_FLAG_NONE};
 
     // build GAS for each submesh
@@ -380,7 +383,7 @@ class Renderer
       OptixBuildInput input = {};
       input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
       input.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-      input.triangleArray.numVertices = m_vertices->get_size();
+      input.triangleArray.numVertices = m_d_vertices->get_size();
       input.triangleArray.vertexStrideInBytes = sizeof(float3);
       input.triangleArray.vertexBuffers = &vertex_buffer;
 
@@ -388,7 +391,7 @@ class Renderer
       input.triangleArray.numIndexTriplets = n_faces;
       input.triangleArray.indexStrideInBytes = sizeof(uint3);
       input.triangleArray.indexBuffer = reinterpret_cast<CUdeviceptr>(
-          m_indices->get_device_ptr() + indices_offset);
+          m_d_indices->get_device_ptr() + indices_offset);
 
       input.triangleArray.flags = flags;
       input.triangleArray.numSbtRecords = 1;
@@ -469,7 +472,7 @@ class Renderer
   void init_render_states()
   {
     // init sample count buffer
-    m_sample_count =
+    m_d_sample_count =
         std::make_unique<cwl::CUDABuffer<uint>>(m_width * m_height, 0);
 
     // init RNG state buffer
@@ -483,7 +486,7 @@ class Renderer
       }
     }
 
-    m_rng_states = std::make_unique<cwl::CUDABuffer<RNGState>>(rng_states);
+    m_d_rng_states = std::make_unique<cwl::CUDABuffer<RNGState>>(rng_states);
   }
 
   void render(const Camera& camera, const RenderLayer& render_layer,
@@ -491,8 +494,8 @@ class Renderer
   {
     LaunchParams params;
     params.render_layer = render_layer;
-    params.sample_count = m_sample_count->get_device_ptr();
-    params.rng_states = m_rng_states->get_device_ptr();
+    params.sample_count = m_d_sample_count->get_device_ptr();
+    params.rng_states = m_d_rng_states->get_device_ptr();
 
     params.width = m_width;
     params.height = m_height;
@@ -505,8 +508,8 @@ class Renderer
     params.camera.up = camera.m_up;
     params.camera.f = camera.m_f;
 
-    params.materials = m_materials->get_device_ptr();
-    params.textures = m_texture_objects->get_device_ptr();
+    params.materials = m_d_materials->get_device_ptr();
+    params.textures = m_d_texture_objects->get_device_ptr();
 
     params.ias_handle = m_ias_handle;
 
@@ -545,20 +548,22 @@ class Renderer
   uint32_t m_max_traversable_depth = 1;
   uint32_t m_max_trace_depth = 3;
 
-  // scene data on device
+  // scene data on host
   std::vector<uint> m_submesh_offsets = {};
   std::vector<uint> m_submesh_n_faces = {};
 
-  std::unique_ptr<cwl::CUDABuffer<float3>> m_vertices = nullptr;
-  std::unique_ptr<cwl::CUDABuffer<uint3>> m_indices = nullptr;
-  std::unique_ptr<cwl::CUDABuffer<float3>> m_normals = nullptr;
-  std::unique_ptr<cwl::CUDABuffer<float2>> m_texcoords = nullptr;
-  std::unique_ptr<cwl::CUDABuffer<uint>> m_material_ids = nullptr;
+  // scene data on device
+  std::unique_ptr<cwl::CUDABuffer<float3>> m_d_vertices = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<uint3>> m_d_indices = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float3>> m_d_normals = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float2>> m_d_texcoords = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<uint>> m_d_material_ids = nullptr;
 
-  std::unique_ptr<cwl::CUDABuffer<Material>> m_materials = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<Material>> m_d_materials = nullptr;
 
-  std::vector<std::unique_ptr<cwl::CUDATexture>> m_textures = {};
-  std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_texture_objects = {};
+  std::vector<std::unique_ptr<cwl::CUDATexture>> m_d_textures = {};
+  std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_d_texture_objects =
+      {};
 
   // optix handles
   CUstream m_stream = 0;
@@ -598,8 +603,8 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
-  std::unique_ptr<cwl::CUDABuffer<uint>> m_sample_count;
-  std::unique_ptr<cwl::CUDABuffer<RNGState>> m_rng_states;
+  std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
+  std::unique_ptr<cwl::CUDABuffer<RNGState>> m_d_rng_states;
 
   static std::vector<char> read_file(const std::filesystem::path& filepath)
   {
