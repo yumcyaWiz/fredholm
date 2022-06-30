@@ -112,10 +112,34 @@ class Lambert
   float3 m_albedo;
 };
 
-class MicrofacetReflection
+class FresnelDielectric
 {
  public:
-  __device__ MicrofacetReflection(float roughness, float anisotropy)
+  __device__ FresnelDielectric(float n) : m_n(n) {}
+
+  __device__ float eval(const float cos) const
+  {
+    const float s2 = fmax(1.0f - cos * cos, 0.0f);
+    const float t0 = sqrtf(fmax(1.0f - (s2 / (m_n * m_n)), 0.0f));
+    const float t1 = m_n * t0;
+    const float t2 = m_n * cos;
+
+    const float rs = (cos - t1) / (cos + t1);
+    const float rp = (t0 - t2) / (t0 + t2);
+
+    return 0.5f * (rs * rs + rp * rp);
+  }
+
+ private:
+  float m_n;
+};
+
+class MicrofacetReflectionDielectric
+{
+ public:
+  __device__ MicrofacetReflectionDielectric(float ior, float roughness,
+                                            float anisotropy)
+      : m_fresnel(ior)
   {
     // Revisiting Physically Based Shading at Imageworks p.24
     alpha.x = roughness * roughness * (1.0f + anisotropy);
@@ -125,10 +149,11 @@ class MicrofacetReflection
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float3 f = make_float3(1.0f);
+    const float f = m_fresnel.eval(abs_cos_theta(wo));
     const float d = D(wh);
     const float g = G2(wo, wi);
-    return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
+    return make_float3(0.25f * (f * d * g) /
+                       (abs_cos_theta(wo) * abs_cos_theta(wi)));
   }
 
   __device__ float3 sample(const float3& wo, const float2& u, float3& f,
@@ -209,5 +234,6 @@ class MicrofacetReflection
     return Ne;
   }
 
+  FresnelDielectric m_fresnel;
   float2 alpha;
 };
