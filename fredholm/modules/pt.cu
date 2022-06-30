@@ -303,8 +303,8 @@ extern "C" __global__ void __closesthit__radiance()
   }
 
   // sample next ray direction
-  const float3 wi = sample_cosine_weighted_hemisphere(frandom(payload->rng),
-                                                      frandom(payload->rng));
+  const float2 u = make_float2(frandom(payload->rng), frandom(payload->rng));
+  const float3 wi = sample_cosine_weighted_hemisphere(u);
   const float3 wi_world =
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 

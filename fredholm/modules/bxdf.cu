@@ -1,3 +1,8 @@
+#pragma once
+
+#include <cmath>
+
+#include "sampling.cu"
 #include "sutil/vec_math.h"
 
 __forceinline__ __device__ float cos_theta(const float3& w) { return w.y; }
@@ -76,6 +81,36 @@ __forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
 {
   return -w + 2.0f * dot(w, n) * n;
 }
+
+class Lambert
+{
+ public:
+  __device__ Lambert(const float3& albedo) : m_albedo(albedo) {}
+
+  __device__ float3 eval(const float3& wo, const float3& wi) const
+  {
+    return m_albedo / M_PIf;
+  }
+
+  __device__ float3 sample(const float3& wo, const float2& u, float3& f,
+                           float& pdf) const
+  {
+    const float3 wi = sample_cosine_weighted_hemisphere(u);
+
+    f = eval(wo, wi);
+    pdf = abs_cos_theta(wi) / M_PIf;
+
+    return wi;
+  }
+
+  __device__ float eval_pdf(const float3& wo, const float3& wi) const
+  {
+    return abs_cos_theta(wi) / M_PIf;
+  }
+
+ private:
+  float3 m_albedo;
+};
 
 class MicrofacetReflection
 {

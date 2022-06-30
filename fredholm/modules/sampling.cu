@@ -1,7 +1,8 @@
+#pragma once
+
 #include "fredholm/shared.h"
 
-namespace fredholm
-{
+using namespace fredholm;
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
@@ -22,11 +23,11 @@ static __forceinline__ __device__ float frandom(RNGState& rng)
 }
 
 static __forceinline__ __device__ float3
-sample_cosine_weighted_hemisphere(const float u1, const float u2)
+sample_cosine_weighted_hemisphere(const float2& u)
 {
   // Uniformly sample disk.
-  const float r = sqrtf(u1);
-  const float phi = 2.0f * M_PIf * u2;
+  const float r = sqrtf(u.x);
+  const float phi = 2.0f * M_PIf * u.y;
 
   float3 p;
   p.x = r * cosf(phi);
@@ -36,5 +37,3 @@ sample_cosine_weighted_hemisphere(const float u1, const float u2)
 
   return p;
 }
-
-}  // namespace fredholm
