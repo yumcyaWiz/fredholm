@@ -153,7 +153,7 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
 static __forceinline__ __device__ BSDF
 construct_bsdf(const ShadingParams& shading_params)
 {
-  return BSDF(shading_params.base_color);
+  return BSDF(shading_params.base_color, shading_params.specular);
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -313,10 +313,11 @@ extern "C" __global__ void __closesthit__radiance()
 
   // sample BSDF
   const BSDF bsdf = construct_bsdf(shading_params);
-  const float2 u = make_float2(frandom(payload->rng), frandom(payload->rng));
+  const float u = frandom(payload->rng);
+  const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
   float3 f;
   float pdf;
-  const float3 wi = bsdf.sample(surf_info.wo, u, f, pdf);
+  const float3 wi = bsdf.sample(surf_info.wo, u, v, f, pdf);
   const float3 wi_world =
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 

@@ -85,6 +85,7 @@ __forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
 class Lambert
 {
  public:
+  __device__ Lambert() {}
   __device__ Lambert(const float3& albedo) : m_albedo(albedo) {}
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -115,6 +116,7 @@ class Lambert
 class FresnelDielectric
 {
  public:
+  __device__ FresnelDielectric() {}
   __device__ FresnelDielectric(float n) : m_n(n) {}
 
   __device__ float eval(const float cos) const
@@ -137,6 +139,7 @@ class FresnelDielectric
 class MicrofacetReflectionDielectric
 {
  public:
+  __device__ MicrofacetReflectionDielectric() {}
   __device__ MicrofacetReflectionDielectric(float ior, float roughness,
                                             float anisotropy)
       : m_fresnel(ior)
