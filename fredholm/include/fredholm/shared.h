@@ -37,14 +37,15 @@ struct Material {
 };
 
 struct SurfaceInfo {
-  float t;             // ray tmax
-  float3 x;            // shading position
-  float3 n_g;          // geometric normal in world space
-  float3 n_s;          // shading normal in world space
-  float2 barycentric;  // barycentric coordinate
-  float2 texcoord;     // texture coordinate
-  float3 tangent;      // tangent vector in world space
-  float3 bitangent;    // bitangent vector in world space
+  float t;                           // ray tmax
+  float3 x;                          // shading position
+  float3 wo = make_float3(0, 0, 0);  // view direction in tangent space
+  float3 n_g;                        // geometric normal in world space
+  float3 n_s;                        // shading normal in world space
+  float2 barycentric;                // barycentric coordinate
+  float2 texcoord;                   // texture coordinate
+  float3 tangent;                    // tangent vector in world space
+  float3 bitangent;                  // bitangent vector in world space
   bool is_entering;
 };
 

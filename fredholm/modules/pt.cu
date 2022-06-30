@@ -1,6 +1,6 @@
 #include <optix.h>
 
-#include "bxdf.cu"
+#include "bsdf.cu"
 #include "fredholm/shared.h"
 #include "math.cu"
 #include "sampling.cu"
@@ -133,6 +133,9 @@ static __forceinline__ __device__ void fill_surface_info(
   info.n_g = dot(-ray_direction, info.n_g) > 0 ? info.n_g : -info.n_g;
 
   orthonormal_basis(info.n_s, info.tangent, info.bitangent);
+
+  info.wo =
+      world_to_local(-ray_direction, info.tangent, info.n_s, info.bitangent);
 }
 
 static __forceinline__ __device__ ShadingParams fill_shading_params(
@@ -145,6 +148,12 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                                       surf_info.texcoord.x,
                                       surf_info.texcoord.y))
           : material.base_color;
+}
+
+static __forceinline__ __device__ BSDF
+construct_bsdf(const ShadingParams& shading_params)
+{
+  return BSDF(shading_params.base_color);
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -302,14 +311,17 @@ extern "C" __global__ void __closesthit__radiance()
     return;
   }
 
-  // sample next ray direction
+  // sample BSDF
+  const BSDF bsdf = construct_bsdf(shading_params);
   const float2 u = make_float2(frandom(payload->rng), frandom(payload->rng));
-  const float3 wi = sample_cosine_weighted_hemisphere(u);
+  float3 f;
+  float pdf;
+  const float3 wi = bsdf.sample(surf_info.wo, u, f, pdf);
   const float3 wi_world =
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 
   // update throughput
-  payload->throughput *= shading_params.base_color;
+  payload->throughput *= f * abs_cos_theta(wi) / pdf;
 
   // advance ray
   payload->origin = surf_info.x + RAY_EPS * surf_info.n_s;
