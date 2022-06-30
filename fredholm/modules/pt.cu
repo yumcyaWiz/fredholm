@@ -274,8 +274,7 @@ extern "C" __global__ void __closesthit__radiance()
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 
   // nan check
-  if (isnan(payload->throughput.x) || isnan(payload->throughput.y) ||
-      isnan(payload->throughput.z)) {
+  if (isnan(payload->throughput) || isinf(payload->throughput)) {
     payload->done = true;
     return;
   }

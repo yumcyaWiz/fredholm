@@ -35,3 +35,13 @@ static __forceinline__ __device__ float3 sqrt(const float3& v)
 {
   return make_float3(sqrtf(v.x), sqrtf(v.y), sqrtf(v.z));
 }
+
+static __forceinline__ __device__ bool isnan(const float3& v)
+{
+  return isnan(v.x) || isnan(v.y) || isnan(v.z);
+}
+
+static __forceinline__ __device__ bool isinf(const float3& v)
+{
+  return isinf(v.x) || isinf(v.y) || isinf(v.z);
+}
