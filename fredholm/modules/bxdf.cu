@@ -113,9 +113,7 @@ class Lambert
   float3 m_albedo;
 };
 
-class FresnelDielectric
-{
- public:
+struct FresnelDielectric {
   __device__ FresnelDielectric() {}
   __device__ FresnelDielectric(float n) : m_n(n) {}
 
@@ -132,7 +130,6 @@ class FresnelDielectric
     return 0.5f * (rs * rs + rp * rp);
   }
 
- private:
   float m_n;
 };
 
