@@ -272,6 +272,14 @@ extern "C" __global__ void __anyhit__shadow() {}
 extern "C" __global__ void __closesthit__radiance()
 {
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
+
+  // nan check
+  if (isnan(payload->throughput.x) || isnan(payload->throughput.y) ||
+      isnan(payload->throughput.z)) {
+    payload->done = true;
+    return;
+  }
+
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
   const uint prim_idx = optixGetPrimitiveIndex();
