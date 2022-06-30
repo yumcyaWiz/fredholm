@@ -69,13 +69,13 @@ class CUDABuffer
   uint32_t m_buffer_size;
 };
 
-// TODO: remove dependency on gcss
 template <typename T>
 struct CUDAGLBuffer {
   CUDAGLBuffer(uint32_t buffer_size) : m_buffer_size(buffer_size)
   {
     // create gl buffer
     std::vector<T> data(m_buffer_size);
+    memset(data.data(), 0, m_buffer_size * sizeof(T));
     m_buffer.setData(data, GL_STATIC_DRAW);
 
     // get cuda device ptr from OpenGL texture
@@ -103,8 +103,8 @@ struct CUDAGLBuffer {
     // TODO: CUDA call (cudaGraphicsUnmapResources(1, &m_resource) ) failed with
     // error: 'invalid OpenGL or DirectX context'
     // this is because OpenGL context is destroyed before this call?
-    // CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_resource));
-    // CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
+    CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_resource));
+    CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
   }
 
   void copy_from_device_to_host(std::vector<T>& value)
