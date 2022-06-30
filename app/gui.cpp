@@ -30,26 +30,26 @@ void handle_input(GLFWwindow* window, const ImGuiIO& io, Controller& controller)
   // move camera
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     controller.move_camera(fredholm::CameraMovement::FORWARD, io.DeltaTime);
-    controller.init_render_states();
+    controller.clear_render();
   }
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
     controller.move_camera(fredholm::CameraMovement::LEFT, io.DeltaTime);
-    controller.init_render_states();
+    controller.clear_render();
   }
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
     controller.move_camera(fredholm::CameraMovement::BACKWARD, io.DeltaTime);
-    controller.init_render_states();
+    controller.clear_render();
   }
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
     controller.move_camera(fredholm::CameraMovement::RIGHT, io.DeltaTime);
-    controller.init_render_states();
+    controller.clear_render();
   }
 
   // camera look around
   if (!io.WantCaptureMouse &&
       glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS) {
     controller.rotate_camera(io.MouseDelta.x, io.MouseDelta.y);
-    controller.init_render_states();
+    controller.clear_render();
   }
 }
 
@@ -101,8 +101,8 @@ int main()
 
     controller.init_renderer();
     controller.load_scene();
-    controller.init_render_states();
     controller.init_render_layers();
+    controller.clear_render();
 
     controller.init_denoiser();
 
@@ -146,10 +146,10 @@ int main()
           }
 
           if (ImGui::InputInt("Max samples", &controller.m_imgui_max_samples)) {
-            controller.init_render_states();
+            controller.clear_render();
           }
           if (ImGui::InputInt("Max depth", &controller.m_imgui_max_depth)) {
-            controller.init_render_states();
+            controller.clear_render();
           }
 
           ImGui::Combo("AOV",
@@ -174,7 +174,7 @@ int main()
                       controller.m_imgui_forward[2]);
           if (ImGui::InputFloat("FOV", &controller.m_imgui_fov)) {
             controller.update_camera();
-            controller.init_render_states();
+            controller.clear_render();
           }
           if (ImGui::InputFloat("Movement speed",
                                 &controller.m_imgui_movement_speed)) {

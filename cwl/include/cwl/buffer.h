@@ -100,11 +100,13 @@ struct CUDAGLBuffer {
 
   ~CUDAGLBuffer() noexcept(false)
   {
-    // TODO: CUDA call (cudaGraphicsUnmapResources(1, &m_resource) ) failed with
-    // error: 'invalid OpenGL or DirectX context'
-    // this is because OpenGL context is destroyed before this call?
     CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_resource));
     CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
+  }
+
+  void clear()
+  {
+    CUDA_CHECK(cudaMemset(m_d_buffer, 0, m_buffer_size * sizeof(T)));
   }
 
   void copy_from_device_to_host(std::vector<T>& value)

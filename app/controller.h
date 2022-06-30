@@ -145,6 +145,16 @@ class Controller
         m_imgui_resolution[0] * m_imgui_resolution[1]);
   }
 
+  void clear_render_layers()
+  {
+    m_layer_beauty->clear();
+    m_layer_position->clear();
+    m_layer_normal->clear();
+    m_layer_depth->clear();
+    m_layer_texcoord->clear();
+    m_layer_albedo->clear();
+  }
+
   void load_scene()
   {
     m_scene->load_obj(scene_filepaths[m_imgui_scene_id]);
@@ -162,9 +172,10 @@ class Controller
     init_denoiser();
   }
 
-  void init_render_states()
+  void clear_render()
   {
     m_imgui_n_samples = 0;
+    clear_render_layers();
     m_renderer->init_render_states();
   }
 
