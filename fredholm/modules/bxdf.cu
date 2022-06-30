@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "math.cu"
 #include "sampling.cu"
 #include "sutil/vec_math.h"
 
@@ -80,6 +81,18 @@ __forceinline__ __device__ float abs_cos_phi(const float3& w)
 __forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
 {
   return -w + 2.0f * dot(w, n) * n;
+}
+
+// https://jcgt.org/published/0003/04/03/
+__forceinline__ __device__ float3 artist_friendly_metallic_fresnel(
+    const float3& reflectivity, const float3& edge_tint, float3& n, float3& k)
+{
+  const float3 r_sqrt = sqrt(reflectivity);
+  n = edge_tint * (1.0f - reflectivity) / (1.0f + reflectivity) +
+      (1.0f - edge_tint) * (1.0f + r_sqrt) / (1.0f - r_sqrt);
+  const float3 t1 = n + 1.0f;
+  const float3 t2 = n - 1.0f;
+  k = sqrt((reflectivity * (t1 * t1) - t2 * t2) / (1.0f - reflectivity));
 }
 
 class Lambert

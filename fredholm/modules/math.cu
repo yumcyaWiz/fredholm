@@ -1,3 +1,5 @@
+#pragma once
+
 #include "sutil/vec_math.h"
 
 static __forceinline__ __device__ void orthonormal_basis(const float3& n,
@@ -27,4 +29,9 @@ static __forceinline__ __device__ float3 local_to_world(const float3& v,
   return make_float3(v.x * t.x + v.y * n.x + v.z * b.x,
                      v.x * t.y + v.y * n.y + v.z * b.y,
                      v.x * t.z + v.y * n.z + v.z * b.z);
+}
+
+static __forceinline__ __device__ float3 sqrt(const float3& v)
+{
+  return make_float3(sqrtf(v.x), sqrtf(v.y), sqrtf(v.z));
 }
