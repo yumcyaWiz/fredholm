@@ -31,8 +31,7 @@ enum class AOVType : int {
 static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/sponza/sponza.obj",
     "../resources/salle_de_bain/salle_de_bain.obj",
-    "../resources/rungholt/rungholt.obj"
-    "../resources/spheres/spheres.obj"};
+    "../resources/rungholt/rungholt.obj", "../resources/spheres/spheres.obj"};
 
 class Controller
 {

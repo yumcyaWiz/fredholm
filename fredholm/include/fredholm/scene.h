@@ -136,6 +136,8 @@ struct Scene {
 
   void load_obj(const std::filesystem::path& filepath)
   {
+    spdlog::info("loading {}", filepath.generic_string());
+
     clear();
 
     tinyobj::ObjReaderConfig reader_config;
