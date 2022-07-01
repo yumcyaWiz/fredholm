@@ -183,6 +183,33 @@ struct Scene {
             unique_textures[m.diffuse_texname];
       }
 
+      // specular color
+      m_materials[i].specular_color =
+          make_float3(m.specular[0], m.specular[1], m.specular[2]);
+
+      // specular color(texture)
+      if (!m.specular_texname.empty()) {
+        if (unique_textures.count(m.specular_texname) == 0) {
+          // load texture id
+          unique_textures[m.specular_texname] = m_textures.size();
+          // load texture
+          m_textures.push_back(
+              Texture(filepath.parent_path() / m.specular_texname));
+        }
+
+        // set texture id on material
+        m_materials[i].specular_color_texture_id =
+            unique_textures[m.specular_texname];
+      }
+
+      // emission
+      if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
+        m_materials[i].emission = 1.0f;
+        m_materials[i].emission_color =
+            make_float3(m.emission[0], m.emission[1], m.emission[2]);
+      }
+
+      // alpha texture
       if (!m.alpha_texname.empty()) {
         if (unique_textures.count(m.alpha_texname) == 0) {
           // load texture id
@@ -194,13 +221,6 @@ struct Scene {
 
         // set texture id on material
         m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
-      }
-
-      // emission
-      if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
-        m_materials[i].emission = 1.0f;
-        m_materials[i].emission_color =
-            make_float3(m.emission[0], m.emission[1], m.emission[2]);
       }
     }
 

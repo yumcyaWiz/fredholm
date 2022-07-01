@@ -30,6 +30,10 @@ struct Material {
   float3 base_color = make_float3(1, 1, 1);
   int base_color_texture_id = -1;
 
+  float specular = 1.0f;
+  float3 specular_color = make_float3(0, 0, 0);
+  int specular_color_texture_id = -1;
+
   float emission = 0;
   float3 emission_color = make_float3(0, 0, 0);
 
