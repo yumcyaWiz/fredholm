@@ -163,6 +163,16 @@ struct Scene {
     // key: texture filepath, value: texture id in m_textures
     std::unordered_map<std::string, unsigned int> unique_textures = {};
 
+    const auto load_texture = [&](const std::filesystem::path& parent_filepath,
+                                  const std::filesystem::path& filepath) {
+      if (unique_textures.count(filepath) == 0) {
+        // load texture id
+        unique_textures[filepath] = m_textures.size();
+        // load texture
+        m_textures.push_back(Texture(parent_filepath / filepath));
+      }
+    };
+
     m_materials.resize(tinyobj_materials.size());
     // TODO: load more parameters
     for (int i = 0; i < m_materials.size(); ++i) {
@@ -173,13 +183,7 @@ struct Scene {
 
       // base color(texture)
       if (!m.diffuse_texname.empty()) {
-        if (unique_textures.count(m.diffuse_texname) == 0) {
-          // load texture id
-          unique_textures[m.diffuse_texname] = m_textures.size();
-          // load texture
-          m_textures.push_back(
-              Texture(filepath.parent_path() / m.diffuse_texname));
-        }
+        load_texture(filepath.parent_path(), m.diffuse_texname);
 
         // set texture id on material
         m_materials[i].base_color_texture_id =
@@ -192,18 +196,17 @@ struct Scene {
 
       // specular color(texture)
       if (!m.specular_texname.empty()) {
-        if (unique_textures.count(m.specular_texname) == 0) {
-          // load texture id
-          unique_textures[m.specular_texname] = m_textures.size();
-          // load texture
-          m_textures.push_back(
-              Texture(filepath.parent_path() / m.specular_texname));
-        }
+        load_texture(filepath.parent_path(), m.specular_texname);
 
         // set texture id on material
         m_materials[i].specular_color_texture_id =
             unique_textures[m.specular_texname];
       }
+
+      // metalness
+      m_materials[i].metalness = m.metallic;
+
+      // metalness texture
 
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
@@ -214,13 +217,7 @@ struct Scene {
 
       // alpha texture
       if (!m.alpha_texname.empty()) {
-        if (unique_textures.count(m.alpha_texname) == 0) {
-          // load texture id
-          unique_textures[m.alpha_texname] = m_textures.size();
-          // load texture
-          m_textures.push_back(
-              Texture(filepath.parent_path() / m.alpha_texname));
-        }
+        load_texture(filepath.parent_path(), m.alpha_texname);
 
         // set texture id on material
         m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
