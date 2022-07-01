@@ -136,8 +136,9 @@ int main()
       ImGui::Begin("UI");
       {
         {
-          if (ImGui::Combo("Scene", &controller.m_imgui_scene_id,
-                           "Sponza\0Salle de bain\0Rungholt\0Spheres\0\0")) {
+          if (ImGui::Combo(
+                  "Scene", &controller.m_imgui_scene_id,
+                  "CornellBox\0Sponza\0Salle de bain\0Rungholt\0Spheres\0\0")) {
             controller.load_scene();
           }
 
