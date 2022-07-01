@@ -155,6 +155,13 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                 tex2D<float4>(textures[material.specular_color_texture_id],
                               surf_info.texcoord.x, surf_info.texcoord.y))
           : material.specular_color;
+
+  shading_params.metalness =
+      material.metalness_texture_id >= 0
+          ? tex2D<float4>(textures[material.metalness_texture_id],
+                          surf_info.texcoord.x, surf_info.texcoord.y)
+                .x
+          : material.metalness;
 }
 
 extern "C" __global__ void __raygen__rg()

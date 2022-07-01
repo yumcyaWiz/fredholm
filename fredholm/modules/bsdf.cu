@@ -20,8 +20,7 @@ class BSDF
         clamp(shading_params.base_color, make_float3(0), make_float3(0.99));
     const float3 edge_tint =
         clamp(shading_params.specular_color, make_float3(0), make_float3(0.99));
-    artist_friendly_metallic_fresnel(shading_params.base_color,
-                                     shading_params.specular_color, n, k);
+    artist_friendly_metallic_fresnel(reflectivity, edge_tint, n, k);
     m_metal_brdf = MicrofacetReflectionConductor(n, k, 0.2f, 0.0f);
   }
 

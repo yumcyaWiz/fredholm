@@ -197,8 +197,6 @@ struct Scene {
       // specular color(texture)
       if (!m.specular_texname.empty()) {
         load_texture(filepath.parent_path(), m.specular_texname);
-
-        // set texture id on material
         m_materials[i].specular_color_texture_id =
             unique_textures[m.specular_texname];
       }
@@ -207,6 +205,11 @@ struct Scene {
       m_materials[i].metalness = m.metallic;
 
       // metalness texture
+      if (!m.metallic_texname.empty()) {
+        load_texture(filepath.parent_path(), m.metallic_texname);
+        m_materials[i].metalness_texture_id =
+            unique_textures[m.metallic_texname];
+      }
 
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
@@ -218,8 +221,6 @@ struct Scene {
       // alpha texture
       if (!m.alpha_texname.empty()) {
         load_texture(filepath.parent_path(), m.alpha_texname);
-
-        // set texture id on material
         m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
       }
     }

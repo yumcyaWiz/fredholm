@@ -38,6 +38,7 @@ struct Material {
   float3 emission_color = make_float3(0, 0, 0);
 
   float metalness = 0;
+  int metalness_texture_id = -1;
 
   int alpha_texture_id = -1;
 };
