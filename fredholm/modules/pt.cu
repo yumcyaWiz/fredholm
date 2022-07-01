@@ -191,6 +191,9 @@ extern "C" __global__ void __raygen__rg()
       trace_radiance(params.ias_handle, payload.origin, payload.direction, 0.0f,
                      1e9f, &payload);
 
+      // nan check
+      if (isnan(payload.throughput) || isinf(payload.throughput)) { break; }
+
       if (payload.done) { break; }
     }
 
@@ -273,12 +276,6 @@ extern "C" __global__ void __anyhit__shadow() {}
 extern "C" __global__ void __closesthit__radiance()
 {
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
-
-  // nan check
-  if (isnan(payload->throughput) || isinf(payload->throughput)) {
-    payload->done = true;
-    return;
-  }
 
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
