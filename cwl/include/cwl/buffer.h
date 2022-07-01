@@ -45,6 +45,11 @@ class CUDABuffer
     CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_d_ptr)));
   }
 
+  void clear()
+  {
+    CUDA_CHECK(cudaMemset(m_d_ptr, 0, m_buffer_size * sizeof(T)));
+  }
+
   void copy_from_host_to_device(const std::vector<T>& value)
   {
     CUDA_CHECK(cudaMemcpy(m_d_ptr, value.data(), m_buffer_size * sizeof(T),
