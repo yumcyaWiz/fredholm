@@ -333,7 +333,7 @@ extern "C" __global__ void __closesthit__radiance()
   payload->throughput *= f * abs_cos_theta(wi) / pdf;
 
   // advance ray
-  payload->origin = surf_info.x + RAY_EPS * surf_info.n_s;
+  payload->origin = surf_info.x + RAY_EPS * surf_info.n_g;
   payload->direction = wi_world;
 }
 
