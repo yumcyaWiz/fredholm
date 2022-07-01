@@ -58,6 +58,8 @@ struct ShadingParams {
 
   float specular = 1.0f;
   float3 specular_color = make_float3(0, 0, 0);
+
+  float metalness = 0.0f;
 };
 
 struct RenderLayer {

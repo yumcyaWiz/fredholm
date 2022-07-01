@@ -322,7 +322,7 @@ extern "C" __global__ void __closesthit__radiance()
 
   // sample BSDF
   const BSDF bsdf = BSDF(shading_params);
-  const float u = frandom(payload->rng);
+  const float2 u = make_float2(frandom(payload->rng), frandom(payload->rng));
   const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
   float3 f;
   float pdf;
