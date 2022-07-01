@@ -45,3 +45,9 @@ static __forceinline__ __device__ bool isinf(const float3& v)
 {
   return isinf(v.x) || isinf(v.y) || isinf(v.z);
 }
+
+// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
+{
+  return dot(rgb, make_float3(0.2126729f, 0.7151522f, 0.0721750f));
+}

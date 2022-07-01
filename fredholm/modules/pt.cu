@@ -188,6 +188,13 @@ extern "C" __global__ void __raygen__rg()
     payload.throughput = make_float3(1);
     payload.done = false;
     for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth) {
+      // russian roulette
+      const float russian_roulette_prob =
+          clamp(rgb_to_luminance(payload.throughput), 0.0f, 1.0f);
+      if (frandom(payload.rng) >= russian_roulette_prob) { break; }
+      payload.throughput /= russian_roulette_prob;
+
+      // trace ray and update payloads
       trace_radiance(params.ias_handle, payload.origin, payload.direction, 0.0f,
                      1e9f, &payload);
 
