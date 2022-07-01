@@ -174,7 +174,6 @@ struct Scene {
     };
 
     m_materials.resize(tinyobj_materials.size());
-    // TODO: load more parameters
     for (int i = 0; i < m_materials.size(); ++i) {
       const auto& m = tinyobj_materials[i];
       // base color
@@ -199,6 +198,16 @@ struct Scene {
         load_texture(filepath.parent_path(), m.specular_texname);
         m_materials[i].specular_color_texture_id =
             unique_textures[m.specular_texname];
+      }
+
+      // specular roughness
+      m_materials[i].specular_roughness = m.roughness;
+
+      // specular roughness(texture)
+      if (!m.roughness_texname.empty()) {
+        load_texture(filepath.parent_path(), m.roughness_texname);
+        m_materials[i].specular_roughness_texture_id =
+            unique_textures[m.roughness_texname];
       }
 
       // metalness

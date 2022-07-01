@@ -10,10 +10,12 @@ class BSDF
       : m_base_color(shading_params.base_color),
         m_specular(shading_params.specular),
         m_specular_color(shading_params.specular_color),
+        m_specular_roughness(shading_params.specular_roughness),
         m_metalness(shading_params.metalness)
   {
     m_lambert_brdf = Lambert(m_base_color);
-    m_specular_brdf = MicrofacetReflectionDielectric(1.5f, 0.2f, 0.0f);
+    m_specular_brdf =
+        MicrofacetReflectionDielectric(1.5f, m_specular_roughness, 0.0f);
 
     float3 n, k;
     const float3 reflectivity =
@@ -21,7 +23,8 @@ class BSDF
     const float3 edge_tint =
         clamp(shading_params.specular_color, make_float3(0), make_float3(0.99));
     artist_friendly_metallic_fresnel(reflectivity, edge_tint, n, k);
-    m_metal_brdf = MicrofacetReflectionConductor(n, k, 0.2f, 0.0f);
+    m_metal_brdf =
+        MicrofacetReflectionConductor(n, k, m_specular_roughness, 0.0f);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -80,6 +83,7 @@ class BSDF
 
   float m_specular;
   float3 m_specular_color;
+  float m_specular_roughness;
 
   float m_metalness;
 

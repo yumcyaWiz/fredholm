@@ -156,6 +156,13 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                               surf_info.texcoord.x, surf_info.texcoord.y))
           : material.specular_color;
 
+  shading_params.specular_roughness =
+      material.specular_roughness_texture_id >= 0
+          ? tex2D<float4>(textures[material.specular_roughness_texture_id],
+                          surf_info.texcoord.x, surf_info.texcoord.y)
+                .x
+          : material.specular_roughness;
+
   shading_params.metalness =
       material.metalness_texture_id >= 0
           ? tex2D<float4>(textures[material.metalness_texture_id],

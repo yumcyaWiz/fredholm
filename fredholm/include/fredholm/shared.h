@@ -33,12 +33,14 @@ struct Material {
   float specular = 1.0f;
   float3 specular_color = make_float3(0, 0, 0);
   int specular_color_texture_id = -1;
-
-  float emission = 0;
-  float3 emission_color = make_float3(0, 0, 0);
+  float specular_roughness = 0.2f;
+  int specular_roughness_texture_id = -1;
 
   float metalness = 0;
   int metalness_texture_id = -1;
+
+  float emission = 0;
+  float3 emission_color = make_float3(0, 0, 0);
 
   int alpha_texture_id = -1;
 };
@@ -61,6 +63,7 @@ struct ShadingParams {
 
   float specular = 1.0f;
   float3 specular_color = make_float3(0, 0, 0);
+  float specular_roughness = 0.2f;
 
   float metalness = 0.0f;
 };
