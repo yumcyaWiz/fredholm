@@ -139,6 +139,7 @@ struct Scene {
     clear();
 
     tinyobj::ObjReaderConfig reader_config;
+    reader_config.triangulate = true;
 
     tinyobj::ObjReader reader;
     if (!reader.ParseFromFile(filepath.generic_string(), reader_config)) {
