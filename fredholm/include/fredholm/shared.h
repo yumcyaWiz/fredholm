@@ -81,6 +81,8 @@ struct LaunchParams {
 
   CameraParams camera;
 
+  float3 bg_color;
+
   Material* materials;
   cudaTextureObject_t* textures;
 
@@ -91,7 +93,6 @@ struct RayGenSbtRecordData {
 };
 
 struct MissSbtRecordData {
-  float3 bg_color = make_float3(0, 0, 0);
 };
 
 struct HitGroupSbtRecordData {

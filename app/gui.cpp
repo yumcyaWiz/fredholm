@@ -185,6 +185,15 @@ int main()
             controller.update_camera();
           }
         }
+
+        ImGui::Separator();
+
+        {
+          if (ImGui::InputFloat3("background color",
+                                 controller.m_imgui_bg_color)) {
+            controller.clear_render();
+          }
+        }
       }
       ImGui::End();
 

@@ -50,6 +50,8 @@ class Controller
   float m_imgui_movement_speed = 1.0f;
   float m_imgui_rotation_speed = 0.1f;
 
+  float m_imgui_bg_color[3] = {1, 1, 1};
+
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
 
@@ -190,7 +192,10 @@ class Controller
       render_layers.texcoord = m_layer_texcoord->get_device_ptr();
       render_layers.albedo = m_layer_albedo->get_device_ptr();
 
-      m_renderer->render(*m_camera, render_layers, 1, m_imgui_max_depth);
+      m_renderer->render(*m_camera,
+                         make_float3(m_imgui_bg_color[0], m_imgui_bg_color[1],
+                                     m_imgui_bg_color[2]),
+                         render_layers, 1, m_imgui_max_depth);
       // TODO: Is is safe to remove this?
       m_renderer->wait_for_completion();
 

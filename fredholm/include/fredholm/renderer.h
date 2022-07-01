@@ -255,7 +255,6 @@ class Renderer
 
     // fill miss record
     MissSbtRecord miss_record = {};
-    miss_record.data.bg_color = make_float3(1.0f);
     OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_miss_group, &miss_record));
     m_miss_records.push_back(miss_record);
 
@@ -489,8 +488,9 @@ class Renderer
     m_d_rng_states = std::make_unique<cwl::CUDABuffer<RNGState>>(rng_states);
   }
 
-  void render(const Camera& camera, const RenderLayer& render_layer,
-              uint32_t n_samples, uint32_t max_depth)
+  void render(const Camera& camera, const float3& bg_color,
+              const RenderLayer& render_layer, uint32_t n_samples,
+              uint32_t max_depth)
   {
     LaunchParams params;
     params.render_layer = render_layer;
@@ -507,6 +507,8 @@ class Renderer
     params.camera.right = camera.m_right;
     params.camera.up = camera.m_up;
     params.camera.f = camera.m_f;
+
+    params.bg_color = bg_color;
 
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_objects->get_device_ptr();

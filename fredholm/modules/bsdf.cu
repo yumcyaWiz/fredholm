@@ -25,8 +25,10 @@ class BSDF
   __device__ float3 sample(const float3& wo, float u, const float2& v,
                            float3& f, float& pdf) const
   {
+    // TODO: use specular color luminance
     const float specular_color_avg =
         (m_specular_color.x + m_specular_color.y + m_specular_color.z) / 3;
+
     if (u < m_specular * specular_color_avg * 0.5f) {
       const float3 wi = m_specular_brdf.sample(wo, v, f, pdf);
       f *= m_specular * m_specular_color;
