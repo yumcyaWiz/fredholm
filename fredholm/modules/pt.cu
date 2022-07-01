@@ -148,12 +148,13 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                                       surf_info.texcoord.x,
                                       surf_info.texcoord.y))
           : material.base_color;
-}
 
-static __forceinline__ __device__ BSDF
-construct_bsdf(const ShadingParams& shading_params)
-{
-  return BSDF(shading_params.base_color, shading_params.specular);
+  shading_params.specular_color =
+      material.specular_color_texture_id >= 0
+          ? make_float3(
+                tex2D<float4>(textures[material.specular_color_texture_id],
+                              surf_info.texcoord.x, surf_info.texcoord.y))
+          : material.specular_color;
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -319,7 +320,7 @@ extern "C" __global__ void __closesthit__radiance()
   }
 
   // sample BSDF
-  const BSDF bsdf = construct_bsdf(shading_params);
+  const BSDF bsdf = BSDF(shading_params);
   const float u = frandom(payload->rng);
   const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
   float3 f;
