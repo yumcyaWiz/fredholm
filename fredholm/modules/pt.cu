@@ -93,7 +93,7 @@ static __forceinline__ __device__ void sample_ray_pinhole_camera(
   const float3 p_pinhole =
       params.camera.origin + params.camera.f * params.camera.forward;
 
-  origin = p_sensor;
+  origin = p_pinhole;
   direction = normalize(p_pinhole - p_sensor);
 }
 
@@ -265,20 +265,31 @@ extern "C" __global__ void __anyhit__radiance()
   const uint material_id = sbt->material_ids[prim_idx];
   const Material& material = params.materials[material_id];
 
+  // fill surface info
+  const float2 barycentric = optixGetTriangleBarycentrics();
+
+  // calc texcoord
+  const uint3 idx = sbt->indices[prim_idx];
+  const float2 tex0 = sbt->texcoords[idx.x];
+  const float2 tex1 = sbt->texcoords[idx.y];
+  const float2 tex2 = sbt->texcoords[idx.z];
+  float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                    barycentric.x * tex1 + barycentric.y * tex2;
+  texcoord.y = 1.0f - texcoord.y;
+
+  // fetch base color texture
+  if (material.base_color_texture_id >= 0) {
+    const float alpha =
+        tex2D<float4>(params.textures[material.base_color_texture_id],
+                      texcoord.x, texcoord.y)
+            .w;
+
+    // ignore intersection
+    if (alpha < 0.5) { optixIgnoreIntersection(); }
+  }
+
+  // fetch alpha texture
   if (material.alpha_texture_id >= 0) {
-    // fill surface info
-    const float2 barycentric = optixGetTriangleBarycentrics();
-
-    // calc texcoord
-    const uint3 idx = sbt->indices[prim_idx];
-    const float2 tex0 = sbt->texcoords[idx.x];
-    const float2 tex1 = sbt->texcoords[idx.y];
-    const float2 tex2 = sbt->texcoords[idx.z];
-    float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
-                      barycentric.x * tex1 + barycentric.y * tex2;
-    texcoord.y = 1.0f - texcoord.y;
-
-    // fetch alpha texture
     const float alpha =
         tex2D<float4>(params.textures[material.alpha_texture_id], texcoord.x,
                       texcoord.y)
