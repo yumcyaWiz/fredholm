@@ -25,29 +25,26 @@ class BSDF
   __device__ float3 sample(const float3& wo, float u, const float2& v,
                            float3& f, float& pdf) const
   {
-    // TODO: use specular color luminance
-    const float specular_color_avg =
-        (m_specular_color.x + m_specular_color.y + m_specular_color.z) / 3;
+    const float specular_color_luminance = rgb_to_luminance(m_specular_color);
 
-    if (u < m_specular * specular_color_avg * 0.5f) {
+    if (u < m_specular * specular_color_luminance * 0.5f) {
       const float3 wi = m_specular_brdf.sample(wo, v, f, pdf);
       f *= m_specular * m_specular_color;
-      pdf *= m_specular * specular_color_avg * 0.5f;
+      pdf *= m_specular * specular_color_luminance * 0.5f;
       return wi;
     } else {
       const float3 wi = m_lambert_brdf.sample(wo, v, f, pdf);
-      pdf *= fmax(1.0f - m_specular * specular_color_avg * 0.5f, 0.0f);
+      pdf *= fmax(1.0f - m_specular * specular_color_luminance * 0.5f, 0.0f);
       return wi;
     }
   }
 
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
-    const float specular_color_avg =
-        (m_specular_color.x + m_specular_color.y + m_specular_color.z) / 3;
-    return (1.0f - m_specular * specular_color_avg * 0.5f) *
+    const float specular_color_luminance = rgb_to_luminance(m_specular_color);
+    return (1.0f - m_specular * specular_color_luminance * 0.5f) *
                m_lambert_brdf.eval_pdf(wo, wi) +
-           m_specular * specular_color_avg * 0.5f *
+           m_specular * specular_color_luminance * 0.5f *
                m_specular_brdf.eval_pdf(wo, wi);
   }
 
