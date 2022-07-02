@@ -201,7 +201,7 @@ struct Scene {
       }
 
       // specular roughness
-      m_materials[i].specular_roughness = m.roughness;
+      if (m.roughness > 0) { m_materials[i].specular_roughness = m.roughness; }
 
       // specular roughness(texture)
       if (!m.roughness_texname.empty()) {
