@@ -142,6 +142,7 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
     const Material& material, const SurfaceInfo& surf_info,
     const cudaTextureObject_t* textures, ShadingParams& shading_params)
 {
+  // base color
   shading_params.base_color =
       material.base_color_texture_id >= 0
           ? make_float3(tex2D<float4>(textures[material.base_color_texture_id],
@@ -149,6 +150,10 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                                       surf_info.texcoord.y))
           : material.base_color;
 
+  // specular
+  shading_params.specular = material.specular;
+
+  // specular color
   shading_params.specular_color =
       material.specular_color_texture_id >= 0
           ? make_float3(
@@ -156,6 +161,7 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                               surf_info.texcoord.x, surf_info.texcoord.y))
           : material.specular_color;
 
+  // specular roughness
   shading_params.specular_roughness =
       material.specular_roughness_texture_id >= 0
           ? tex2D<float4>(textures[material.specular_roughness_texture_id],
@@ -163,6 +169,7 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                 .x
           : material.specular_roughness;
 
+  // metalness
   shading_params.metalness =
       material.metalness_texture_id >= 0
           ? tex2D<float4>(textures[material.metalness_texture_id],
