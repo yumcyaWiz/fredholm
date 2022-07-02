@@ -36,6 +36,7 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/san_miguel/san-miguel.obj",
     "../resources/rungholt/rungholt.obj",
     "../resources/vokselia/vokselia_spawn.obj",
+    "../resources/bmw/bmw.obj",
     "../resources/spheres/spheres.obj",
     "../resources/specular_test/spheres_test_scene.obj",
     "../resources/metal_test/spheres_test_scene.obj",
