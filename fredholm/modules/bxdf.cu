@@ -229,10 +229,10 @@ class MicrofacetReflectionDielectric
 
   __device__ float lambda(const float3& w) const
   {
-    const float a0 = sqrtf(cos2_phi(w) * m_alpha.x * m_alpha.x +
-                           sin2_phi(w) * m_alpha.y * m_alpha.y);
-    const float a = 1.0f / (a0 * tan_theta(w));
-    return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / (a * a)));
+    const float a2 = (cos2_phi(w) * m_alpha.x * m_alpha.x +
+                      sin2_phi(w) * m_alpha.y * m_alpha.y);
+    const float t = 1.0f / (a2 * tan2_theta(w));
+    return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / t));
   }
 
   __device__ float G1(const float3& w) const
@@ -308,10 +308,10 @@ class MicrofacetReflectionConductor
 
   __device__ float lambda(const float3& w) const
   {
-    const float a0 = sqrtf(cos2_phi(w) * m_alpha.x * m_alpha.x +
-                           sin2_phi(w) * m_alpha.y * m_alpha.y);
-    const float a = 1.0f / (a0 * tan_theta(w));
-    return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / (a * a)));
+    const float a2 = (cos2_phi(w) * m_alpha.x * m_alpha.x +
+                      sin2_phi(w) * m_alpha.y * m_alpha.y);
+    const float t = 1.0f / (a2 * tan2_theta(w));
+    return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / t));
   }
 
   __device__ float G1(const float3& w) const
