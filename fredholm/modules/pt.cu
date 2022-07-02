@@ -176,6 +176,12 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                           surf_info.texcoord.x, surf_info.texcoord.y)
                 .x
           : material.metalness;
+
+  // coat
+  shading_params.coat = material.coat;
+
+  // coat roughness
+  shading_params.coat_roughness = material.coat_roughness;
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -354,7 +360,8 @@ extern "C" __global__ void __closesthit__radiance()
 
   // sample BSDF
   const BSDF bsdf = BSDF(shading_params);
-  const float2 u = make_float2(frandom(payload->rng), frandom(payload->rng));
+  const float3 u = make_float3(frandom(payload->rng), frandom(payload->rng),
+                               frandom(payload->rng));
   const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
   float3 f;
   float pdf;

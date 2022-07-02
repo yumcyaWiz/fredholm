@@ -220,6 +220,16 @@ struct Scene {
             unique_textures[m.metallic_texname];
       }
 
+      // coat
+      if (m.clearcoat_thickness > 0) {
+        m_materials[i].coat = m.clearcoat_thickness;
+      }
+
+      // coat roughness
+      if (m.clearcoat_roughness > 0) {
+        m_materials[i].coat_roughness = m.clearcoat_thickness;
+      }
+
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
         m_materials[i].emission = 1.0f;
