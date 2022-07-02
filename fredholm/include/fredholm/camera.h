@@ -41,16 +41,19 @@ struct Camera {
     set_fov(0.5f * M_PI);
   }
 
-  Camera(const float3& origin, const float3& forward, float fov = 0.5f * M_PI)
+  Camera(const float3& origin, const float3& forward, float fov = 0.5f * M_PI,
+         float movement_speed = 1.0f, float look_around_speed = 0.1f)
       : m_origin(origin),
-        m_movement_speed(1.0f),
-        m_look_around_speed(0.1f),
+        m_movement_speed(movement_speed),
+        m_look_around_speed(look_around_speed),
         m_phi(270.0f),
         m_theta(90.0f)
   {
     set_forward(forward);
     set_fov(fov);
   }
+
+  void set_origin(const float3& origin) { m_origin = origin; }
 
   void set_forward(const float3& forward)
   {

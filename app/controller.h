@@ -96,6 +96,10 @@ class Controller
 
   void update_camera()
   {
+    m_camera->set_origin(
+        make_float3(m_imgui_origin[0], m_imgui_origin[1], m_imgui_origin[2]));
+    m_camera->set_forward(make_float3(m_imgui_forward[0], m_imgui_forward[1],
+                                      m_imgui_forward[2]));
     m_camera->set_fov(deg2rad(m_imgui_fov));
     m_camera->m_movement_speed = m_imgui_movement_speed;
     m_camera->m_look_around_speed = m_imgui_rotation_speed;

@@ -168,12 +168,14 @@ int main()
         ImGui::Separator();
 
         {
-          ImGui::Text("Origin: (%f, %f, %f)\n", controller.m_imgui_origin[0],
-                      controller.m_imgui_origin[1],
-                      controller.m_imgui_origin[2]);
-          ImGui::Text("Forward: (%f, %f, %f)\n", controller.m_imgui_forward[0],
-                      controller.m_imgui_forward[1],
-                      controller.m_imgui_forward[2]);
+          if (ImGui::InputFloat3("Origin", controller.m_imgui_origin)) {
+            controller.update_camera();
+            controller.clear_render();
+          }
+          if (ImGui::InputFloat3("Forward", controller.m_imgui_forward)) {
+            controller.update_camera();
+            controller.clear_render();
+          }
           if (ImGui::InputFloat("FOV", &controller.m_imgui_fov)) {
             controller.update_camera();
             controller.clear_render();
