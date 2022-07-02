@@ -185,7 +185,7 @@ class MicrofacetReflectionDielectric
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float f = m_fresnel.eval(abs_cos_theta(wo));
+    const float f = m_fresnel.eval(fabs(dot(wo, wh)));
     const float d = D(wh);
     const float g = G2(wo, wi);
     return make_float3(0.25f * (f * d * g) /
@@ -211,7 +211,7 @@ class MicrofacetReflectionDielectric
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    return 0.25f * D_visible(wo, wh) / abs_cos_theta(wo);
+    return 0.25f * D_visible(wo, wh) / fabs(dot(wo, wh));
   }
 
  private:
@@ -265,7 +265,7 @@ class MicrofacetReflectionConductor
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float3 f = m_fresnel.eval(abs_cos_theta(wo));
+    const float3 f = m_fresnel.eval(fabs(dot(wo, wh)));
     const float d = D(wh);
     const float g = G2(wo, wi);
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
@@ -290,7 +290,7 @@ class MicrofacetReflectionConductor
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    return 0.25f * D_visible(wo, wh) / abs_cos_theta(wo);
+    return 0.25f * D_visible(wo, wh) / fabs(dot(wo, wh));
   }
 
  private:
