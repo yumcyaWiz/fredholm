@@ -95,12 +95,22 @@ class BSDF
 
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
+    const float coat_color_luminance = rgb_to_luminance(m_params.coat_color);
+    const float coat_weight = m_params.coat * coat_color_luminance * 0.5f;
+
+    const float metal_weight = m_params.metalness;
+
     const float specular_color_luminance =
         rgb_to_luminance(m_params.specular_color);
-    return (1.0f - m_params.specular * specular_color_luminance * 0.5f) *
-               m_diffuse_brdf.eval_pdf(wo, wi) +
-           m_params.specular * specular_color_luminance * 0.5f *
-               m_specular_brdf.eval_pdf(wo, wi);
+    const float specular_weight =
+        m_params.specular * specular_color_luminance * 0.5f;
+
+    return coat_weight * m_coat_brdf.eval_pdf(wo, wi) +
+           (1.0f - coat_weight) *
+               (metal_weight * m_metal_brdf.eval_pdf(wo, wi) *
+                (1.0f - metal_weight) *
+                (specular_weight * m_specular_brdf.eval_pdf(wo, wi) +
+                 (1.0f - specular_weight) * m_diffuse_brdf.eval_pdf(wo, wi)));
   }
 
  private:
