@@ -9,7 +9,7 @@
 class BSDF
 {
  public:
-  __device__ BSDF(const ShadingParams& shading_params)
+  __device__ BSDF(const ShadingParams& shading_params, bool is_entering)
       : m_params(shading_params)
   {
     m_coat_brdf =
@@ -27,8 +27,8 @@ class BSDF
     m_metal_brdf =
         MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
 
-    m_transmission_btdf =
-        MicrofacetTransmission(1.0f, 1.5f, m_params.specular_roughness, 0.0f);
+    m_transmission_btdf = MicrofacetTransmission(
+        1.0f, is_entering ? 1.5f : 1.0f, m_params.specular_roughness, 0.0f);
 
     m_diffuse_brdf = Lambert(m_params.base_color);
   }

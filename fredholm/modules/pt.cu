@@ -365,7 +365,7 @@ extern "C" __global__ void __closesthit__radiance()
   }
 
   // sample BSDF
-  const BSDF bsdf = BSDF(shading_params);
+  const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
   const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
                                frandom(payload->rng), frandom(payload->rng));
   const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
@@ -379,8 +379,15 @@ extern "C" __global__ void __closesthit__radiance()
   payload->throughput *= f * abs_cos_theta(wi) / pdf;
 
   // advance ray
-  payload->origin = surf_info.x + RAY_EPS * surf_info.n_g;
+  payload->origin = surf_info.x;
   payload->direction = wi_world;
+
+  bool is_transmitted = dot(wi_world, surf_info.n_s) < 0;
+  if (is_transmitted) {
+    payload->origin -= RAY_EPS * surf_info.n_g;
+  } else {
+    payload->origin += RAY_EPS * surf_info.n_g;
+  }
 }
 
 extern "C" __global__ void __closesthit__shadow() {}
