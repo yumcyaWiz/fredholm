@@ -231,6 +231,16 @@ struct Scene {
         m_materials[i].coat_roughness = m.clearcoat_thickness;
       }
 
+      // transmission
+      m_materials[i].transmission = std::max(1.0f - m.dissolve, 0.0f);
+
+      // transmission color
+      if (m.transmittance[0] > 0 || m.transmittance[1] > 0 ||
+          m.transmittance[2] > 0) {
+        m_materials[i].transmission_color = make_float3(
+            m.transmittance[0], m.transmittance[1], m.transmittance[2]);
+      }
+
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
         m_materials[i].emission = 1.0f;

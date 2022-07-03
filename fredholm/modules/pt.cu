@@ -182,6 +182,12 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
 
   // coat roughness
   shading_params.coat_roughness = material.coat_roughness;
+
+  // transmission
+  shading_params.transmission = material.transmission;
+
+  // transmission color
+  shading_params.transmission_color = material.transmission_color;
 }
 
 extern "C" __global__ void __raygen__rg()
