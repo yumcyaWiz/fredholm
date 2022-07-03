@@ -346,6 +346,8 @@ class MicrofacetReflectionConductor
   float2 m_alpha;
 };
 
+// Walter, Bruce, et al. "Microfacet Models for Refraction through Rough
+// Surfaces." Rendering techniques 2007 (2007): 18th.
 class MicrofacetTransmission
 {
  public:

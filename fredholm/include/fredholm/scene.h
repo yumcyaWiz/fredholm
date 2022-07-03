@@ -176,6 +176,7 @@ struct Scene {
     m_materials.resize(tinyobj_materials.size());
     for (int i = 0; i < m_materials.size(); ++i) {
       const auto& m = tinyobj_materials[i];
+
       // base color
       m_materials[i].base_color =
           make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);

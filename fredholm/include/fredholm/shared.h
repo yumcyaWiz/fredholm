@@ -43,6 +43,9 @@ struct Material {
   float3 coat_color = make_float3(1, 1, 1);
   float coat_roughness = 0.1;
 
+  float transmission = 0;
+  float3 transmission_color = make_float3(1, 1, 1);
+
   float emission = 0;
   float3 emission_color = make_float3(0, 0, 0);
 
@@ -74,6 +77,9 @@ struct ShadingParams {
   float coat = 0.0f;
   float3 coat_color = make_float3(1, 1, 1);
   float coat_roughness = 0.1f;
+
+  float transmission = 0;
+  float3 transmission_color = make_float3(1, 1, 1);
 };
 
 struct RenderLayer {
