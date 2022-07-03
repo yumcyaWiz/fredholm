@@ -83,6 +83,28 @@ __forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
   return -w + 2.0f * dot(w, n) * n;
 }
 
+__forceinline__ __device__ bool refract(const float3& w, const float3& n,
+                                        float ior_i, float ior_t, float3& wt)
+{
+  const float3 t_h = -ior_i / ior_t * (w - dot(w, n) * n);
+  // total internal reflection
+  if (length(t_h) > 1.0f) { return false; }
+
+  const float3 t_p = -sqrtf(fmax(1.0f - dot(t_h, t_h), 0.0f)) * n;
+  wt = t_h + t_p;
+  return true;
+}
+
+__forceinline__ __device__ float2 roughness_to_alpha(float roughness,
+                                                     float anisotropy)
+{
+  // Revisiting Physically Based Shading at Imageworks p.24
+  float2 alpha;
+  alpha.x = roughness * roughness * (1.0f + anisotropy);
+  alpha.y = roughness * roughness * (1.0f - anisotropy);
+  return alpha;
+}
+
 // https://jcgt.org/published/0003/04/03/
 __forceinline__ __device__ float3 artist_friendly_metallic_fresnel(
     const float3& reflectivity, const float3& edge_tint, float3& n, float3& k)
@@ -177,9 +199,7 @@ class MicrofacetReflectionDielectric
                                             float anisotropy)
       : m_fresnel(ior)
   {
-    // Revisiting Physically Based Shading at Imageworks p.24
-    m_alpha.x = roughness * roughness * (1.0f + anisotropy);
-    m_alpha.y = roughness * roughness * (1.0f - anisotropy);
+    m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -257,9 +277,7 @@ class MicrofacetReflectionConductor
                                            float roughness, float anisotropy)
       : m_fresnel(n, k)
   {
-    // Revisiting Physically Based Shading at Imageworks p.24
-    m_alpha.x = roughness * roughness * (1.0f + anisotropy);
-    m_alpha.y = roughness * roughness * (1.0f - anisotropy);
+    m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -325,5 +343,96 @@ class MicrofacetReflectionConductor
   }
 
   FresnelConductor m_fresnel;
+  float2 m_alpha;
+};
+
+class MicrofacetTransmission
+{
+ public:
+  __device__ MicrofacetTransmission() {}
+  __device__ MicrofacetTransmission(float ior_i, float ior_t, float roughness,
+                                    float anisotropy)
+      : m_ior_in(ior_i), m_ior_out(ior_t), m_fresnel(ior_t / ior_i)
+  {
+    m_alpha = roughness_to_alpha(roughness, anisotropy);
+  }
+
+  __device__ float3 eval(const float3& wo, const float3& wi) const
+  {
+    const float3 wh = compute_half_vector(wo, wi);
+    const float f = m_fresnel.eval(fabs(dot(wo, wh)));
+    const float d = D(wh);
+    const float g = G2(wo, wi);
+    const float wo_dot_wh = dot(wo, wh);
+    const float wi_dot_wh = dot(wi, wh);
+    const float t = m_ior_in * wo_dot_wh + m_ior_out * wi_dot_wh;
+    return make_float3(fabs(wo_dot_wh) * fabs(wi_dot_wh) * m_ior_out *
+                       m_ior_out * fmax(1.0f - f, 0.0f) * g * d /
+                       (abs_cos_theta(wo) * abs_cos_theta(wi) * t * t));
+  }
+
+  __device__ float3 sample(const float3& wo, const float2& u, float3& f,
+                           float& pdf) const
+  {
+    // sample half-vector
+    const float3 wh = sample_vndf(wo, m_alpha, u);
+
+    // compute incident direction
+    float3 wi;
+    if (!refract(wo, wh, m_ior_in, m_ior_out, wi)) { wi = reflect(wo, wh); }
+
+    // evaluate BxDF and pdf
+    f = eval(wo, wi);
+    pdf = eval_pdf(wo, wi);
+
+    return wi;
+  }
+
+  __device__ float eval_pdf(const float3& wo, const float3& wi) const
+  {
+    const float3 wh = normalize(wo + wi);
+    return 0.25f * D_visible(wo, wh) / fabs(dot(wo, wh));
+  }
+
+ private:
+  __device__ float3 compute_half_vector(const float3& wo,
+                                        const float3& wi) const
+  {
+    return normalize(-(m_ior_in * wo + m_ior_out * wi));
+  }
+
+  __device__ float D(const float3& wh) const
+  {
+    const float t = wh.x * wh.x / (m_alpha.x * m_alpha.x) +
+                    wh.z * wh.z / (m_alpha.y * m_alpha.y) + wh.y * wh.y;
+    return 1.0f / (M_PI * m_alpha.x * m_alpha.y * t * t);
+  }
+
+  __device__ float D_visible(const float3& w, const float3& wh) const
+  {
+    return G1(w) * fabs(dot(w, wh)) * D(wh) / abs_cos_theta(w);
+  }
+
+  __device__ float lambda(const float3& w) const
+  {
+    const float a2 = (cos2_phi(w) * m_alpha.x * m_alpha.x +
+                      sin2_phi(w) * m_alpha.y * m_alpha.y);
+    const float t = 1.0f / (a2 * tan2_theta(w));
+    return 0.5f * (-1.0f + sqrtf(1.0f + 1.0f / t));
+  }
+
+  __device__ float G1(const float3& w) const
+  {
+    return 1.0f / (1.0f + lambda(w));
+  }
+
+  __device__ float G2(const float3& wo, const float3& wi) const
+  {
+    return 1.0f / (1.0f + lambda(wo) + lambda(wi));
+  }
+
+  float m_ior_in;
+  float m_ior_out;
+  FresnelDielectric m_fresnel;
   float2 m_alpha;
 };
