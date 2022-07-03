@@ -77,40 +77,39 @@ class BSDF
         pdf *= pdf_mult * m_params.metalness;
         return wi;
       }
-      // transmission or specular or diffuse
+      // specular or transmission or diffuse
       else {
         f_mult *= (1.0f - m_params.metalness);
         pdf_mult *= (1.0f - m_params.metalness);
 
-        // transmission
-        if (u.z < m_params.transmission) {
-          const float3 wi = m_transmission_btdf.sample(wo, v, f, pdf);
-          f *= f_mult * m_params.transmission * m_params.transmission_color;
-          pdf *= pdf_mult * m_params.transmission;
+        const float specular_color_luminance =
+            rgb_to_luminance(m_params.specular_color);
+        // specular
+        // TODO: use specular directional albedo
+        if (u.z < m_params.specular * specular_color_luminance * 0.5f) {
+          const float3 wi = m_specular_brdf.sample(wo, v, f, pdf);
+          f *= f_mult * m_params.specular * m_params.specular_color;
+          pdf *= pdf_mult * m_params.specular * specular_color_luminance * 0.5f;
           return wi;
         }
-        // specular or diffuse
+        // transmission or diffuse
         else {
-          f_mult *= (1.0f - m_params.transmission);
-          pdf_mult *= (1.0f - m_params.transmission);
+          // f_mult *= (1.0f - m_params.specular * m_params.specular_color);
+          pdf_mult *=
+              (1.0f - m_params.specular * specular_color_luminance * 0.5f);
 
-          const float specular_color_luminance =
-              rgb_to_luminance(m_params.specular_color);
-          // specular
-          // TODO: use specular directional albedo
-          if (u.z < m_params.specular * specular_color_luminance * 0.5f) {
-            const float3 wi = m_specular_brdf.sample(wo, v, f, pdf);
-            f *= f_mult * m_params.specular * m_params.specular_color;
-            pdf *=
-                pdf_mult * m_params.specular * specular_color_luminance * 0.5f;
+          // transmission
+          if (u.w < m_params.transmission) {
+            const float3 wi = m_transmission_btdf.sample(wo, v, f, pdf);
+            f *= f_mult * m_params.transmission * m_params.transmission_color;
+            pdf *= pdf_mult * m_params.transmission;
             return wi;
           }
           // diffuse
           else {
             const float3 wi = m_diffuse_brdf.sample(wo, v, f, pdf);
             f *= f_mult;
-            pdf *= pdf_mult *
-                   (1.0f - m_params.specular * specular_color_luminance * 0.5f);
+            pdf *= pdf_mult * (1.0f - m_params.transmission);
             return wi;
           }
         }
