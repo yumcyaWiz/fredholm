@@ -381,7 +381,16 @@ class MicrofacetTransmission
 
     // compute incident direction
     float3 wi;
-    if (!refract(wo, wh, m_ior_i, m_ior_t, wi)) { wi = reflect(wo, wh); }
+    if (!refract(wo, wh, m_ior_i, m_ior_t, wi)) {
+      wi = reflect(wo, wh);
+      const float fr = 1.0f;
+      const float d = D(wh);
+      const float g = G2(wo, wi);
+      f = make_float3(0.25f * (fr * d * g) /
+                      (abs_cos_theta(wo) * abs_cos_theta(wi)));
+      pdf = 0.25f * D_visible(wo, wh) / fabs(dot(wo, wh));
+      return wi;
+    }
 
     // evaluate BxDF and pdf
     f = eval(wo, wi);
