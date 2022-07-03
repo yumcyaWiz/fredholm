@@ -354,7 +354,7 @@ class MicrofacetTransmission
   __device__ MicrofacetTransmission() {}
   __device__ MicrofacetTransmission(float ior_i, float ior_t, float roughness,
                                     float anisotropy)
-      : m_ior_in(ior_i), m_ior_out(ior_t), m_fresnel(ior_t / ior_i)
+      : m_ior_i(ior_i), m_ior_t(ior_t), m_fresnel(ior_t / ior_i)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -367,9 +367,9 @@ class MicrofacetTransmission
     const float g = G2(wo, wi);
     const float wo_dot_wh = dot(wo, wh);
     const float wi_dot_wh = dot(wi, wh);
-    const float t = m_ior_in * wo_dot_wh + m_ior_out * wi_dot_wh;
-    return make_float3(fabs(wo_dot_wh) * fabs(wi_dot_wh) * m_ior_out *
-                       m_ior_out * fmax(1.0f - f, 0.0f) * g * d /
+    const float t = m_ior_i * wo_dot_wh + m_ior_t * wi_dot_wh;
+    return make_float3(fabs(wo_dot_wh) * fabs(wi_dot_wh) * m_ior_t * m_ior_t *
+                       fmax(1.0f - f, 0.0f) * g * d /
                        (abs_cos_theta(wo) * abs_cos_theta(wi) * t * t));
   }
 
@@ -381,7 +381,7 @@ class MicrofacetTransmission
 
     // compute incident direction
     float3 wi;
-    if (!refract(wo, wh, m_ior_in, m_ior_out, wi)) { wi = reflect(wo, wh); }
+    if (!refract(wo, wh, m_ior_i, m_ior_t, wi)) { wi = reflect(wo, wh); }
 
     // evaluate BxDF and pdf
     f = eval(wo, wi);
@@ -394,16 +394,15 @@ class MicrofacetTransmission
   {
     const float3 wh = compute_half_vector(wo, wi);
     const float wi_dot_wh = dot(wi, wh);
-    const float t = m_ior_in * dot(wo, wh) + m_ior_out * wi_dot_wh;
-    return D_visible(wo, wh) * m_ior_out * m_ior_out * fabs(wi_dot_wh) /
-           (t * t);
+    const float t = m_ior_i * dot(wo, wh) + m_ior_t * wi_dot_wh;
+    return D_visible(wo, wh) * m_ior_t * m_ior_t * fabs(wi_dot_wh) / (t * t);
   }
 
  private:
   __device__ float3 compute_half_vector(const float3& wo,
                                         const float3& wi) const
   {
-    return normalize(-(m_ior_in * wo + m_ior_out * wi));
+    return normalize(-(m_ior_i * wo + m_ior_t * wi));
   }
 
   __device__ float D(const float3& wh) const
@@ -436,8 +435,8 @@ class MicrofacetTransmission
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
   }
 
-  float m_ior_in;
-  float m_ior_out;
+  float m_ior_i;
+  float m_ior_t;
   FresnelDielectric m_fresnel;
   float2 m_alpha;
 };
