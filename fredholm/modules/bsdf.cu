@@ -27,8 +27,10 @@ class BSDF
     m_metal_brdf =
         MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
 
-    m_transmission_btdf = MicrofacetTransmission(
-        1.0f, is_entering ? 1.5f : 1.0f, m_params.specular_roughness, 0.0f);
+    const float n_i = is_entering ? 1.0f : 1.5f;
+    const float n_t = is_entering ? 1.5f : 1.0f;
+    m_transmission_btdf =
+        MicrofacetTransmission(n_i, n_t, m_params.specular_roughness, 0.0f);
 
     m_diffuse_brdf = Lambert(m_params.base_color);
   }

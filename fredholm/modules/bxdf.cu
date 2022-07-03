@@ -392,8 +392,11 @@ class MicrofacetTransmission
 
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
-    const float3 wh = normalize(wo + wi);
-    return 0.25f * D_visible(wo, wh) / fabs(dot(wo, wh));
+    const float3 wh = compute_half_vector(wo, wi);
+    const float wi_dot_wh = dot(wi, wh);
+    const float t = m_ior_in * dot(wo, wh) + m_ior_out * wi_dot_wh;
+    return D_visible(wo, wh) * m_ior_out * m_ior_out * fabs(wi_dot_wh) /
+           (t * t);
   }
 
  private:
