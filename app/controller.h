@@ -37,11 +37,11 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/rungholt/rungholt.obj",
     "../resources/vokselia/vokselia_spawn.obj",
     "../resources/bmw/bmw.obj",
-    "../resources/spheres/spheres.obj",
     "../resources/specular_test/spheres_test_scene.obj",
     "../resources/metal_test/spheres_test_scene.obj",
     "../resources/coat_test/spheres_test_scene.obj",
-    "../resources/transmission_test/spheres_test_scene.obj"};
+    "../resources/transmission_test/spheres_test_scene.obj",
+    "../resources/specular_white_furnace_test/spheres.obj"};
 
 class Controller
 {
