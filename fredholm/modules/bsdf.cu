@@ -116,7 +116,7 @@ class BSDF
           // diffuse
           else {
             const float3 wi = m_diffuse_brdf.sample(wo, v, f, pdf);
-            f *= f_mult;
+            f *= f_mult * (1.0f - m_params.transmission);
             pdf *= pdf_mult * (1.0f - m_params.transmission);
             return wi;
           }
@@ -168,7 +168,7 @@ class BSDF
                                             float F0) const
   {
     const float cos = abs_cos_theta(wo);
-    const float4 RGBA = tex2D<float4>(m_lut, cos, 1.0f - roughness);
+    const float4 RGBA = tex2D<float4>(m_lut, 1.0f - cos, 1.0f - roughness);
     return F0 * RGBA.x + fmax(1.0f - F0, 0.0f) * RGBA.y;
   }
 
