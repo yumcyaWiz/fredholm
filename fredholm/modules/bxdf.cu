@@ -148,6 +148,23 @@ class Lambert
   float3 m_albedo;
 };
 
+struct FresnelSchlick {
+  __device__ FresnelSchlick() {}
+  __device__ FresnelSchlick(float n)
+  {
+    const float t = (1.0f - n) / (1.0f + n);
+    m_F0 = t * t;
+  }
+
+  __device__ float eval(float cos) const
+  {
+    const float t = fmax(1.0f - cos, 0.0f);
+    return m_F0 + fmax(1.0f - m_F0, 0.0f) * t * t * t * t * t;
+  }
+
+  float m_F0;
+};
+
 struct FresnelDielectric {
   __device__ FresnelDielectric() {}
   __device__ FresnelDielectric(float n) : m_n(n) {}
@@ -265,7 +282,7 @@ class MicrofacetReflectionDielectric
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
   }
 
-  FresnelDielectric m_fresnel;
+  FresnelSchlick m_fresnel;
   float2 m_alpha;
 };
 

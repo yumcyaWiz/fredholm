@@ -9,9 +9,11 @@
 class BSDF
 {
  public:
-  __device__ BSDF(const ShadingParams& shading_params, bool is_entering)
-      : m_params(shading_params)
+  __device__ BSDF(const ShadingParams& shading_params, bool is_entering,
+                  const cudaTextureObject_t& lut)
+      : m_params(shading_params), m_lut(lut)
   {
+    // TODO: set ior
     m_coat_brdf =
         MicrofacetReflectionDielectric(1.5f, m_params.coat_roughness, 0.0f);
 
@@ -82,21 +84,27 @@ class BSDF
         f_mult *= (1.0f - m_params.metalness);
         pdf_mult *= (1.0f - m_params.metalness);
 
+        // TODO: set ior
+        const float specular_F0 = compute_F0(1.0f, 1.5f);
+        const float specular_directional_albedo = fetch_directional_albedo(
+            wo, m_params.specular_roughness, specular_F0);
         const float specular_color_luminance =
             rgb_to_luminance(m_params.specular_color);
         // specular
-        // TODO: use specular directional albedo
-        if (u.z < m_params.specular * specular_color_luminance * 0.5f) {
+        if (u.z < m_params.specular * specular_color_luminance *
+                      specular_directional_albedo) {
           const float3 wi = m_specular_brdf.sample(wo, v, f, pdf);
           f *= f_mult * m_params.specular * m_params.specular_color;
-          pdf *= pdf_mult * m_params.specular * specular_color_luminance * 0.5f;
+          pdf *= pdf_mult * m_params.specular * specular_color_luminance *
+                 specular_directional_albedo;
           return wi;
         }
         // transmission or diffuse
         else {
-          // f_mult *= (1.0f - m_params.specular * m_params.specular_color);
-          pdf_mult *=
-              (1.0f - m_params.specular * specular_color_luminance * 0.5f);
+          f_mult *= (1.0f - m_params.specular * m_params.specular_color *
+                                specular_directional_albedo);
+          pdf_mult *= (1.0f - m_params.specular * specular_color_luminance *
+                                  specular_directional_albedo);
 
           // transmission
           if (u.w < m_params.transmission) {
@@ -153,4 +161,20 @@ class BSDF
   MicrofacetReflectionConductor m_metal_brdf;
   MicrofacetTransmission m_transmission_btdf;
   Lambert m_diffuse_brdf;
+
+  cudaTextureObject_t m_lut;
+
+  __device__ float fetch_directional_albedo(const float3& wo, float roughness,
+                                            float F0) const
+  {
+    const float cos = abs_cos_theta(wo);
+    const float4 RGBA = tex2D<float4>(m_lut, cos, 1.0f - roughness);
+    return F0 * RGBA.x + fmax(1.0f - F0, 0.0f) * RGBA.y;
+  }
+
+  static __device__ float compute_F0(float ior_i, float ior_t)
+  {
+    const float t = (ior_t - ior_i) / (ior_t + ior_i);
+    return t * t;
+  }
 };
