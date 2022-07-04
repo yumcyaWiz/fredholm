@@ -73,7 +73,6 @@ class BSDF
     }
     // metal or transmission or specular or diffuse
     else {
-      // TODO: use clearcoat directional albedo
       float3 f_mult = (1.0f - m_params.coat * m_params.coat_color *
                                   clearcoat_directional_albedo);
       float pdf_mult = (1.0f - m_params.coat * coat_color_luminance *
