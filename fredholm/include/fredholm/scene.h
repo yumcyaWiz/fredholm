@@ -62,8 +62,10 @@ struct Texture {
   uint32_t m_width;
   uint32_t m_height;
   std::vector<uchar4> m_data;
+  bool m_srgb_to_linear;
 
-  Texture(const std::filesystem::path& filepath)
+  Texture(const std::filesystem::path& filepath, bool srgb_to_linear)
+      : m_srgb_to_linear(srgb_to_linear)
   {
     spdlog::info("[Texture] loading {}", filepath.generic_string());
 
@@ -166,12 +168,14 @@ struct Scene {
     std::unordered_map<std::string, unsigned int> unique_textures = {};
 
     const auto load_texture = [&](const std::filesystem::path& parent_filepath,
-                                  const std::filesystem::path& filepath) {
+                                  const std::filesystem::path& filepath,
+                                  bool srgb_to_linear) {
       if (unique_textures.count(filepath) == 0) {
         // load texture id
         unique_textures[filepath] = m_textures.size();
         // load texture
-        m_textures.push_back(Texture(parent_filepath / filepath));
+        m_textures.push_back(
+            Texture(parent_filepath / filepath, srgb_to_linear));
       }
     };
 
@@ -185,7 +189,7 @@ struct Scene {
 
       // base color(texture)
       if (!m.diffuse_texname.empty()) {
-        load_texture(filepath.parent_path(), m.diffuse_texname);
+        load_texture(filepath.parent_path(), m.diffuse_texname, true);
 
         // set texture id on material
         m_materials[i].base_color_texture_id =
@@ -198,7 +202,7 @@ struct Scene {
 
       // specular color(texture)
       if (!m.specular_texname.empty()) {
-        load_texture(filepath.parent_path(), m.specular_texname);
+        load_texture(filepath.parent_path(), m.specular_texname, false);
         m_materials[i].specular_color_texture_id =
             unique_textures[m.specular_texname];
       }
@@ -208,7 +212,7 @@ struct Scene {
 
       // specular roughness(texture)
       if (!m.roughness_texname.empty()) {
-        load_texture(filepath.parent_path(), m.roughness_texname);
+        load_texture(filepath.parent_path(), m.roughness_texname, false);
         m_materials[i].specular_roughness_texture_id =
             unique_textures[m.roughness_texname];
       }
@@ -218,7 +222,7 @@ struct Scene {
 
       // metalness texture
       if (!m.metallic_texname.empty()) {
-        load_texture(filepath.parent_path(), m.metallic_texname);
+        load_texture(filepath.parent_path(), m.metallic_texname, false);
         m_materials[i].metalness_texture_id =
             unique_textures[m.metallic_texname];
       }
@@ -252,7 +256,7 @@ struct Scene {
 
       // alpha texture
       if (!m.alpha_texname.empty()) {
-        load_texture(filepath.parent_path(), m.alpha_texname);
+        load_texture(filepath.parent_path(), m.alpha_texname, false);
         m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
       }
     }

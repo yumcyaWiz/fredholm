@@ -336,7 +336,7 @@ class Renderer
     for (int i = 0; i < scene.m_textures.size(); ++i) {
       const auto& tex = scene.m_textures[i];
       m_d_textures[i] = std::make_unique<cwl::CUDATexture>(
-          tex.m_width, tex.m_height, tex.m_data.data());
+          tex.m_width, tex.m_height, tex.m_data.data(), tex.m_srgb_to_linear);
     }
 
     std::vector<cudaTextureObject_t> texture_objects(m_d_textures.size());
@@ -469,7 +469,8 @@ class Renderer
 
     const Texture lut =
         Texture(std::filesystem::path(CMAKE_SOURCE_DIR) /
-                "resources/lut/microfacet_reflection_schlick.png");
+                    "resources/lut/microfacet_reflection_schlick.png",
+                false);
     m_d_lut = std::make_unique<cwl::CUDATexture>(lut.m_width, lut.m_height,
                                                  lut.m_data.data());
   }

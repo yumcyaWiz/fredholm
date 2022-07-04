@@ -12,7 +12,8 @@ namespace cwl
 class CUDATexture
 {
  public:
-  CUDATexture(uint32_t width, uint32_t height, const uchar4* data)
+  CUDATexture(uint32_t width, uint32_t height, const uchar4* data,
+              bool srgb_to_linear = false)
   {
     cudaChannelFormatDesc channel_desc;
     channel_desc = cudaCreateChannelDesc<uchar4>();
@@ -40,7 +41,7 @@ class CUDATexture
     tex_desc.minMipmapLevelClamp = 0;
     tex_desc.mipmapFilterMode = cudaFilterModePoint;
     tex_desc.borderColor[0] = 1.0f;
-    tex_desc.sRGB = 0;
+    tex_desc.sRGB = srgb_to_linear ? 1 : 0;
 
     // create texture object
     CUDA_CHECK(cudaCreateTextureObject(&m_texture_object, &res_desc, &tex_desc,
