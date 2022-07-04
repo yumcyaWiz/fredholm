@@ -282,7 +282,7 @@ class MicrofacetReflectionDielectric
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
   }
 
-  FresnelSchlick m_fresnel;
+  FresnelDielectric m_fresnel;
   float2 m_alpha;
 };
 
