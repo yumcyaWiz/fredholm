@@ -45,6 +45,9 @@ class Renderer
     if (m_d_sample_count) { m_d_sample_count.reset(); }
     if (m_d_rng_states) { m_d_rng_states.reset(); }
 
+    // release LUT
+    if (m_d_lut) { m_d_lut.reset(); }
+
     // release scene data
     if (m_d_vertices) { m_d_vertices.reset(); }
     if (m_d_indices) { m_d_indices.reset(); }
@@ -460,6 +463,17 @@ class Renderer
         ias_buffer_sizes.outputSizeInBytes, &m_ias_handle, nullptr, 0));
   }
 
+  void load_lut()
+  {
+    spdlog::info("[Renderer] loading LUT");
+
+    const Texture lut =
+        Texture(std::filesystem::path(CMAKE_SOURCE_DIR) /
+                "resources/lut/microfacet_reflection_schlick.png");
+    m_d_lut = std::make_unique<cwl::CUDATexture>(lut.m_width, lut.m_height,
+                                                 lut.m_data.data());
+  }
+
   void set_resolution(uint32_t width, uint32_t height)
   {
     m_width = width;
@@ -512,6 +526,8 @@ class Renderer
 
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_objects->get_device_ptr();
+
+    params.lut = m_d_lut->get_texture_object();
 
     params.ias_handle = m_ias_handle;
 
@@ -605,6 +621,7 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
+  std::unique_ptr<cwl::CUDATexture> m_d_lut;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
   std::unique_ptr<cwl::CUDABuffer<RNGState>> m_d_rng_states;
 
