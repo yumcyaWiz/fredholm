@@ -65,6 +65,8 @@ struct Texture {
 
   Texture(const std::filesystem::path& filepath)
   {
+    spdlog::info("[Texture] loading {}", filepath.generic_string());
+
     // read image with stb_image
     int w, h, c;
     unsigned char* img =
