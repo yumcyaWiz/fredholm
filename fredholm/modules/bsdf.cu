@@ -13,12 +13,14 @@ class BSDF
                   const cudaTextureObject_t& lut)
       : m_params(shading_params), m_lut(lut)
   {
-    // TODO: set ior
+    const float n_i = is_entering ? 1.0f : 1.5f;
+    const float n_t = is_entering ? 1.5f : 1.0f;
+    const float eta = n_t / n_i;
     m_coat_brdf =
-        MicrofacetReflectionDielectric(1.5f, m_params.coat_roughness, 0.0f);
+        MicrofacetReflectionDielectric(eta, m_params.coat_roughness, 0.0f);
 
     m_specular_brdf =
-        MicrofacetReflectionDielectric(1.5f, m_params.specular_roughness, 0.0f);
+        MicrofacetReflectionDielectric(eta, m_params.specular_roughness, 0.0f);
 
     float3 n, k;
     const float3 reflectivity =
@@ -29,8 +31,6 @@ class BSDF
     m_metal_brdf =
         MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
 
-    const float n_i = is_entering ? 1.0f : 1.5f;
-    const float n_t = is_entering ? 1.5f : 1.0f;
     m_transmission_btdf =
         MicrofacetTransmission(n_i, n_t, m_params.specular_roughness, 0.0f);
 
@@ -174,7 +174,7 @@ class BSDF
                                             float F0) const
   {
     const float cos = abs_cos_theta(wo);
-    const float4 RGBA = tex2D<float4>(m_lut, 1.0f - cos, 1.0f - roughness);
+    const float4 RGBA = tex2D<float4>(m_lut, cos, 1.0f - roughness);
     return F0 * RGBA.x + fmax(1.0f - F0, 0.0f) * RGBA.y;
   }
 
