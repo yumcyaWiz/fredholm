@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include "spdlog/fmt/bundled/format.h"
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
@@ -90,6 +92,40 @@ struct Texture {
         m_data[idx_data].y = img[idx_img + 1];
         m_data[idx_data].z = img[idx_img + 2];
         m_data[idx_data].w = img[idx_img + 3];
+      }
+    }
+
+    stbi_image_free(img);
+  }
+};
+
+struct FloatTexture {
+  uint32_t m_width;
+  uint32_t m_height;
+  std::vector<float4> m_data;
+
+  FloatTexture(const std::filesystem::path& filepath)
+  {
+    spdlog::info("[Texture] loading {}", filepath.generic_string());
+
+    int w, h, c;
+    float* img = stbi_loadf(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
+    if (!img) {
+      throw std::runtime_error("failed to load " + filepath.generic_string());
+    }
+
+    m_width = w;
+    m_height = h;
+
+    m_data.resize(m_width * m_height);
+    for (int j = 0; j < m_height; ++j) {
+      for (int i = 0; i < m_width; ++i) {
+        const int idx_data = i + m_width * j;
+        const int idx_img = 4 * i + 4 * m_width * j;
+        m_data[idx_data].x = img[idx_img + 0];
+        m_data[idx_data].y = img[idx_img + 2];
+        m_data[idx_data].z = img[idx_img + 3];
+        m_data[idx_data].w = img[idx_img + 4];
       }
     }
 
