@@ -51,3 +51,12 @@ static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
 {
   return dot(rgb, make_float3(0.2126729f, 0.7151522f, 0.0721750f));
 }
+
+static __forceinline__ __device__ float2 cartesian_to_spherical(const float3& w)
+{
+  float2 ret;
+  ret.x = acosf(clamp(w.y, -1.0f, 1.0f));
+  ret.y = atan2f(w.z, w.x);
+  if (ret.y < 0) ret.y += 2.0f * M_PIf;
+  return ret;
+}
