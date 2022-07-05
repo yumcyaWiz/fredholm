@@ -1,7 +1,5 @@
 #pragma once
 
-#include <emmintrin.h>
-
 #include "bxdf.cu"
 #include "fredholm/shared.h"
 #include "math.cu"

@@ -45,6 +45,9 @@ class Renderer
     if (m_d_sample_count) { m_d_sample_count.reset(); }
     if (m_d_rng_states) { m_d_rng_states.reset(); }
 
+    // release IBL
+    if (m_d_ibl) { m_d_ibl.reset(); }
+
     // release LUT
     if (m_d_lut) { m_d_lut.reset(); }
 
@@ -475,6 +478,15 @@ class Renderer
                                                  lut.m_data.data());
   }
 
+  void load_ibl(const std::filesystem::path& filepath)
+  {
+    spdlog::info("[Renderer] load IBL");
+
+    const Texture ibl = Texture(filepath, false);
+    m_d_ibl = std::make_unique<cwl::CUDATexture>(ibl.m_width, ibl.m_height,
+                                                 ibl.m_data.data());
+  }
+
   void set_resolution(uint32_t width, uint32_t height)
   {
     m_width = width;
@@ -622,6 +634,7 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
+  std::unique_ptr<cwl::CUDATexture> m_d_ibl;
   std::unique_ptr<cwl::CUDATexture> m_d_lut;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
   std::unique_ptr<cwl::CUDABuffer<RNGState>> m_d_rng_states;
