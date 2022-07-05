@@ -9,20 +9,21 @@ namespace cwl
 {
 
 // RAII wrapper for CUDA texture object
+template <typename T>
 class CUDATexture
 {
  public:
-  CUDATexture(uint32_t width, uint32_t height, const uchar4* data,
+  CUDATexture(uint32_t width, uint32_t height, const T* data,
               bool srgb_to_linear = false)
   {
     cudaChannelFormatDesc channel_desc;
-    channel_desc = cudaCreateChannelDesc<uchar4>();
+    channel_desc = cudaCreateChannelDesc<T>();
 
     // create array
     CUDA_CHECK(cudaMallocArray(&m_array, &channel_desc, width, height));
 
     // copy image data to array
-    const uint32_t pitch = width * sizeof(uchar4);
+    const uint32_t pitch = width * sizeof(T);
     CUDA_CHECK(cudaMemcpy2DToArray(m_array, 0, 0, data, pitch, pitch, height,
                                    cudaMemcpyHostToDevice));
 

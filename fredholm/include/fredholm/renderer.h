@@ -338,7 +338,7 @@ class Renderer
     m_d_textures.resize(scene.m_textures.size());
     for (int i = 0; i < scene.m_textures.size(); ++i) {
       const auto& tex = scene.m_textures[i];
-      m_d_textures[i] = std::make_unique<cwl::CUDATexture>(
+      m_d_textures[i] = std::make_unique<cwl::CUDATexture<uchar4>>(
           tex.m_width, tex.m_height, tex.m_data.data(), tex.m_srgb_to_linear);
     }
 
@@ -474,17 +474,17 @@ class Renderer
         Texture(std::filesystem::path(CMAKE_SOURCE_DIR) /
                     "resources/lut/microfacet_reflection_schlick.png",
                 false);
-    m_d_lut = std::make_unique<cwl::CUDATexture>(lut.m_width, lut.m_height,
-                                                 lut.m_data.data());
+    m_d_lut = std::make_unique<cwl::CUDATexture<uchar4>>(
+        lut.m_width, lut.m_height, lut.m_data.data());
   }
 
   void load_ibl(const std::filesystem::path& filepath)
   {
     spdlog::info("[Renderer] load IBL");
 
-    const Texture ibl = Texture(filepath, false);
-    m_d_ibl = std::make_unique<cwl::CUDATexture>(ibl.m_width, ibl.m_height,
-                                                 ibl.m_data.data());
+    const FloatTexture ibl = FloatTexture(filepath);
+    m_d_ibl = std::make_unique<cwl::CUDATexture<float4>>(
+        ibl.m_width, ibl.m_height, ibl.m_data.data());
   }
 
   void set_resolution(uint32_t width, uint32_t height)
@@ -592,7 +592,7 @@ class Renderer
 
   std::unique_ptr<cwl::CUDABuffer<Material>> m_d_materials = nullptr;
 
-  std::vector<std::unique_ptr<cwl::CUDATexture>> m_d_textures = {};
+  std::vector<std::unique_ptr<cwl::CUDATexture<uchar4>>> m_d_textures = {};
   std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_d_texture_objects =
       {};
 
@@ -634,8 +634,8 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
-  std::unique_ptr<cwl::CUDATexture> m_d_ibl;
-  std::unique_ptr<cwl::CUDATexture> m_d_lut;
+  std::unique_ptr<cwl::CUDATexture<float4>> m_d_ibl;
+  std::unique_ptr<cwl::CUDATexture<uchar4>> m_d_lut;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
   std::unique_ptr<cwl::CUDABuffer<RNGState>> m_d_rng_states;
 
