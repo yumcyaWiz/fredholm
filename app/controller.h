@@ -28,6 +28,8 @@ enum class AOVType : int {
   ALBEDO
 };
 
+enum class SkyType : int { CONSTANT, IBL };
+
 static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/cornellbox/CornellBox.obj",
     "../resources/sponza/sponza.obj",
@@ -44,6 +46,9 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/texture_test/plane.obj",
     "../resources/specular_white_furnace_test/spheres.obj",
     "../resources/coat_white_furnace_test/spheres.obj"};
+
+static std::vector<std::filesystem::path> ibl_filepaths = {
+    "../resources/ibl/PaperMill_Ruins_E/PaperMill_E_3k.hdr"};
 
 class Controller
 {
@@ -62,7 +67,9 @@ class Controller
   float m_imgui_movement_speed = 1.0f;
   float m_imgui_rotation_speed = 0.1f;
 
+  SkyType m_imgui_sky_type = SkyType::CONSTANT;
   float m_imgui_bg_color[3] = {1, 1, 1};
+  int m_imgui_ibl_id = 0;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
@@ -135,7 +142,6 @@ class Controller
     m_renderer->create_program_group();
     m_renderer->create_pipeline();
     m_renderer->load_lut();
-    m_renderer->load_ibl("resources/ibl/PaperMill_Ruins_E/PaperMill_E_3k.hdr");
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 
@@ -183,6 +189,20 @@ class Controller
     m_renderer->build_accel();
     m_renderer->create_sbt();
   }
+
+  void update_sky_type()
+  {
+    switch (m_imgui_sky_type) {
+      case SkyType::CONSTANT: {
+        m_renderer->clear_ibl();
+      } break;
+      case SkyType::IBL: {
+        load_ibl();
+      } break;
+    }
+  }
+
+  void load_ibl() { m_renderer->load_ibl(ibl_filepaths[m_imgui_ibl_id]); }
 
   void update_resolution()
   {

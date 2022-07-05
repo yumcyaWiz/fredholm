@@ -196,9 +196,27 @@ int main()
         ImGui::Separator();
 
         {
-          if (ImGui::InputFloat3("background color",
-                                 controller.m_imgui_bg_color)) {
+          if (ImGui::Combo("Sky Type",
+                           reinterpret_cast<int*>(&controller.m_imgui_sky_type),
+                           "Constant\0IBL\0\0")) {
+            controller.update_sky_type();
             controller.clear_render();
+          }
+
+          switch (controller.m_imgui_sky_type) {
+            case SkyType::CONSTANT: {
+              if (ImGui::InputFloat3("background color",
+                                     controller.m_imgui_bg_color)) {
+                controller.clear_render();
+              }
+            } break;
+            case SkyType::IBL: {
+              if (ImGui::Combo("IBL", &controller.m_imgui_ibl_id,
+                               "PaperMill3E\0\0")) {
+                controller.load_ibl();
+                controller.clear_render();
+              }
+            } break;
           }
         }
       }

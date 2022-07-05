@@ -482,10 +482,14 @@ class Renderer
   {
     spdlog::info("[Renderer] load IBL");
 
-    const FloatTexture ibl =
-        FloatTexture(std::filesystem::path(CMAKE_SOURCE_DIR) / filepath);
+    const FloatTexture ibl = FloatTexture(filepath);
     m_d_ibl = std::make_unique<cwl::CUDATexture<float4>>(
         ibl.m_width, ibl.m_height, ibl.m_data.data());
+  }
+
+  void clear_ibl()
+  {
+    if (m_d_ibl) { m_d_ibl.reset(); }
   }
 
   void set_resolution(uint32_t width, uint32_t height)
