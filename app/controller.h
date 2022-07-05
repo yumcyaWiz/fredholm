@@ -135,6 +135,7 @@ class Controller
     m_renderer->create_program_group();
     m_renderer->create_pipeline();
     m_renderer->load_lut();
+    m_renderer->load_ibl("resources/ibl/PaperMill_Ruins_E/PaperMill_E_3k.hdr");
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 

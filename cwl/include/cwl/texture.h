@@ -35,7 +35,9 @@ class CUDATexture
     tex_desc.addressMode[0] = cudaAddressModeWrap;
     tex_desc.addressMode[1] = cudaAddressModeWrap;
     tex_desc.filterMode = cudaFilterModeLinear;
-    tex_desc.readMode = cudaReadModeNormalizedFloat;
+    tex_desc.readMode = std::is_same<T, uchar4>::value
+                            ? cudaReadModeNormalizedFloat
+                            : cudaReadModeElementType;
     tex_desc.normalizedCoords = 1;
     tex_desc.maxAnisotropy = 1;
     tex_desc.maxMipmapLevelClamp = 99;

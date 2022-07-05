@@ -123,9 +123,9 @@ struct FloatTexture {
         const int idx_data = i + m_width * j;
         const int idx_img = 4 * i + 4 * m_width * j;
         m_data[idx_data].x = img[idx_img + 0];
-        m_data[idx_data].y = img[idx_img + 2];
-        m_data[idx_data].z = img[idx_img + 3];
-        m_data[idx_data].w = img[idx_img + 4];
+        m_data[idx_data].y = img[idx_img + 1];
+        m_data[idx_data].z = img[idx_img + 2];
+        m_data[idx_data].w = img[idx_img + 3];
       }
     }
 
