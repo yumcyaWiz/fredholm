@@ -174,7 +174,8 @@ class BSDF
                                             float F0) const
   {
     const float cos = abs_cos_theta(wo);
-    const float4 RGBA = tex2D<float4>(m_lut, cos, 1.0f - roughness);
+    // TODO: 1.0f - roughness? since image is y-flipped
+    const float4 RGBA = tex2D<float4>(m_lut, cos, roughness);
     return F0 * RGBA.x + fmax(1.0f - F0, 0.0f) * RGBA.y;
   }
 

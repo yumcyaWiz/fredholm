@@ -124,9 +124,6 @@ static __forceinline__ __device__ void fill_surface_info(
   const float2 tex2 = texcoords[idx.z];
   info.texcoord = (1.0f - info.barycentric.x - info.barycentric.y) * tex0 +
                   info.barycentric.x * tex1 + info.barycentric.y * tex2;
-  // flip x, y component
-  // info.texcoord.x = 1.0f - info.texcoord.x;
-  info.texcoord.y = 1.0f - info.texcoord.y;
 
   // flip normal
   info.is_entering = dot(-ray_direction, info.n_s) > 0;
@@ -212,9 +209,11 @@ extern "C" __global__ void __raygen__rg()
 
   for (int spp = 0; spp < params.n_samples; ++spp) {
     // generate initial ray from camera
-    const float2 uv =
+    float2 uv =
         make_float2((2.0f * (idx.x + frandom(payload.rng)) - dim.x) / dim.y,
                     (2.0f * (idx.y + frandom(payload.rng)) - dim.y) / dim.y);
+    // flip x
+    uv.x = -uv.x;
     sample_ray_pinhole_camera(uv, payload.origin, payload.direction);
 
     // start ray tracing from the camera

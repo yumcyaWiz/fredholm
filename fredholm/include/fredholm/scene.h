@@ -71,6 +71,7 @@ struct Texture {
 
     // read image with stb_image
     int w, h, c;
+    stbi_set_flip_vertically_on_load(true);
     unsigned char* img =
         stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
     if (!img) {

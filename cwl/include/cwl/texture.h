@@ -40,7 +40,6 @@ class CUDATexture
     tex_desc.maxMipmapLevelClamp = 99;
     tex_desc.minMipmapLevelClamp = 0;
     tex_desc.mipmapFilterMode = cudaFilterModePoint;
-    tex_desc.borderColor[0] = 1.0f;
     tex_desc.sRGB = srgb_to_linear ? 1 : 0;
 
     // create texture object
