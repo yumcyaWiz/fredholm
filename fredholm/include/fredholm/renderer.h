@@ -482,7 +482,8 @@ class Renderer
   {
     spdlog::info("[Renderer] load IBL");
 
-    const FloatTexture ibl = FloatTexture(filepath);
+    const FloatTexture ibl =
+        FloatTexture(std::filesystem::path(CMAKE_SOURCE_DIR) / filepath);
     m_d_ibl = std::make_unique<cwl::CUDATexture<float4>>(
         ibl.m_width, ibl.m_height, ibl.m_data.data());
   }
@@ -540,6 +541,11 @@ class Renderer
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_objects->get_device_ptr();
 
+    if (m_d_ibl) {
+      params.ibl = m_d_ibl->get_texture_object();
+    } else {
+      params.ibl = 0;
+    }
     params.lut = m_d_lut->get_texture_object();
 
     params.ias_handle = m_ias_handle;
