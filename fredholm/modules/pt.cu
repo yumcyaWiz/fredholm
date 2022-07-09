@@ -302,9 +302,8 @@ extern "C" __global__ void __anyhit__radiance()
   const float2 tex0 = sbt->texcoords[idx.x];
   const float2 tex1 = sbt->texcoords[idx.y];
   const float2 tex2 = sbt->texcoords[idx.z];
-  float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
-                    barycentric.x * tex1 + barycentric.y * tex2;
-  texcoord.y = 1.0f - texcoord.y;
+  const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                          barycentric.x * tex1 + barycentric.y * tex2;
 
   // fetch base color texture
   if (material.base_color_texture_id >= 0) {
