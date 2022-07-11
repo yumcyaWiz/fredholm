@@ -227,15 +227,13 @@ struct FresnelDielectric {
 
   __device__ float eval(float cos) const
   {
-    const float s2 = fmax(1.0f - cos * cos, 0.0f);
-    const float t0 = sqrtf(fmax(1.0f - (s2 / (m_n * m_n)), 0.0f));
-    const float t1 = m_n * t0;
-    const float t2 = m_n * cos;
+    const float temp = m_n * m_n + cos * cos - 1.0f;
+    if (temp < 0.0f) { return 1.0f; }
 
-    const float rs = (cos - t1) / (cos + t1);
-    const float rp = (t0 - t2) / (t0 + t2);
-
-    return 0.5f * (rs * rs + rp * rp);
+    const float g = sqrtf(temp);
+    const float t0 = (g - cos) / (g + cos);
+    const float t1 = ((g + cos) * cos - 1.0f) / ((g - cos) * cos + 1.0f);
+    return 0.5f * t0 * t0 * (1.0f + t1 * t1);
   }
 
   float m_n;

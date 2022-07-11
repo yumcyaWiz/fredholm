@@ -226,7 +226,7 @@ struct Scene {
 
       // base color(texture)
       if (!m.diffuse_texname.empty()) {
-        load_texture(filepath.parent_path(), m.diffuse_texname, true);
+        load_texture(filepath.parent_path(), m.diffuse_texname, false);
 
         // set texture id on material
         m_materials[i].base_color_texture_id =
