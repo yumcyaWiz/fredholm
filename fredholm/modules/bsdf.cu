@@ -32,7 +32,7 @@ class BSDF
     m_transmission_btdf =
         MicrofacetTransmission(n_i, n_t, m_params.specular_roughness, 0.0f);
 
-    m_diffuse_brdf = Lambert(m_params.base_color);
+    m_diffuse_brdf = OrenNayer(m_params.base_color, 0.0f);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -164,7 +164,7 @@ class BSDF
   MicrofacetReflectionDielectric m_specular_brdf;
   MicrofacetReflectionConductor m_metal_brdf;
   MicrofacetTransmission m_transmission_btdf;
-  Lambert m_diffuse_brdf;
+  OrenNayer m_diffuse_brdf;
 
   cudaTextureObject_t m_lut;
 

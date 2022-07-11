@@ -148,6 +148,62 @@ class Lambert
   float3 m_albedo;
 };
 
+class OrenNayer
+{
+ public:
+  __device__ OrenNayer() {}
+  __device__ OrenNayer(const float3& albedo, float roughness)
+      : m_albedo(albedo), m_roughness(roughness)
+  {
+    const float sigma2 = roughness * roughness;
+    m_A = 1.0f - (sigma2 / (2.0f * (sigma2 + 0.33f)));
+    m_B = 0.45f * sigma2 / (sigma2 + 0.09f);
+  }
+
+  __device__ float3 eval(const float3& wo, const float3& wi) const
+  {
+    const float s_theta_o = sin_theta(wo);
+    const float s_theta_i = sin_theta(wi);
+
+    float c_max = 0.0f;
+    if (s_theta_i > 1e-4f && s_theta_o > 1e-4f) {
+      const float s_phi_o = sin_phi(wo), c_phi_o = cos_phi(wo);
+      const float s_phi_i = sin_phi(wi), c_phi_i = cos_phi(wi);
+      const float c = c_phi_i * c_phi_o + s_phi_i * s_phi_o;
+      c_max = fmax(c, 0.0f);
+    }
+
+    const bool b = abs_cos_theta(wi) > abs_cos_theta(wo);
+    const float s_alpha = b ? s_theta_o : s_theta_i;
+    const float t_beta =
+        b ? s_theta_i / abs_cos_theta(wi) : s_theta_o / abs_cos_theta(wo);
+
+    return m_albedo * (m_A + m_B * c_max * s_alpha * t_beta) / M_PIf;
+  }
+
+  __device__ float3 sample(const float3& wo, const float2& u, float3& f,
+                           float& pdf) const
+  {
+    const float3 wi = sample_cosine_weighted_hemisphere(u);
+
+    f = eval(wo, wi);
+    pdf = abs_cos_theta(wi) / M_PIf;
+
+    return wi;
+  }
+
+  __device__ float eval_pdf(const float3& wo, const float3& wi) const
+  {
+    return abs_cos_theta(wi) / M_PIf;
+  }
+
+ private:
+  float3 m_albedo;
+  float m_roughness;
+  float m_A;
+  float m_B;
+};
+
 struct FresnelSchlick {
   __device__ FresnelSchlick() {}
   __device__ FresnelSchlick(float n)
