@@ -36,6 +36,15 @@ vec3 linear_to_srgb(vec3 rgb) {
   return rgb;
 }
 
+vec3 aces_tone_mapping(vec3 color) {
+  float a = 2.51f;
+  float b = 0.03f;
+  float c = 2.43f;
+  float d = 0.59f;
+  float e = 0.14f;
+  return clamp((color*(a*color+b))/(color*(c*color+d)+e), vec3(0.0f), vec3(1.0f));
+}
+
 void main() {
   ivec2 xy = ivec2(texCoords * resolution);
   xy.y = int(resolution.y) - xy.y - 1;
@@ -45,11 +54,13 @@ void main() {
   // beauty
   if(aov_type == 0) {
     color = beauty[idx].xyz;
+    color = aces_tone_mapping(color);
     color = linear_to_srgb(color);
   }
   // denoised
   if(aov_type == 1) {
     color = denoised[idx].xyz;
+    color = aces_tone_mapping(color);
     color = linear_to_srgb(color);
   }
   // position
@@ -72,6 +83,7 @@ void main() {
   // albedo
   else if(aov_type == 6) {
     color = albedo[idx].xyz;
+    color = aces_tone_mapping(color);
     color = linear_to_srgb(color);
   }
 
