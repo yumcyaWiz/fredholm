@@ -29,6 +29,13 @@ out vec4 fragColor;
 uniform vec2 resolution;
 uniform int aov_type;
 
+vec3 linear_to_srgb(vec3 rgb) {
+  rgb.x = rgb.x < 0.0031308 ? 12.92 * rgb.x : 1.055 * pow(rgb.x, 1.0f / 2.4f) - 0.055;
+  rgb.y = rgb.y < 0.0031308 ? 12.92 * rgb.y : 1.055 * pow(rgb.y, 1.0f / 2.4f) - 0.055;
+  rgb.z = rgb.z < 0.0031308 ? 12.92 * rgb.z : 1.055 * pow(rgb.z, 1.0f / 2.4f) - 0.055;
+  return rgb;
+}
+
 void main() {
   ivec2 xy = ivec2(texCoords * resolution);
   xy.y = int(resolution.y) - xy.y - 1;
@@ -38,12 +45,12 @@ void main() {
   // beauty
   if(aov_type == 0) {
     color = beauty[idx].xyz;
-    color = pow(color, vec3(1.0 / 2.2));
+    color = linear_to_srgb(color);
   }
   // denoised
   if(aov_type == 1) {
     color = denoised[idx].xyz;
-    color = pow(color, vec3(1.0 / 2.2));
+    color = linear_to_srgb(color);
   }
   // position
   else if(aov_type == 2) {
@@ -65,7 +72,7 @@ void main() {
   // albedo
   else if(aov_type == 6) {
     color = albedo[idx].xyz;
-    color = pow(color, vec3(1.0 / 2.2));
+    color = linear_to_srgb(color);
   }
 
   fragColor = vec4(color, 1.0);
