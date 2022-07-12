@@ -90,8 +90,11 @@ class BSDF
         const float specular_F0 = compute_F0(m_ni, m_nt);
         const float specular_color_luminance =
             rgb_to_luminance(m_params.specular_color);
-        const float specular_directional_albedo = compute_directional_albedo(
-            wo, m_params.specular_roughness, specular_F0);
+        float specular_directional_albedo =
+            m_nt > m_ni ? compute_directional_albedo(
+                              wo, m_params.specular_roughness, specular_F0)
+                        : compute_directional_albedo2(
+                              wo, m_params.specular_roughness, m_nt / m_ni);
         // specular
         if (u.z < m_params.specular * specular_color_luminance *
                       specular_directional_albedo) {
