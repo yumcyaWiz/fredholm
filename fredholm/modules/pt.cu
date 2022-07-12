@@ -86,7 +86,7 @@ static __forceinline__ __device__ bool has_emission(const Material& material)
 }
 
 static __forceinline__ __device__ void sample_ray_pinhole_camera(
-    const float2& uv, float3& origin, float3& direction)
+    const float2& uv, float3& origin, float3& direction, float& pdf)
 {
   const float3 p_sensor = params.camera.origin + uv.x * params.camera.right +
                           uv.y * params.camera.up;
@@ -95,6 +95,7 @@ static __forceinline__ __device__ void sample_ray_pinhole_camera(
 
   origin = p_pinhole;
   direction = normalize(p_pinhole - p_sensor);
+  pdf = 1.0f / dot(direction, params.camera.forward);
 }
 
 static __forceinline__ __device__ void fill_surface_info(
@@ -214,16 +215,21 @@ extern "C" __global__ void __raygen__rg()
                     (2.0f * (idx.y + frandom(payload.rng)) - dim.y) / dim.y);
     // flip x
     uv.x = -uv.x;
-    sample_ray_pinhole_camera(uv, payload.origin, payload.direction);
+    float camera_pdf;
+    sample_ray_pinhole_camera(uv, payload.origin, payload.direction,
+                              camera_pdf);
 
     // start ray tracing from the camera
     payload.radiance = make_float3(0);
-    payload.throughput = make_float3(1);
+    payload.throughput =
+        make_float3(dot(payload.direction, params.camera.forward) / camera_pdf);
     payload.done = false;
     for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth) {
       // russian roulette
       const float russian_roulette_prob =
-          clamp(rgb_to_luminance(payload.throughput), 0.0f, 1.0f);
+          ray_depth == 0
+              ? 1.0f
+              : clamp(rgb_to_luminance(payload.throughput), 0.0f, 1.0f);
       if (frandom(payload.rng) >= russian_roulette_prob) { break; }
       payload.throughput /= russian_roulette_prob;
 
