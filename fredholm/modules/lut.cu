@@ -2250,8 +2250,31 @@ __forceinline__ __device__ float fetch_lut2(const float3& uv)
   const int k = clamp(static_cast<int>(uv.z * LUT_SCHLICK2_SIZE), 0,
                       LUT_SCHLICK2_SIZE - 1);
 
-  // TODO: apply trilinear interpolation
   return fetch_lut2_idx(i, j, k);
+
+  // FIXME: something wrong?
+  // const float hx = uv.x * LUT_SCHLICK2_SIZE - i;
+  // const float hy = uv.y * LUT_SCHLICK2_SIZE - j;
+  // const float hz = uv.z * LUT_SCHLICK2_SIZE - k;
+
+  // const float t000 = fetch_lut2_idx(i, j, k);
+  // const float t100 = fetch_lut2_idx(i + 1, j, k);
+  // const float t010 = fetch_lut2_idx(i, j + 1, k);
+  // const float t110 = fetch_lut2_idx(i + 1, j + 1, k);
+  // const float t001 = fetch_lut2_idx(i, j, k + 1);
+  // const float t101 = fetch_lut2_idx(i + 1, j, k + 1);
+  // const float t011 = fetch_lut2_idx(i, j + 1, k + 1);
+  // const float t111 = fetch_lut2_idx(i + 1, j + 1, k + 1);
+
+  // const float t00 = t000 * (1.0f - hx) + t100 * hx;
+  // const float t01 = t001 * (1.0f - hx) + t101 * hx;
+  // const float t10 = t010 * (1.0f - hx) + t110 * hx;
+  // const float t11 = t011 * (1.0f - hx) + t111 * hx;
+
+  // const float t0 = t00 * (1.0f - hy) + t10 * hy;
+  // const float t1 = t01 * (1.0f - hy) + t11 * hy;
+
+  // return t0 * (1.0f - hz) + t1 * hz;
 }
 
 __forceinline__ __device__ float compute_directional_albedo2(const float3& w,
