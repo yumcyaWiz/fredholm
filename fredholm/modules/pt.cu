@@ -272,8 +272,8 @@ extern "C" __global__ void __miss__radiance()
   float3 le;
   if (params.ibl) {
     const float2 thphi = cartesian_to_spherical(payload->direction);
-    le = make_float3(tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf),
-                                   1.0f - thphi.x / M_PIf));
+    le = make_float3(
+        tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
   } else {
     le = params.bg_color;
   }
