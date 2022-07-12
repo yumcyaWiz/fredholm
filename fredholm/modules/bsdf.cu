@@ -2,6 +2,7 @@
 
 #include "bxdf.cu"
 #include "fredholm/shared.h"
+#include "lut.cu"
 #include "math.cu"
 
 class BSDF
@@ -59,7 +60,7 @@ class BSDF
     // coat
     const float clearcoat_F0 = compute_F0(1.0f, 1.5f);
     const float clearcoat_directional_albedo =
-        fetch_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
+        compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
     const float coat_color_luminance = rgb_to_luminance(m_params.coat_color);
     if (u.x <
         m_params.coat * coat_color_luminance * clearcoat_directional_albedo) {
@@ -90,7 +91,7 @@ class BSDF
 
         // TODO: set ior
         const float specular_F0 = compute_F0(1.0f, 1.5f);
-        const float specular_directional_albedo = fetch_directional_albedo(
+        const float specular_directional_albedo = compute_directional_albedo(
             wo, m_params.specular_roughness, specular_F0);
         const float specular_color_luminance =
             rgb_to_luminance(m_params.specular_color);
