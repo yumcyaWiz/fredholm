@@ -15,7 +15,7 @@ __forceinline__ __device__ float cos2_theta(const float3& w)
 
 __forceinline__ __device__ float abs_cos_theta(const float3& w)
 {
-  return fabs(w.y * w.y);
+  return fabs(w.y);
 }
 
 __forceinline__ __device__ float sin_theta(const float3& w)
