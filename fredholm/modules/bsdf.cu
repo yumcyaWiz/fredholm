@@ -8,13 +8,13 @@
 class BSDF
 {
  public:
-  __device__ BSDF(const ShadingParams& shading_params, bool is_entering,
-                  const cudaTextureObject_t& lut)
-      : m_params(shading_params), m_lut(lut)
+  __device__ BSDF(const ShadingParams& shading_params, bool is_entering)
+
+      : m_params(shading_params)
   {
-    const float n_i = is_entering ? 1.0f : 1.5f;
-    const float n_t = is_entering ? 1.5f : 1.0f;
-    const float eta = n_t / n_i;
+    m_ni = is_entering ? 1.0f : 1.5f;
+    m_nt = is_entering ? 1.5f : 1.0f;
+    const float eta = m_nt / m_ni;
     m_coat_brdf =
         MicrofacetReflectionDielectric(eta, m_params.coat_roughness, 0.0f);
 
@@ -31,7 +31,7 @@ class BSDF
         MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
 
     m_transmission_btdf =
-        MicrofacetTransmission(n_i, n_t, m_params.specular_roughness, 0.0f);
+        MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
 
     m_diffuse_brdf = OrenNayer(m_params.base_color, 0.0f);
   }
@@ -58,24 +58,22 @@ class BSDF
                            float3& f, float& pdf) const
   {
     // coat
-    const float clearcoat_F0 = compute_F0(1.0f, 1.5f);
-    const float clearcoat_directional_albedo =
-        compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
+    const float clearcoat_F0 = compute_F0(m_ni, m_nt);
     const float coat_color_luminance = rgb_to_luminance(m_params.coat_color);
-    if (u.x <
-        m_params.coat * coat_color_luminance * clearcoat_directional_albedo) {
+    const float coat_directional_albedo =
+        compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
+    if (u.x < m_params.coat * coat_color_luminance * coat_directional_albedo) {
       const float3 wi = m_coat_brdf.sample(wo, v, f, pdf);
       f *= m_params.coat * m_params.coat_color;
-      pdf *=
-          m_params.coat * coat_color_luminance * clearcoat_directional_albedo;
+      pdf *= m_params.coat * coat_color_luminance * coat_directional_albedo;
       return wi;
     }
     // metal or transmission or specular or diffuse
     else {
       float3 f_mult = (1.0f - m_params.coat * m_params.coat_color *
-                                  clearcoat_directional_albedo);
+                                  coat_directional_albedo);
       float pdf_mult = (1.0f - m_params.coat * coat_color_luminance *
-                                   clearcoat_directional_albedo);
+                                   coat_directional_albedo);
 
       // metal
       if (u.y < m_params.metalness) {
@@ -89,12 +87,11 @@ class BSDF
         f_mult *= (1.0f - m_params.metalness);
         pdf_mult *= (1.0f - m_params.metalness);
 
-        // TODO: set ior
-        const float specular_F0 = compute_F0(1.0f, 1.5f);
-        const float specular_directional_albedo = compute_directional_albedo(
-            wo, m_params.specular_roughness, specular_F0);
+        const float specular_F0 = compute_F0(m_ni, m_nt);
         const float specular_color_luminance =
             rgb_to_luminance(m_params.specular_color);
+        const float specular_directional_albedo = compute_directional_albedo(
+            wo, m_params.specular_roughness, specular_F0);
         // specular
         if (u.z < m_params.specular * specular_color_luminance *
                       specular_directional_albedo) {
@@ -160,23 +157,14 @@ class BSDF
 
  private:
   ShadingParams m_params;
+  float m_ni;
+  float m_nt;
 
   MicrofacetReflectionDielectric m_coat_brdf;
   MicrofacetReflectionDielectric m_specular_brdf;
   MicrofacetReflectionConductor m_metal_brdf;
   MicrofacetTransmission m_transmission_btdf;
   OrenNayer m_diffuse_brdf;
-
-  cudaTextureObject_t m_lut;
-
-  __device__ float fetch_directional_albedo(const float3& wo, float roughness,
-                                            float F0) const
-  {
-    const float cos = abs_cos_theta(wo);
-    // TODO: 1.0f - roughness? since image is y-flipped
-    const float4 RGBA = tex2D<float4>(m_lut, cos, roughness);
-    return F0 * RGBA.x + fmax(1.0f - F0, 0.0f) * RGBA.y;
-  }
 
   static __device__ float compute_F0(float ior_i, float ior_t)
   {

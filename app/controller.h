@@ -141,7 +141,6 @@ class Controller
                               "pt.ptx");
     m_renderer->create_program_group();
     m_renderer->create_pipeline();
-    m_renderer->load_lut();
     m_renderer->set_resolution(m_imgui_resolution[0], m_imgui_resolution[1]);
   }
 

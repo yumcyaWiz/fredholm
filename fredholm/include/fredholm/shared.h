@@ -109,7 +109,6 @@ struct LaunchParams {
   cudaTextureObject_t* textures;
 
   cudaTextureObject_t ibl;
-  cudaTextureObject_t lut;
 
   OptixTraversableHandle ias_handle;
 };
