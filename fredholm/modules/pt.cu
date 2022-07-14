@@ -117,8 +117,8 @@ static __forceinline__ __device__ void fill_surface_info(
   const float3 n0 = normals[idx.x];
   const float3 n1 = normals[idx.y];
   const float3 n2 = normals[idx.z];
-  info.n_s = (1.0f - info.barycentric.x - info.barycentric.y) * n0 +
-             info.barycentric.x * n1 + info.barycentric.y * n2;
+  info.n_s = normalize((1.0f - info.barycentric.x - info.barycentric.y) * n0 +
+                       info.barycentric.x * n1 + info.barycentric.y * n2);
 
   const float2 tex0 = texcoords[idx.x];
   const float2 tex1 = texcoords[idx.y];
@@ -133,8 +133,8 @@ static __forceinline__ __device__ void fill_surface_info(
 
   orthonormal_basis(info.n_s, info.tangent, info.bitangent);
 
-  info.wo =
-      world_to_local(-ray_direction, info.tangent, info.n_s, info.bitangent);
+  info.wo = normalize(
+      world_to_local(-ray_direction, info.tangent, info.n_s, info.bitangent));
 }
 
 static __forceinline__ __device__ ShadingParams fill_shading_params(
