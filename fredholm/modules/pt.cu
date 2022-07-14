@@ -397,7 +397,7 @@ extern "C" __global__ void __closesthit__radiance()
   payload->origin = surf_info.x;
   payload->direction = wi_world;
 
-  bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
+  const bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
   if (is_transmitted) {
     payload->origin -= RAY_EPS * surf_info.n_g;
   } else {

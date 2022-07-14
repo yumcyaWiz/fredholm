@@ -14,12 +14,12 @@ class BSDF
   {
     m_ni = is_entering ? 1.0f : 1.5f;
     m_nt = is_entering ? 1.5f : 1.0f;
-    const float eta = m_nt / m_ni;
+    m_eta = m_nt / m_ni;
     m_coat_brdf =
-        MicrofacetReflectionDielectric(eta, m_params.coat_roughness, 0.0f);
+        MicrofacetReflectionDielectric(m_eta, m_params.coat_roughness, 0.0f);
 
-    m_specular_brdf =
-        MicrofacetReflectionDielectric(eta, m_params.specular_roughness, 0.0f);
+    m_specular_brdf = MicrofacetReflectionDielectric(
+        m_eta, m_params.specular_roughness, 0.0f);
 
     float3 n, k;
     const float3 reflectivity =
@@ -91,10 +91,10 @@ class BSDF
         const float specular_color_luminance =
             rgb_to_luminance(m_params.specular_color);
         float specular_directional_albedo =
-            m_nt > m_ni ? compute_directional_albedo(
-                              wo, m_params.specular_roughness, specular_F0)
-                        : compute_directional_albedo2(
-                              wo, m_params.specular_roughness, m_nt / m_ni);
+            m_eta >= 1.0f ? compute_directional_albedo(
+                                wo, m_params.specular_roughness, specular_F0)
+                          : compute_directional_albedo2(
+                                wo, m_params.specular_roughness, m_nt / m_ni);
         // specular
         if (u.z < m_params.specular * specular_color_luminance *
                       specular_directional_albedo) {
@@ -162,6 +162,7 @@ class BSDF
   ShadingParams m_params;
   float m_ni;
   float m_nt;
+  float m_eta;
 
   MicrofacetReflectionDielectric m_coat_brdf;
   MicrofacetReflectionDielectric m_specular_brdf;
