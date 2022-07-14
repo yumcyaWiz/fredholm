@@ -477,7 +477,9 @@ class MicrofacetTransmission
   __device__ float3 compute_half_vector(const float3& wo,
                                         const float3& wi) const
   {
-    return normalize(-(m_ior_i * wo + m_ior_t * wi));
+    float3 wh = normalize(-(m_ior_i * wo + m_ior_t * wi));
+    if (wh.y < 0.0f) wh = -wh;
+    return wh;
   }
 
   __device__ float D(const float3& wh) const
