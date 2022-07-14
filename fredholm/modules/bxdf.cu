@@ -80,18 +80,17 @@ __forceinline__ __device__ float abs_cos_phi(const float3& w)
 
 __forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
 {
-  return -w + 2.0f * dot(w, n) * n;
+  return normalize(-w + 2.0f * dot(w, n) * n);
 }
 
 __forceinline__ __device__ bool refract(const float3& w, const float3& n,
                                         float ior_i, float ior_t, float3& wt)
 {
-  const float3 t_h = -ior_i / ior_t * (w - dot(w, n) * n);
-  // total internal reflection
-  if (length(t_h) > 1.0f) { return false; }
-
-  const float3 t_p = -sqrtf(fmax(1.0f - dot(t_h, t_h), 0.0f)) * n;
-  wt = t_h + t_p;
+  const float w_dot_n = dot(w, n);
+  const float eta = ior_i / ior_t;
+  const float t = eta * (w_dot_n * w_dot_n - 1.0f);
+  if (t < -1.0f) return false;
+  wt = normalize(-eta * w + (eta * w_dot_n - sqrtf(fmax(1.0f + t, 0.0f))) * n);
   return true;
 }
 
