@@ -127,9 +127,9 @@ static __forceinline__ __device__ void fill_surface_info(
                   info.barycentric.x * tex1 + info.barycentric.y * tex2;
 
   // flip normal
-  info.is_entering = dot(-ray_direction, info.n_s) > 0;
+  info.is_entering = dot(-ray_direction, info.n_g) > 0;
   info.n_s = info.is_entering ? info.n_s : -info.n_s;
-  info.n_g = dot(-ray_direction, info.n_g) > 0 ? info.n_g : -info.n_g;
+  info.n_g = info.is_entering ? info.n_g : -info.n_g;
 
   orthonormal_basis(info.n_s, info.tangent, info.bitangent);
 
