@@ -44,6 +44,7 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/coat_test/spheres_test_scene.obj",
     "../resources/transmission_test/spheres_test_scene.obj",
     "../resources/texture_test/plane.obj",
+    "../resources/normalmap_test/plane.obj",
     "../resources/specular_white_furnace_test/spheres.obj",
     "../resources/coat_white_furnace_test/spheres.obj"};
 
