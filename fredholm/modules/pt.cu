@@ -34,6 +34,10 @@ struct RadiancePayload {
 };
 
 struct ShadowPayload {
+  float3 p;   // position on the light
+  float3 n;   // normal on the light
+  float3 le;  // emission
+  float pdf;  // area pdf
 };
 
 // upper-32bit + lower-32bit -> 64bit
@@ -77,6 +81,20 @@ static __forceinline__ __device__ void trace_radiance(
              static_cast<unsigned int>(RayType::RAY_TYPE_RADIANCE),
              static_cast<unsigned int>(RayType::RAY_TYPE_COUNT),
              static_cast<unsigned int>(RayType::RAY_TYPE_RADIANCE), u0, u1);
+}
+
+static __forceinline__ __device__ void trace_shadow(
+    OptixTraversableHandle& handle, const float3& ray_origin,
+    const float3& ray_direction, float tmin, float tmax,
+    ShadowPayload* payload_ptr)
+{
+  unsigned int u0, u1;
+  pack_ptr(payload_ptr, u0, u1);
+  optixTrace(handle, ray_origin, ray_direction, tmin, tmax, 0.0f,
+             OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE,
+             static_cast<unsigned int>(RayType::RAY_TYPE_SHADOW),
+             static_cast<unsigned int>(RayType::RAY_TYPE_COUNT),
+             static_cast<unsigned int>(RayType::RAY_TYPE_SHADOW), u0, u1);
 }
 
 static __forceinline__ __device__ bool has_emission(const Material& material)
