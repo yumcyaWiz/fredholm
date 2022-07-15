@@ -563,7 +563,7 @@ class Renderer
     OPTIX_CHECK(
         optixLaunch(m_pipeline, m_stream,
                     reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
-                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
+                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 2));
   }
 
   void wait_for_completion() { CUDA_SYNC_CHECK(); }
@@ -589,7 +589,7 @@ class Renderer
   bool m_enable_validation_mode = false;
 
   uint32_t m_max_traversable_depth = 1;
-  uint32_t m_max_trace_depth = 3;
+  uint32_t m_max_trace_depth = 2;
 
   // scene data on host
   std::vector<uint> m_submesh_offsets = {};

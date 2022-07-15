@@ -34,10 +34,7 @@ struct RadiancePayload {
 };
 
 struct ShadowPayload {
-  float3 p;   // position on the light
-  float3 n;   // normal on the light
-  float3 le;  // emission
-  float pdf;  // area pdf
+  bool visible = false;  // light visibility
 };
 
 // upper-32bit + lower-32bit -> 64bit
@@ -336,7 +333,11 @@ extern "C" __global__ void __miss__radiance()
   payload->done = true;
 }
 
-extern "C" __global__ void __miss__shadow() {}
+extern "C" __global__ void __miss__shadow()
+{
+  ShadowPayload* payload = get_payload_ptr<ShadowPayload>();
+  payload->visible = true;
+}
 
 extern "C" __global__ void __anyhit__radiance()
 {
@@ -485,6 +486,33 @@ extern "C" __global__ void __closesthit__radiance()
 
   const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
 
+  // light sampling
+  {
+    float3 le, n;
+    float pdf_area;
+    const float3 p = sample_position_on_light(
+        frandom(payload->rng),
+        make_float2(frandom(payload->rng), frandom(payload->rng)),
+        sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
+
+    const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+    const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
+    const float r = length(p - shadow_ray_origin);
+
+    ShadowPayload shadow_payload;
+    // trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+    //              0.0f, r - RAY_EPS, &shadow_payload);
+
+    if (shadow_payload.visible) {
+      const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
+      const float3 wi =
+          world_to_local(shadow_ray_direction, tangent, normal, bitangent);
+      const float3 f = bsdf.eval(wo, wi);
+      const float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
+      payload->radiance += f * abs_cos_theta(wi) * le / pdf;
+    }
+  }
+
   // sample BSDF
   const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
   const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
@@ -510,4 +538,8 @@ extern "C" __global__ void __closesthit__radiance()
   }
 }
 
-extern "C" __global__ void __closesthit__shadow() {}
+extern "C" __global__ void __closesthit__shadow()
+{
+  ShadowPayload* payload = get_payload_ptr<ShadowPayload>();
+  payload->visible = false;
+}
