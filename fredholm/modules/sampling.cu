@@ -39,6 +39,12 @@ sample_cosine_weighted_hemisphere(const float2& u)
   return p;
 }
 
+static __forceinline__ __device__ float2 sample_triangle(const float2& u)
+{
+  const float su0 = sqrtf(u.x);
+  return make_float2(1.0f - su0, u.y * su0);
+}
+
 // https://jcgt.org/published/0007/04/01/
 static __device__ float3 sample_vndf(const float3& wo, const float2& alpha,
                                      const float2& u)
