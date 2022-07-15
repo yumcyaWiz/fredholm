@@ -132,9 +132,6 @@ static __forceinline__ __device__ void fill_surface_info(
   info.n_g = info.is_entering ? info.n_g : -info.n_g;
 
   orthonormal_basis(info.n_s, info.tangent, info.bitangent);
-
-  info.wo = normalize(
-      world_to_local(-ray_direction, info.tangent, info.n_s, info.bitangent));
 }
 
 static __forceinline__ __device__ ShadingParams fill_shading_params(
@@ -379,6 +376,9 @@ extern "C" __global__ void __closesthit__radiance()
     return;
   }
 
+  const float3 wo = world_to_local(-ray_direction, surf_info.tangent,
+                                   surf_info.n_s, surf_info.bitangent);
+
   // sample BSDF
   const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
   const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
@@ -386,7 +386,7 @@ extern "C" __global__ void __closesthit__radiance()
   const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
   float3 f;
   float pdf;
-  const float3 wi = bsdf.sample(surf_info.wo, u, v, f, pdf);
+  const float3 wi = bsdf.sample(wo, u, v, f, pdf);
   const float3 wi_world =
       local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 

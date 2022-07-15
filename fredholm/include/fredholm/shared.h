@@ -56,7 +56,6 @@ struct Material {
 struct SurfaceInfo {
   float t;             // ray tmax
   float3 x;            // shading position
-  float3 wo;           // view direction in tangent space
   float3 n_g;          // geometric normal in world space
   float3 n_s;          // shading normal in world space
   float2 barycentric;  // barycentric coordinate
