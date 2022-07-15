@@ -53,6 +53,11 @@ struct Material {
   int alpha_texture_id = -1;
 };
 
+struct Light {
+  float3 le;      // emission
+  uint3 indices;  // indices of vertex array
+};
+
 struct SurfaceInfo {
   float t;             // ray tmax
   float3 x;            // shading position

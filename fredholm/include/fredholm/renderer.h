@@ -60,6 +60,7 @@ class Renderer
       for (auto& texture : m_d_textures) { texture.reset(); }
     }
     if (m_d_texture_objects) { m_d_texture_objects.reset(); }
+    if (m_d_lights) { m_d_lights.reset(); }
 
     // release GAS
     for (auto& gas_output_buffer : m_gas_output_buffers) {
@@ -346,12 +347,27 @@ class Renderer
     m_d_texture_objects =
         std::make_unique<cwl::CUDABuffer<cudaTextureObject_t>>(texture_objects);
 
+    std::vector<Light> lights;
+    for (int face_idx = 0; face_idx < scene.m_material_ids.size(); ++face_idx) {
+      const uint material_id = scene.m_material_ids[face_idx];
+      const Material& m = scene.m_materials[material_id];
+      if (m.emission_color.x > 0 || m.emission_color.y > 0 ||
+          m.emission_color.z > 0) {
+        Light light;
+        light.le = m.emission_color;
+        light.indices = scene.m_indices[face_idx];
+        lights.push_back(light);
+      }
+    }
+    m_d_lights = std::make_unique<cwl::CUDABuffer<Light>>(lights);
+
     spdlog::info("[Renderer] number of vertices: {}",
                  m_d_indices->get_size() * 3);
     spdlog::info("[Renderer] number of faces: {}", m_d_indices->get_size());
     spdlog::info("[Renderer] number of materials: {}",
                  m_d_materials->get_size());
     spdlog::info("[Renderer] number of textures: {}", m_d_textures.size());
+    spdlog::info("[Renderer] number of lights: {}", m_d_lights->get_size());
   }
 
   // TODO: separate GAS, IAS build(when setting transform, only IAS should be
@@ -589,6 +605,8 @@ class Renderer
   std::vector<std::unique_ptr<cwl::CUDATexture<uchar4>>> m_d_textures = {};
   std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_d_texture_objects =
       {};
+
+  std::unique_ptr<cwl::CUDABuffer<Light>> m_d_lights = {};
 
   // optix handles
   CUstream m_stream = 0;
