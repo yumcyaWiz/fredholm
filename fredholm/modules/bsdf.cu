@@ -59,21 +59,21 @@ class BSDF
   {
     // coat
     const float clearcoat_F0 = compute_F0(m_ni, m_nt);
-    const float coat_color_luminance = rgb_to_luminance(m_params.coat_color);
     const float coat_directional_albedo =
         compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
-    if (u.x < m_params.coat * coat_color_luminance * coat_directional_albedo) {
+    if (u.x < m_params.coat * coat_directional_albedo) {
       const float3 wi = m_coat_brdf.sample(wo, v, f, pdf);
-      f *= m_params.coat * m_params.coat_color;
-      pdf *= m_params.coat * coat_color_luminance * coat_directional_albedo;
+      f *= m_params.coat;
+      pdf *= m_params.coat * coat_directional_albedo;
       return wi;
     }
     // metal or transmission or specular or diffuse
     else {
-      float3 f_mult = (1.0f - m_params.coat * m_params.coat_color *
-                                  coat_directional_albedo);
-      float pdf_mult = (1.0f - m_params.coat * coat_color_luminance *
-                                   coat_directional_albedo);
+      float3 f_mult =
+          lerp(make_float3(1.0f),
+               m_params.coat_color * (1.0f - coat_directional_albedo),
+               m_params.coat);
+      float pdf_mult = (1.0f - m_params.coat * coat_directional_albedo);
 
       // metal
       if (u.y < m_params.metalness) {
