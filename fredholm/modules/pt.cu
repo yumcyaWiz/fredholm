@@ -234,6 +234,13 @@ sample_position_on_light(const float u, const float2& v, const float3* vertices,
   return p;
 }
 
+static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
+{
+  const float2 thphi = cartesian_to_spherical(v);
+  return make_float3(
+      tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -330,9 +337,7 @@ extern "C" __global__ void __miss__radiance()
   if (payload->firsthit) {
     float3 le;
     if (params.ibl) {
-      const float2 thphi = cartesian_to_spherical(payload->direction);
-      le = make_float3(
-          tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
+      le = fetch_ibl(payload->direction);
     } else {
       le = params.bg_color;
     }
@@ -498,6 +503,24 @@ extern "C" __global__ void __closesthit__radiance()
 
   // sky sampling
   if (params.ibl) {
+    // TODO: implement IBL importance sampling
+    const float3 wi = sample_cosine_weighted_hemisphere(
+        make_float2(frandom(payload->rng), frandom(payload->rng)));
+    const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+    const float3 shadow_ray_direction =
+        local_to_world(wi, tangent, normal, bitangent);
+
+    ShadowPayload shadow_payload;
+    trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                 0.0f, 1e9f, &shadow_payload);
+
+    if (shadow_payload.visible) {
+      const float3 f = bsdf.eval(wo, wi);
+      const float pdf = abs_cos_theta(wi) / M_PIf;
+      payload->radiance += payload->throughput * f * abs_cos_theta(wi) *
+                           fetch_ibl(shadow_ray_direction) / pdf;
+    }
+
   } else {
     const float3 wi = sample_cosine_weighted_hemisphere(
         make_float2(frandom(payload->rng), frandom(payload->rng)));
