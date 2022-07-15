@@ -44,14 +44,44 @@ class BSDF
     const float3 coat = m_coat_brdf.eval(wo, wi);
     const float3 transmission = m_transmission_btdf.eval(wo, wi);
 
-    const float3 coat_weight = m_params.coat * m_params.coat_color;
-    const float3 metal_weight = make_float3(m_params.metalness);
-    const float3 specular_weight = m_params.specular * m_params.specular_color;
+    const float clearcoat_F0 = compute_F0(m_ni, m_nt);
+    const float coat_directional_albedo =
+        compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
 
-    return coat_weight * coat +
-           (1.0f - coat_weight) *
-               (metal_weight * metal +
-                (1.0f - metal_weight) * (diffuse + specular_weight * specular));
+    const float specular_F0 = compute_F0(m_ni, m_nt);
+    float specular_directional_albedo =
+        m_eta >= 1.0f ? compute_directional_albedo(
+                            wo, m_params.specular_roughness, specular_F0)
+                      : compute_directional_albedo2(
+                            wo, m_params.specular_roughness, m_nt / m_ni);
+
+    float3 ret = make_float3(0.0f);
+    float3 f_mult = make_float3(1.0f);
+
+    // coat
+    ret += m_params.coat * coat;
+    f_mult *= lerp(make_float3(1.0f),
+                   m_params.coat_color * (1.0f - coat_directional_albedo),
+                   m_params.coat);
+
+    // metal
+    ret += f_mult * m_params.metalness * metal;
+    f_mult *= (1.0f - m_params.metalness);
+
+    // specular
+    ret += f_mult * m_params.specular * m_params.specular_color * specular;
+    f_mult *= (1.0f - m_params.specular * m_params.specular_color *
+                          specular_directional_albedo);
+
+    // transmission
+    ret += f_mult * m_params.transmission * m_params.transmission_color *
+           transmission;
+    f_mult *= (1.0f - m_params.transmission);
+
+    // diffuse
+    ret += f_mult * diffuse;
+
+    return ret;
   }
 
   __device__ float3 sample(const float3& wo, const float4& u, const float2& v,
