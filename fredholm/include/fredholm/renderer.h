@@ -545,6 +545,7 @@ class Renderer
 
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_objects->get_device_ptr();
+    params.lights = m_d_lights->get_device_ptr();
 
     if (m_d_ibl) {
       params.ibl = m_d_ibl->get_texture_object();
