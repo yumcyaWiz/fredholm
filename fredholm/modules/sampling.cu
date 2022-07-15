@@ -5,19 +5,6 @@
 
 using namespace fredholm;
 
-// *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
-// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-static __forceinline__ __device__ uint pcg32_random_r(RNGState* rng)
-{
-  unsigned long long oldstate = rng->state;
-  // Advance internal state
-  rng->state = oldstate * 6364136223846793005ULL + (rng->inc | 1);
-  // Calculate output function (XSH RR), uses old state for max ILP
-  uint xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
-  uint rot = oldstate >> 59u;
-  return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
-}
-
 static __forceinline__ __device__ float frandom(RNGState& rng)
 {
   return pcg32_random_r(&rng) / static_cast<float>(0xffffffffu);

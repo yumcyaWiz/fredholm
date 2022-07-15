@@ -514,6 +514,9 @@ class Renderer
         const int idx = i + m_width * j;
         rng_states[idx].state = idx;
         rng_states[idx].inc = 0xdeadbeef;
+
+        // warm up
+        for (int k = 0; k < 10; ++k) { pcg32_random_r(&rng_states[idx]); }
       }
     }
 

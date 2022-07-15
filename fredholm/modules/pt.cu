@@ -241,6 +241,12 @@ static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
       tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
 }
 
+static __forceinline__ __device__ float compute_mis_weight(float pdf0,
+                                                           float pdf1)
+{
+  return pdf0 / (pdf0 + pdf1);
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -520,7 +526,6 @@ extern "C" __global__ void __closesthit__radiance()
       payload->radiance += payload->throughput * f * abs_cos_theta(wi) *
                            fetch_ibl(shadow_ray_direction) / pdf;
     }
-
   } else {
     const float3 wi = sample_cosine_weighted_hemisphere(
         make_float2(frandom(payload->rng), frandom(payload->rng)));
