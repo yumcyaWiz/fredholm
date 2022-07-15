@@ -55,7 +55,7 @@ class Controller
 {
  public:
   int m_imgui_scene_id = 0;
-  int m_imgui_resolution[2] = {512, 512};
+  int m_imgui_resolution[2] = {1920, 1080};
   int m_imgui_n_samples = 0;
   int m_imgui_max_samples = 100;
   int m_imgui_max_depth = 100;
