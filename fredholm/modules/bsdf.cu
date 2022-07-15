@@ -174,30 +174,60 @@ class BSDF
 
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
-    const float coat_color_luminance = rgb_to_luminance(m_params.coat_color);
-    const float coat_weight = m_params.coat * coat_color_luminance * 0.5f;
+    float coat = m_coat_brdf.eval_pdf(wo, wi);
+    coat = (isinf(coat) || isnan(coat)) ? 0.0f : coat;
 
-    const float metal_weight = m_params.metalness;
+    float metal = m_metal_brdf.eval_pdf(wo, wi);
+    metal = (isinf(metal) || isnan(metal)) ? 0.0f : metal;
 
-    const float transmission_color_luminance =
-        rgb_to_luminance(m_params.transmission_color);
-    const float transmission_weight =
-        m_params.transmission * transmission_color_luminance * 0.5f;
+    float specular = m_specular_brdf.eval_pdf(wo, wi);
+    specular = (isinf(specular) || isnan(specular)) ? 0.0f : specular;
 
+    float transmission = m_transmission_btdf.eval_pdf(wo, wi);
+    transmission =
+        (isinf(transmission) || isnan(transmission)) ? 0.0f : transmission;
+
+    float diffuse = m_diffuse_brdf.eval_pdf(wo, wi);
+    diffuse = (isinf(diffuse) || isnan(diffuse)) ? 0.0f : diffuse;
+
+    const float clearcoat_F0 = compute_F0(m_ni, m_nt);
+    const float coat_directional_albedo =
+        compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
+
+    const float specular_F0 = compute_F0(m_ni, m_nt);
+    float specular_directional_albedo =
+        m_eta >= 1.0f ? compute_directional_albedo(
+                            wo, m_params.specular_roughness, specular_F0)
+                      : compute_directional_albedo2(
+                            wo, m_params.specular_roughness, m_nt / m_ni);
     const float specular_color_luminance =
         rgb_to_luminance(m_params.specular_color);
-    const float specular_weight =
-        m_params.specular * specular_color_luminance * 0.5f;
 
-    return coat_weight * m_coat_brdf.eval_pdf(wo, wi) +
-           (1.0f - coat_weight) *
-               (metal_weight * m_metal_brdf.eval_pdf(wo, wi) *
-                (1.0f - metal_weight) *
-                (transmission_weight * m_transmission_btdf.eval_pdf(wo, wi) +
-                 (1.0f - transmission_weight) *
-                     (specular_weight * m_specular_brdf.eval_pdf(wo, wi) +
-                      (1.0f - specular_weight) *
-                          m_diffuse_brdf.eval_pdf(wo, wi))));
+    float ret = 0.0f;
+    float pdf_mult = 1.0f;
+
+    // coat
+    ret += m_params.coat * coat_directional_albedo * coat;
+    pdf_mult *= (1.0f - m_params.coat * coat_directional_albedo);
+
+    // metal
+    ret += pdf_mult * m_params.metalness * metal;
+    pdf_mult *= (1.0f - m_params.metalness);
+
+    // specular
+    ret += pdf_mult * m_params.specular * specular_color_luminance *
+           specular_directional_albedo * specular;
+    pdf_mult *= (1.0f - m_params.specular * specular_color_luminance *
+                            specular_directional_albedo);
+
+    // transmission
+    ret += pdf_mult * m_params.transmission * transmission;
+    pdf_mult *= (1.0f - m_params.transmission);
+
+    // diffuse
+    ret += pdf_mult * diffuse;
+
+    return ret;
   }
 
  private:
