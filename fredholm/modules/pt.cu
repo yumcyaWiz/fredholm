@@ -282,15 +282,21 @@ extern "C" __global__ void __raygen__rg()
       trace_radiance(params.ias_handle, payload.origin, payload.direction, 0.0f,
                      1e9f, &payload);
 
-      // nan check
+      // throughput nan check
       if (isnan(payload.throughput) || isinf(payload.throughput)) { break; }
 
       if (payload.done) { break; }
     }
 
+    // radiance nan check
+    float3 radiance = make_float3(0.0f);
+    if (!isnan(payload.radiance) && !isinf(payload.radiance)) {
+      radiance = payload.radiance;
+    }
+
     // take streaming average
     const float coef = 1.0f / (n_spp + 1.0f);
-    beauty = coef * (n_spp * beauty + payload.radiance);
+    beauty = coef * (n_spp * beauty + radiance);
     position = coef * (n_spp * position + payload.position);
     normal = coef * (n_spp * normal + payload.normal);
     depth = coef * (n_spp * depth + payload.depth);
@@ -508,9 +514,8 @@ extern "C" __global__ void __closesthit__radiance()
           world_to_local(shadow_ray_direction, tangent, normal, bitangent);
       const float3 f = bsdf.eval(wo, wi);
       const float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
-      const float3 contrib =
+      payload->radiance +=
           payload->throughput * f * abs_cos_theta(wi) * le / pdf;
-      if (!isnan(contrib) && !isinf(contrib)) { payload->radiance += contrib; }
     }
   }
 
