@@ -113,6 +113,7 @@ struct LaunchParams {
   Material* materials;
   cudaTextureObject_t* textures;
   Light* lights;
+  uint n_lights;
 
   cudaTextureObject_t ibl;
 

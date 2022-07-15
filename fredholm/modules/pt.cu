@@ -186,6 +186,39 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   shading_params.transmission_color = material.transmission_color;
 }
 
+static __forceinline__ __device__ float3
+sample_position_on_light(const float u, const float2& v, const float3* vertices,
+                         const uint3* indices, const float3* normals,
+                         float3& le, float3& n, float& pdf)
+{
+  // sample light
+  const uint light_idx =
+      clamp(static_cast<uint>(params.n_lights * u), 0u, params.n_lights - 1);
+  const Light& light = params.lights[light_idx];
+
+  // sample point on the light
+  const float2 barycentric = sample_triangle(v);
+
+  const uint3 idx = light.indices;
+  const float3 v0 = vertices[idx.x];
+  const float3 v1 = vertices[idx.y];
+  const float3 v2 = vertices[idx.z];
+  const float3 n0 = normals[idx.x];
+  const float3 n1 = normals[idx.y];
+  const float3 n2 = normals[idx.z];
+
+  const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
+                   barycentric.x * v1 + barycentric.y * v2;
+  n = (1.0f - barycentric.x - barycentric.y) * n0 + barycentric.x * n1 +
+      barycentric.y * n2;
+  const float area = 0.5f * length(cross(v1 - v0, v2 - v0));
+
+  le = light.le;
+  pdf = 1.0f / (params.n_lights * area);
+
+  return p;
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
