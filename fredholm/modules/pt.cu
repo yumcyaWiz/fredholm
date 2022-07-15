@@ -326,16 +326,20 @@ extern "C" __global__ void __miss__radiance()
 {
   RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 
-  float3 le;
-  if (params.ibl) {
-    const float2 thphi = cartesian_to_spherical(payload->direction);
-    le = make_float3(
-        tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
-  } else {
-    le = params.bg_color;
+  // firsthit light case
+  if (payload->firsthit) {
+    float3 le;
+    if (params.ibl) {
+      const float2 thphi = cartesian_to_spherical(payload->direction);
+      le = make_float3(
+          tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
+    } else {
+      le = params.bg_color;
+    }
+
+    payload->radiance += payload->throughput * le;
   }
 
-  // payload->radiance += payload->throughput * le;
   payload->done = true;
 }
 
@@ -491,6 +495,27 @@ extern "C" __global__ void __closesthit__radiance()
 
   const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
   const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
+
+  // sky sampling
+  if (params.ibl) {
+  } else {
+    const float3 wi = sample_cosine_weighted_hemisphere(
+        make_float2(frandom(payload->rng), frandom(payload->rng)));
+    const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+    const float3 shadow_ray_direction =
+        local_to_world(wi, tangent, normal, bitangent);
+
+    ShadowPayload shadow_payload;
+    trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                 0.0f, 1e9f, &shadow_payload);
+
+    if (shadow_payload.visible) {
+      const float3 f = bsdf.eval(wo, wi);
+      const float pdf = abs_cos_theta(wi) / M_PIf;
+      payload->radiance +=
+          payload->throughput * f * abs_cos_theta(wi) * params.bg_color / pdf;
+    }
+  }
 
   // light sampling
   if (params.n_lights > 0) {
