@@ -376,8 +376,21 @@ extern "C" __global__ void __closesthit__radiance()
     return;
   }
 
-  const float3 wo = world_to_local(-ray_direction, surf_info.tangent,
-                                   surf_info.n_s, surf_info.bitangent);
+  // normal mapping
+  float3 tangent = surf_info.tangent;
+  float3 normal = surf_info.n_s;
+  float3 bitangent = surf_info.bitangent;
+  if (material.normalmap_texture_id >= 0) {
+    float3 value = make_float3(
+        tex2D<float4>(params.textures[material.normalmap_texture_id],
+                      surf_info.texcoord.x, surf_info.texcoord.y));
+    value = normalize(0.5f * (value + 1.0f));
+    normal = local_to_world(value, surf_info.tangent, surf_info.n_s,
+                            surf_info.bitangent);
+    orthonormal_basis(normal, tangent, bitangent);
+  }
+
+  const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
 
   // sample BSDF
   const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
@@ -387,8 +400,7 @@ extern "C" __global__ void __closesthit__radiance()
   float3 f;
   float pdf;
   const float3 wi = bsdf.sample(wo, u, v, f, pdf);
-  const float3 wi_world =
-      local_to_world(wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
+  const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
 
   // update throughput
   payload->throughput *= f * abs_cos_theta(wi) / pdf;
