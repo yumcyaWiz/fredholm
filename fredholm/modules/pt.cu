@@ -329,7 +329,7 @@ extern "C" __global__ void __miss__radiance()
     le = params.bg_color;
   }
 
-  payload->radiance += payload->throughput * le;
+  // payload->radiance += payload->throughput * le;
   payload->done = true;
 }
 
@@ -459,15 +459,14 @@ extern "C" __global__ void __closesthit__radiance()
     payload->depth = surf_info.t;
     payload->texcoord = surf_info.texcoord;
     payload->albedo = shading_params.base_color;
-
     payload->firsthit = false;
-  }
 
-  // Le
-  if (has_emission(material)) {
-    payload->radiance += payload->throughput * material.emission_color;
-    payload->done = true;
-    return;
+    // first hit light case
+    if (has_emission(material)) {
+      payload->radiance += payload->throughput * material.emission_color;
+      payload->done = true;
+      return;
+    }
   }
 
   // normal mapping
@@ -485,9 +484,10 @@ extern "C" __global__ void __closesthit__radiance()
   }
 
   const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
+  const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
 
   // light sampling
-  {
+  if (params.n_lights > 0) {
     float3 le, n;
     float pdf_area;
     const float3 p = sample_position_on_light(
@@ -504,17 +504,17 @@ extern "C" __global__ void __closesthit__radiance()
                  0.0f, r - RAY_EPS, &shadow_payload);
 
     if (shadow_payload.visible) {
-      const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
       const float3 wi =
           world_to_local(shadow_ray_direction, tangent, normal, bitangent);
       const float3 f = bsdf.eval(wo, wi);
       const float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
-      payload->radiance += f * abs_cos_theta(wi) * le / pdf;
+      const float3 contrib =
+          payload->throughput * f * abs_cos_theta(wi) * le / pdf;
+      if (!isnan(contrib) && !isinf(contrib)) { payload->radiance += contrib; }
     }
   }
 
   // sample BSDF
-  const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
   const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
                                frandom(payload->rng), frandom(payload->rng));
   const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
