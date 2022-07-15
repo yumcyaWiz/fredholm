@@ -284,7 +284,6 @@ class Renderer
       m_hit_group_records.push_back(hit_record);
 
       // shadow hitgroup record
-      hit_record = {};
       OPTIX_CHECK(optixSbtRecordPackHeader(m_shadow_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
     }
@@ -563,7 +562,7 @@ class Renderer
     OPTIX_CHECK(
         optixLaunch(m_pipeline, m_stream,
                     reinterpret_cast<CUdeviceptr>(d_params.get_device_ptr()),
-                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 2));
+                    sizeof(LaunchParams), &m_sbt, m_width, m_height, 1));
   }
 
   void wait_for_completion() { CUDA_SYNC_CHECK(); }

@@ -500,8 +500,8 @@ extern "C" __global__ void __closesthit__radiance()
     const float r = length(p - shadow_ray_origin);
 
     ShadowPayload shadow_payload;
-    // trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
-    //              0.0f, r - RAY_EPS, &shadow_payload);
+    trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                 0.0f, r - RAY_EPS, &shadow_payload);
 
     if (shadow_payload.visible) {
       const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
