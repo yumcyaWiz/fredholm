@@ -38,11 +38,23 @@ class BSDF
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
-    const float3 diffuse = m_diffuse_brdf.eval(wo, wi);
-    const float3 specular = m_specular_brdf.eval(wo, wi);
-    const float3 metal = m_metal_brdf.eval(wo, wi);
-    const float3 coat = m_coat_brdf.eval(wo, wi);
-    const float3 transmission = m_transmission_btdf.eval(wo, wi);
+    float3 diffuse = m_diffuse_brdf.eval(wo, wi);
+    diffuse = (isinf(diffuse) || isnan(diffuse)) ? make_float3(0.0f) : diffuse;
+
+    float3 specular = m_specular_brdf.eval(wo, wi);
+    specular =
+        (isinf(specular) || isnan(specular)) ? make_float3(0.0f) : specular;
+
+    float3 metal = m_metal_brdf.eval(wo, wi);
+    metal = (isinf(metal) || isnan(metal)) ? make_float3(0.0f) : metal;
+
+    float3 coat = m_coat_brdf.eval(wo, wi);
+    coat = (isinf(coat) || isnan(coat)) ? make_float3(0.0f) : coat;
+
+    float3 transmission = m_transmission_btdf.eval(wo, wi);
+    transmission = (isinf(transmission) || isnan(transmission))
+                       ? make_float3(0.0f)
+                       : transmission;
 
     const float clearcoat_F0 = compute_F0(m_ni, m_nt);
     const float coat_directional_albedo =
