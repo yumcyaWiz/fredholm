@@ -291,6 +291,12 @@ struct Scene {
             make_float3(m.emission[0], m.emission[1], m.emission[2]);
       }
 
+      // normal map texture
+      if (!m.normal_texname.empty()) {
+        load_texture(filepath.parent_path(), m.normal_texname, false);
+        m_materials[i].normalmap_texture_id = unique_textures[m.normal_texname];
+      }
+
       // alpha texture
       if (!m.alpha_texname.empty()) {
         load_texture(filepath.parent_path(), m.alpha_texname, false);
