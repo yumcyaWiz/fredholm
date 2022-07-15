@@ -109,6 +109,7 @@ struct FloatTexture {
     spdlog::info("[Texture] loading {}", filepath.generic_string());
 
     int w, h, c;
+    stbi_set_flip_vertically_on_load(false);
     float* img = stbi_loadf(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
     if (!img) {
       throw std::runtime_error("failed to load " + filepath.generic_string());
@@ -226,7 +227,7 @@ struct Scene {
 
       // base color(texture)
       if (!m.diffuse_texname.empty()) {
-        load_texture(filepath.parent_path(), m.diffuse_texname, false);
+        load_texture(filepath.parent_path(), m.diffuse_texname, true);
 
         // set texture id on material
         m_materials[i].base_color_texture_id =
@@ -293,7 +294,7 @@ struct Scene {
 
       // normal map texture
       if (!m.normal_texname.empty()) {
-        load_texture(filepath.parent_path(), m.normal_texname, false);
+        load_texture(filepath.parent_path(), m.normal_texname, true);
         m_materials[i].normalmap_texture_id = unique_textures[m.normal_texname];
       }
 
