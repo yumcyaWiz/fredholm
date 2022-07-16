@@ -581,92 +581,121 @@ extern "C" __global__ void __closesthit__radiance()
   const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
   const BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
 
-  // sky sampling
-  if (params.ibl) {
-    // TODO: implement IBL importance sampling
-    const float3 wi = sample_cosine_weighted_hemisphere(
-        make_float2(frandom(payload->rng), frandom(payload->rng)));
-    const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
-    const float3 shadow_ray_direction =
-        local_to_world(wi, tangent, normal, bitangent);
-
-    ShadowPayload shadow_payload;
-    trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
-                 0.0f, 1e9f, &shadow_payload);
-
-    if (shadow_payload.visible) {
-      const float3 f = bsdf.eval(wo, wi);
-      const float pdf = abs_cos_theta(wi) / M_PIf;
-      payload->radiance += payload->throughput * f * abs_cos_theta(wi) *
-                           fetch_ibl(shadow_ray_direction) / pdf;
-    }
-  } else {
-    const float3 wi = sample_cosine_weighted_hemisphere(
-        make_float2(frandom(payload->rng), frandom(payload->rng)));
-    const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
-    const float3 shadow_ray_direction =
-        local_to_world(wi, tangent, normal, bitangent);
-
-    ShadowPayload shadow_payload;
-    trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
-                 0.0f, 1e9f, &shadow_payload);
-
-    if (shadow_payload.visible) {
-      const float3 f = bsdf.eval(wo, wi);
-      const float pdf = abs_cos_theta(wi) / M_PIf;
-      payload->radiance +=
-          payload->throughput * f * abs_cos_theta(wi) * params.bg_color / pdf;
-    }
-  }
-
   // light sampling
-  if (params.n_lights > 0) {
-    float3 le, n;
-    float pdf_area;
-    const float3 p = sample_position_on_light(
-        frandom(payload->rng),
-        make_float2(frandom(payload->rng), frandom(payload->rng)),
-        sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
+  {
+    // sky
+    if (params.ibl) {
+      // TODO: implement IBL importance sampling
+      const float3 wi = sample_cosine_weighted_hemisphere(
+          make_float2(frandom(payload->rng), frandom(payload->rng)));
+      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+      const float3 shadow_ray_direction =
+          local_to_world(wi, tangent, normal, bitangent);
 
-    const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
-    const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
-    const float r = length(p - shadow_ray_origin);
+      ShadowPayload shadow_payload;
+      trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                   0.0f, 1e9f, &shadow_payload);
 
-    ShadowPayload shadow_payload;
-    trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
-                 0.0f, r - RAY_EPS, &shadow_payload);
+      if (shadow_payload.visible) {
+        const float3 f = bsdf.eval(wo, wi);
+        const float pdf = abs_cos_theta(wi) / M_PIf;
+        payload->radiance += payload->throughput * f * abs_cos_theta(wi) *
+                             fetch_ibl(shadow_ray_direction) / pdf;
+      }
+    } else {
+      const float3 wi = sample_cosine_weighted_hemisphere(
+          make_float2(frandom(payload->rng), frandom(payload->rng)));
+      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+      const float3 shadow_ray_direction =
+          local_to_world(wi, tangent, normal, bitangent);
 
-    if (shadow_payload.visible) {
-      const float3 wi =
-          world_to_local(shadow_ray_direction, tangent, normal, bitangent);
-      const float3 f = bsdf.eval(wo, wi);
-      const float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
-      payload->radiance +=
-          payload->throughput * f * abs_cos_theta(wi) * le / pdf;
+      ShadowPayload shadow_payload;
+      trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                   0.0f, 1e9f, &shadow_payload);
+
+      if (shadow_payload.visible) {
+        const float3 f = bsdf.eval(wo, wi);
+        const float pdf = abs_cos_theta(wi) / M_PIf;
+        payload->radiance +=
+            payload->throughput * f * abs_cos_theta(wi) * params.bg_color / pdf;
+      }
+    }
+
+    // area light
+    if (params.n_lights > 0) {
+      float3 le, n;
+      float pdf_area;
+      const float3 p = sample_position_on_light(
+          frandom(payload->rng),
+          make_float2(frandom(payload->rng), frandom(payload->rng)),
+          sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
+
+      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+      const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
+      const float r = length(p - shadow_ray_origin);
+
+      ShadowPayload shadow_payload;
+      trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                   0.0f, r - RAY_EPS, &shadow_payload);
+
+      if (shadow_payload.visible) {
+        const float3 wi =
+            world_to_local(shadow_ray_direction, tangent, normal, bitangent);
+        const float3 f = bsdf.eval(wo, wi);
+        const float pdf =
+            r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
+        payload->radiance +=
+            payload->throughput * f * abs_cos_theta(wi) * le / pdf;
+      }
     }
   }
 
-  // sample BSDF
-  const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
-                               frandom(payload->rng), frandom(payload->rng));
-  const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
-  float3 f;
-  float pdf;
-  const float3 wi = bsdf.sample(wo, u, v, f, pdf);
-  const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
+  // BSDF sampling
+  {
+    const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
+                                 frandom(payload->rng), frandom(payload->rng));
+    const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
+    float3 f;
+    float pdf;
+    const float3 wi = bsdf.sample(wo, u, v, f, pdf);
 
-  // update throughput
-  payload->throughput *= f * abs_cos_theta(wi) / pdf;
+    const float3 light_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+    const float3 light_ray_direction =
+        local_to_world(wi, tangent, normal, bitangent);
 
-  // advance ray
-  payload->origin = surf_info.x;
-  payload->direction = wi_world;
+    LightPayload light_payload;
+    light_payload.direction = light_ray_direction;
+    trace_light(params.ias_handle, light_ray_origin, light_ray_direction, 0.0f,
+                1e9f, &light_payload);
 
-  const bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
-  if (is_transmitted) {
-    payload->origin -= RAY_EPS * surf_info.n_g;
-  } else {
-    payload->origin += RAY_EPS * surf_info.n_g;
+    payload->radiance +=
+        payload->throughput * f * abs_cos_theta(wi) * light_payload.le / pdf;
+  }
+
+  // generate next ray direction
+  {
+    const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
+                                 frandom(payload->rng), frandom(payload->rng));
+    const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
+    float3 f;
+    float pdf;
+    const float3 wi = bsdf.sample(wo, u, v, f, pdf);
+    const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
+
+    // update throughput
+    payload->throughput *= f * abs_cos_theta(wi) / pdf;
+
+    // advance ray
+    payload->origin = surf_info.x;
+    payload->direction = wi_world;
+
+    // adjust ray origin to prevent self-intersection
+    const bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
+    if (is_transmitted) {
+      payload->origin -= RAY_EPS * surf_info.n_g;
+    } else {
+      payload->origin += RAY_EPS * surf_info.n_g;
+    }
   }
 }
 
