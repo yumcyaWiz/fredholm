@@ -226,11 +226,14 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   shading_params.transmission_color = material.transmission_color;
 }
 
-static __forceinline__ __device__ float3 sample_position_on_light(
-    uint light_idx, const float u, const float2& v, const float3* vertices,
-    const uint3* indices, const float3* normals, float3& le, float3& n,
-    float& pdf)
+static __forceinline__ __device__ float3
+sample_position_on_light(const float u, const float2& v, const float3* vertices,
+                         const uint3* indices, const float3* normals,
+                         float3& le, float3& n, float& pdf)
 {
+  // sample light
+  const uint light_idx =
+      clamp(static_cast<uint>(u * params.n_lights), 0u, params.n_lights - 1);
   const AreaLight& light = params.lights[light_idx];
 
   // sample point on the light
@@ -251,7 +254,7 @@ static __forceinline__ __device__ float3 sample_position_on_light(
   const float area = 0.5f * length(cross(v1 - v0, v2 - v0));
 
   le = light.le;
-  pdf = 1.0f / area;
+  pdf = 1.0f / (params.n_lights * area);
 
   return p;
 }
@@ -665,11 +668,11 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     // area light
-    for (uint light_idx = 0; light_idx < params.n_lights; light_idx++) {
+    {
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(
-          light_idx, frandom(payload->rng),
+          frandom(payload->rng),
           make_float2(frandom(payload->rng), frandom(payload->rng)),
           sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
 
@@ -718,7 +721,7 @@ extern "C" __global__ void __closesthit__radiance()
     if (light_payload.hit) {
       const float r2 = dot(light_payload.p - light_ray_origin,
                            light_payload.p - light_ray_origin);
-      const float pdf_area = 1.0f / light_payload.area;
+      const float pdf_area = 1.0f / (params.n_lights * light_payload.area);
       pdf_light =
           r2 / fabs(dot(-light_ray_direction, light_payload.n)) * pdf_area;
     } else {
