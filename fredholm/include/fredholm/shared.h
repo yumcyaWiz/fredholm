@@ -50,7 +50,7 @@ struct Material {
   float emission = 0;
   float3 emission_color = make_float3(0, 0, 0);
 
-  // int heightmap_texture_id = -1;
+  int heightmap_texture_id = -1;
   int normalmap_texture_id = -1;
   int alpha_texture_id = -1;
 };

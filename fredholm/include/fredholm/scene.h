@@ -293,11 +293,10 @@ struct Scene {
       }
 
       // height map texture
-      // if (!m.bump_texname.empty()) {
-      //   load_texture(filepath.parent_path(), m.bump_texname, false);
-      //   m_materials[i].heightmap_texture_id =
-      //   unique_textures[m.bump_texname];
-      // }
+      if (!m.bump_texname.empty()) {
+        load_texture(filepath.parent_path(), m.bump_texname, false);
+        m_materials[i].heightmap_texture_id = unique_textures[m.bump_texname];
+      }
 
       // normal map texture
       if (!m.normal_texname.empty()) {
