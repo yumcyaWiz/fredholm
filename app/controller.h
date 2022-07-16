@@ -69,7 +69,7 @@ class Controller
   float m_imgui_rotation_speed = 0.1f;
 
   SkyType m_imgui_sky_type = SkyType::CONSTANT;
-  float m_imgui_bg_color[3] = {1, 1, 1};
+  float m_imgui_bg_color[3] = {0, 0, 0};
   int m_imgui_ibl_id = 0;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;

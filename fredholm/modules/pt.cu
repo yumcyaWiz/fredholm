@@ -267,7 +267,7 @@ static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
 static __forceinline__ __device__ float compute_mis_weight(float pdf0,
                                                            float pdf1)
 {
-  return (pdf0 * pdf0) / (pdf0 * pdf0 + pdf1 * pdf1);
+  return (pdf0) / (pdf0 + pdf1);
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -653,14 +653,13 @@ extern "C" __global__ void __closesthit__radiance()
             world_to_local(shadow_ray_direction, tangent, normal, bitangent);
         const float3 f = bsdf.eval(wo, wi);
         float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
-
         // prevent firefly
-        if (pdf > 0.1f) {
-          const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
-          const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-          payload->radiance += payload->throughput * mis_weight * f *
-                               abs_cos_theta(wi) * le / pdf;
-        }
+        pdf = fmax(pdf, 0.1f);
+
+        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+        payload->radiance +=
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) * le / pdf;
       }
     }
   }
@@ -673,6 +672,8 @@ extern "C" __global__ void __closesthit__radiance()
     float3 f;
     float pdf;
     const float3 wi = bsdf.sample(wo, u, v, f, pdf);
+    // prevent firefly
+    pdf = fmax(pdf, 0.1f);
 
     const float3 light_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
     const float3 light_ray_direction =
@@ -765,6 +766,7 @@ extern "C" __global__ void __closesthit__light()
     payload->n = n;
     payload->area = 0.5f * length(cross(v1 - v0, v2 - v0));
   } else {
+    payload->hit = false;
     payload->le = make_float3(0.0f);
   }
 }
