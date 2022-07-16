@@ -37,6 +37,11 @@ struct ShadowPayload {
   bool visible = false;  // light visibility
 };
 
+struct LightPayload {
+  float3 direction;
+  float3 le = make_float3(0.0f);
+};
+
 // upper-32bit + lower-32bit -> 64bit
 static __forceinline__ __device__ void* unpack_ptr(unsigned int i0,
                                                    unsigned int i1)
@@ -92,6 +97,20 @@ static __forceinline__ __device__ void trace_shadow(
              static_cast<unsigned int>(RayType::RAY_TYPE_SHADOW),
              static_cast<unsigned int>(RayType::RAY_TYPE_COUNT),
              static_cast<unsigned int>(RayType::RAY_TYPE_SHADOW), u0, u1);
+}
+
+static __forceinline__ __device__ void trace_light(
+    OptixTraversableHandle& handle, const float3& ray_origin,
+    const float3& ray_direction, float tmin, float tmax,
+    LightPayload* payload_ptr)
+{
+  unsigned int u0, u1;
+  pack_ptr(payload_ptr, u0, u1);
+  optixTrace(handle, ray_origin, ray_direction, tmin, tmax, 0.0f,
+             OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE,
+             static_cast<unsigned int>(RayType::RAY_TYPE_LIGHT),
+             static_cast<unsigned int>(RayType::RAY_TYPE_COUNT),
+             static_cast<unsigned int>(RayType::RAY_TYPE_LIGHT), u0, u1);
 }
 
 static __forceinline__ __device__ bool has_emission(const Material& material)
@@ -360,7 +379,16 @@ extern "C" __global__ void __miss__shadow()
   payload->visible = true;
 }
 
-extern "C" __global__ void __miss__light() {}
+extern "C" __global__ void __miss__light()
+{
+  LightPayload* payload = get_payload_ptr<LightPayload>();
+
+  if (params.ibl) {
+    payload->le = fetch_ibl(payload->direction);
+  } else {
+    payload->le = params.bg_color;
+  }
+}
 
 extern "C" __global__ void __anyhit__radiance()
 {
@@ -450,7 +478,49 @@ extern "C" __global__ void __anyhit__shadow()
   }
 }
 
-extern "C" __global__ void __anyhit__light() {}
+extern "C" __global__ void __anyhit__light()
+{
+  const HitGroupSbtRecordData* sbt =
+      reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
+  const uint prim_idx = optixGetPrimitiveIndex();
+
+  // get material info
+  const uint material_id = sbt->material_ids[prim_idx];
+  const Material& material = params.materials[material_id];
+
+  // fill surface info
+  const float2 barycentric = optixGetTriangleBarycentrics();
+
+  // calc texcoord
+  const uint3 idx = sbt->indices[prim_idx];
+  const float2 tex0 = sbt->texcoords[idx.x];
+  const float2 tex1 = sbt->texcoords[idx.y];
+  const float2 tex2 = sbt->texcoords[idx.z];
+  const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                          barycentric.x * tex1 + barycentric.y * tex2;
+
+  // fetch base color texture
+  if (material.base_color_texture_id >= 0) {
+    const float alpha =
+        tex2D<float4>(params.textures[material.base_color_texture_id],
+                      texcoord.x, texcoord.y)
+            .w;
+
+    // ignore intersection
+    if (alpha < 0.5) { optixIgnoreIntersection(); }
+  }
+
+  // fetch alpha texture
+  if (material.alpha_texture_id >= 0) {
+    const float alpha =
+        tex2D<float4>(params.textures[material.alpha_texture_id], texcoord.x,
+                      texcoord.y)
+            .x;
+
+    // ignore intersection
+    if (alpha < 0.5) { optixIgnoreIntersection(); }
+  }
+}
 
 extern "C" __global__ void __closesthit__radiance()
 {
@@ -606,4 +676,21 @@ extern "C" __global__ void __closesthit__shadow()
   payload->visible = false;
 }
 
-extern "C" __global__ void __closesthit__light() {}
+extern "C" __global__ void __closesthit__light()
+{
+  LightPayload* payload = get_payload_ptr<LightPayload>();
+
+  const HitGroupSbtRecordData* sbt =
+      reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
+  const uint prim_idx = optixGetPrimitiveIndex();
+
+  // get material info
+  const uint material_id = sbt->material_ids[prim_idx];
+  const Material& material = params.materials[material_id];
+
+  if (has_emission(material)) {
+    payload->le = material.emission_color;
+  } else {
+    payload->le = make_float3(0.0f);
+  }
+}
