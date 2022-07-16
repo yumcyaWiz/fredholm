@@ -294,7 +294,7 @@ struct Scene {
 
       // normal map texture
       if (!m.normal_texname.empty()) {
-        load_texture(filepath.parent_path(), m.normal_texname, true);
+        load_texture(filepath.parent_path(), m.normal_texname, false);
         m_materials[i].normalmap_texture_id = unique_textures[m.normal_texname];
       }
 

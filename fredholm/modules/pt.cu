@@ -569,9 +569,9 @@ extern "C" __global__ void __closesthit__radiance()
     float3 value = make_float3(
         tex2D<float4>(params.textures[material.normalmap_texture_id],
                       surf_info.texcoord.x, surf_info.texcoord.y));
-    value = normalize(0.5f * (value + 1.0f));
-    normal = local_to_world(value, surf_info.tangent, surf_info.n_s,
-                            surf_info.bitangent);
+    value = 2.0f * value - 1.0f;
+    normal = normalize(local_to_world(value, surf_info.tangent,
+                                      surf_info.bitangent, surf_info.n_s));
     orthonormal_basis(normal, tangent, bitangent);
   }
 
