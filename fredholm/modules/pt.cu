@@ -648,7 +648,7 @@ extern "C" __global__ void __closesthit__radiance()
 
       ShadowPayload shadow_payload;
       trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
-                   0.0f, r - RAY_EPS, &shadow_payload);
+                   0.0f, r, &shadow_payload);
 
       if (shadow_payload.visible) {
         const float3 wi =
@@ -684,10 +684,11 @@ extern "C" __global__ void __closesthit__radiance()
 
     float pdf_light;
     if (light_payload.hit) {
-      const float r = length(light_payload.p - light_ray_origin);
-      const float pdf_area = 1.0f / light_payload.area;
+      const float r2 = dot(light_payload.p - light_ray_origin,
+                           light_payload.p - light_ray_origin);
+      const float pdf_area = 1.0f / (params.n_lights * light_payload.area);
       pdf_light =
-          r * r / fabs(dot(-light_ray_direction, light_payload.n)) * pdf_area;
+          r2 / fabs(dot(-light_ray_direction, light_payload.n)) * pdf_area;
     } else {
       pdf_light = abs_cos_theta(wi) / M_PIf;
     }
