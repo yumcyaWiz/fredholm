@@ -292,6 +292,13 @@ struct Scene {
             make_float3(m.emission[0], m.emission[1], m.emission[2]);
       }
 
+      // height map texture
+      // if (!m.bump_texname.empty()) {
+      //   load_texture(filepath.parent_path(), m.bump_texname, false);
+      //   m_materials[i].heightmap_texture_id =
+      //   unique_textures[m.bump_texname];
+      // }
+
       // normal map texture
       if (!m.normal_texname.empty()) {
         load_texture(filepath.parent_path(), m.normal_texname, false);

@@ -668,7 +668,7 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     // area light
-    {
+    if (params.n_lights > 0) {
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(
