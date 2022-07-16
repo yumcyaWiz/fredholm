@@ -561,23 +561,6 @@ extern "C" __global__ void __closesthit__radiance()
   ShadingParams shading_params;
   fill_shading_params(material, surf_info, params.textures, shading_params);
 
-  // fill position, normal, depth, albedo
-  if (payload->firsthit) {
-    payload->position = surf_info.x;
-    payload->normal = surf_info.n_s;
-    payload->depth = surf_info.t;
-    payload->texcoord = surf_info.texcoord;
-    payload->albedo = shading_params.base_color;
-    payload->firsthit = false;
-
-    // first hit light case
-    if (has_emission(material)) {
-      payload->radiance += payload->throughput * material.emission_color;
-      payload->done = true;
-      return;
-    }
-  }
-
   // normal mapping
   float3 tangent = surf_info.tangent;
   float3 normal = surf_info.n_s;
@@ -590,6 +573,23 @@ extern "C" __global__ void __closesthit__radiance()
     normal = local_to_world(value, surf_info.tangent, surf_info.n_s,
                             surf_info.bitangent);
     orthonormal_basis(normal, tangent, bitangent);
+  }
+
+  // fill position, normal, depth, albedo
+  if (payload->firsthit) {
+    payload->position = surf_info.x;
+    payload->normal = normal;
+    payload->depth = surf_info.t;
+    payload->texcoord = surf_info.texcoord;
+    payload->albedo = shading_params.base_color;
+    payload->firsthit = false;
+
+    // first hit light case
+    if (has_emission(material)) {
+      payload->radiance += payload->throughput * material.emission_color;
+      payload->done = true;
+      return;
+    }
   }
 
   const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
