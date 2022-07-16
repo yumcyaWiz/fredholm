@@ -594,6 +594,29 @@ extern "C" __global__ void __closesthit__radiance()
 
   // light sampling
   {
+    // directional light
+    if (params.directional_light) {
+      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+      const float3 shadow_ray_direction = params.directional_light->dir;
+
+      ShadowPayload shadow_payload;
+      trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                   0.0f, 1e9f, &shadow_payload);
+
+      if (shadow_payload.visible) {
+        const float3 wi =
+            world_to_local(shadow_ray_direction, tangent, normal, bitangent);
+        const float3 f = bsdf.eval(wo, wi);
+        const float pdf = 1.0f;
+        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+        const float3 weight = regularize_weight(
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
+        const float3 le = params.directional_light->le;
+        payload->radiance += weight * le;
+      }
+    }
+
     // sky
     if (params.ibl) {
       // TODO: implement IBL importance sampling
