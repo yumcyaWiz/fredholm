@@ -197,6 +197,21 @@ int main()
         ImGui::Separator();
 
         {
+          if (ImGui::InputFloat3("Directional light emission",
+                                 controller.m_imgui_directional_light_le)) {
+            controller.update_directional_light();
+            controller.clear_render();
+          }
+          if (ImGui::InputFloat3("Directional Light direction",
+                                 controller.m_imgui_directional_light_dir)) {
+            controller.update_directional_light();
+            controller.clear_render();
+          }
+        }
+
+        ImGui::Separator();
+
+        {
           if (ImGui::Combo("Sky Type",
                            reinterpret_cast<int*>(&controller.m_imgui_sky_type),
                            "Constant\0IBL\0\0")) {

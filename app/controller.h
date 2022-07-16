@@ -68,6 +68,9 @@ class Controller
   float m_imgui_movement_speed = 1.0f;
   float m_imgui_rotation_speed = 0.1f;
 
+  float m_imgui_directional_light_le[3] = {0, 0, 0};
+  float m_imgui_directional_light_dir[3] = {0, 1, 0};
+
   SkyType m_imgui_sky_type = SkyType::CONSTANT;
   float m_imgui_bg_color[3] = {0, 0, 0};
   int m_imgui_ibl_id = 0;
@@ -188,6 +191,17 @@ class Controller
     m_renderer->load_scene(*m_scene);
     m_renderer->build_accel();
     m_renderer->create_sbt();
+  }
+
+  void update_directional_light()
+  {
+    m_renderer->set_directional_light(
+        make_float3(m_imgui_directional_light_le[0],
+                    m_imgui_directional_light_le[1],
+                    m_imgui_directional_light_le[2]),
+        make_float3(m_imgui_directional_light_dir[0],
+                    m_imgui_directional_light_dir[1],
+                    m_imgui_directional_light_dir[2]));
   }
 
   void update_sky_type()

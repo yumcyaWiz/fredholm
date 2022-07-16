@@ -597,7 +597,8 @@ extern "C" __global__ void __closesthit__radiance()
     // directional light
     if (params.directional_light) {
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
-      const float3 shadow_ray_direction = params.directional_light->dir;
+      const float3 shadow_ray_direction =
+          normalize(params.directional_light->dir);
 
       ShadowPayload shadow_payload;
       trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
