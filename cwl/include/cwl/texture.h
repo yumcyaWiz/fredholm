@@ -15,6 +15,7 @@ class CUDATexture
  public:
   CUDATexture(uint32_t width, uint32_t height, const T* data,
               bool srgb_to_linear = false)
+      : size(make_uint2(width, height))
   {
     cudaChannelFormatDesc channel_desc;
     channel_desc = cudaCreateChannelDesc<T>();
@@ -63,9 +64,12 @@ class CUDATexture
     CUDA_CHECK(cudaFreeArray(m_array));
   }
 
+  uint2 get_size() const { return size; }
+
   cudaTextureObject_t get_texture_object() const { return m_texture_object; }
 
  private:
+  uint2 size;
   cudaArray_t m_array = {};
   cudaTextureObject_t m_texture_object = {};
 };

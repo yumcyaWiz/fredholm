@@ -62,7 +62,7 @@ class Renderer
     if (m_d_textures.size() > 0) {
       for (auto& texture : m_d_textures) { texture.reset(); }
     }
-    if (m_d_texture_objects) { m_d_texture_objects.reset(); }
+    if (m_d_texture_headers) { m_d_texture_headers.reset(); }
     if (m_d_lights) { m_d_lights.reset(); }
 
     // release GAS
@@ -376,12 +376,13 @@ class Renderer
           tex.m_width, tex.m_height, tex.m_data.data(), tex.m_srgb_to_linear);
     }
 
-    std::vector<cudaTextureObject_t> texture_objects(m_d_textures.size());
+    std::vector<TextureHeader> texture_headers(m_d_textures.size());
     for (int i = 0; i < m_d_textures.size(); ++i) {
-      texture_objects[i] = m_d_textures[i]->get_texture_object();
+      texture_headers[i].size = m_d_textures[i]->get_size();
+      texture_headers[i].texture_object = m_d_textures[i]->get_texture_object();
     }
-    m_d_texture_objects =
-        std::make_unique<cwl::CUDABuffer<cudaTextureObject_t>>(texture_objects);
+    m_d_texture_headers =
+        std::make_unique<cwl::CUDABuffer<TextureHeader>>(texture_headers);
 
     std::vector<AreaLight> lights;
     for (int face_idx = 0; face_idx < scene.m_material_ids.size(); ++face_idx) {
@@ -593,7 +594,7 @@ class Renderer
     params.bg_color = bg_color;
 
     params.materials = m_d_materials->get_device_ptr();
-    params.textures = m_d_texture_objects->get_device_ptr();
+    params.textures = m_d_texture_headers->get_device_ptr();
     params.lights = m_d_lights->get_device_ptr();
     params.n_lights = m_d_lights->get_size();
 
@@ -660,8 +661,7 @@ class Renderer
   std::unique_ptr<cwl::CUDABuffer<Material>> m_d_materials = nullptr;
 
   std::vector<std::unique_ptr<cwl::CUDATexture<uchar4>>> m_d_textures = {};
-  std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_d_texture_objects =
-      {};
+  std::unique_ptr<cwl::CUDABuffer<TextureHeader>> m_d_texture_headers = {};
 
   std::unique_ptr<cwl::CUDABuffer<AreaLight>> m_d_lights = {};
 

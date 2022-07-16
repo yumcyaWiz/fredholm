@@ -55,6 +55,11 @@ struct Material {
   int alpha_texture_id = -1;
 };
 
+struct TextureHeader {
+  uint2 size;
+  cudaTextureObject_t texture_object;
+};
+
 struct AreaLight {
   float3 le;      // emission
   uint3 indices;  // indices of vertex array
@@ -118,7 +123,7 @@ struct LaunchParams {
   float3 bg_color;
 
   Material* materials;
-  cudaTextureObject_t* textures;
+  TextureHeader* textures;
   AreaLight* lights;
   uint n_lights;
 

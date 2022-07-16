@@ -176,14 +176,14 @@ static __forceinline__ __device__ void fill_surface_info(
 
 static __forceinline__ __device__ ShadingParams fill_shading_params(
     const Material& material, const SurfaceInfo& surf_info,
-    const cudaTextureObject_t* textures, ShadingParams& shading_params)
+    const TextureHeader* textures, ShadingParams& shading_params)
 {
   // base color
   shading_params.base_color =
       material.base_color_texture_id >= 0
-          ? make_float3(tex2D<float4>(textures[material.base_color_texture_id],
-                                      surf_info.texcoord.x,
-                                      surf_info.texcoord.y))
+          ? make_float3(tex2D<float4>(
+                textures[material.base_color_texture_id].texture_object,
+                surf_info.texcoord.x, surf_info.texcoord.y))
           : material.base_color;
 
   // specular
@@ -192,24 +192,26 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   // specular color
   shading_params.specular_color =
       material.specular_color_texture_id >= 0
-          ? make_float3(
-                tex2D<float4>(textures[material.specular_color_texture_id],
-                              surf_info.texcoord.x, surf_info.texcoord.y))
+          ? make_float3(tex2D<float4>(
+                textures[material.specular_color_texture_id].texture_object,
+                surf_info.texcoord.x, surf_info.texcoord.y))
           : material.specular_color;
 
   // specular roughness
   shading_params.specular_roughness =
       material.specular_roughness_texture_id >= 0
-          ? tex2D<float4>(textures[material.specular_roughness_texture_id],
-                          surf_info.texcoord.x, surf_info.texcoord.y)
+          ? tex2D<float4>(
+                textures[material.specular_roughness_texture_id].texture_object,
+                surf_info.texcoord.x, surf_info.texcoord.y)
                 .x
           : material.specular_roughness;
 
   // metalness
   shading_params.metalness =
       material.metalness_texture_id >= 0
-          ? tex2D<float4>(textures[material.metalness_texture_id],
-                          surf_info.texcoord.x, surf_info.texcoord.y)
+          ? tex2D<float4>(
+                textures[material.metalness_texture_id].texture_object,
+                surf_info.texcoord.x, surf_info.texcoord.y)
                 .x
           : material.metalness;
 
@@ -428,8 +430,9 @@ extern "C" __global__ void __anyhit__radiance()
   // fetch base color texture
   if (material.base_color_texture_id >= 0) {
     const float alpha =
-        tex2D<float4>(params.textures[material.base_color_texture_id],
-                      texcoord.x, texcoord.y)
+        tex2D<float4>(
+            params.textures[material.base_color_texture_id].texture_object,
+            texcoord.x, texcoord.y)
             .w;
 
     // ignore intersection
@@ -439,8 +442,8 @@ extern "C" __global__ void __anyhit__radiance()
   // fetch alpha texture
   if (material.alpha_texture_id >= 0) {
     const float alpha =
-        tex2D<float4>(params.textures[material.alpha_texture_id], texcoord.x,
-                      texcoord.y)
+        tex2D<float4>(params.textures[material.alpha_texture_id].texture_object,
+                      texcoord.x, texcoord.y)
             .x;
 
     // ignore intersection
@@ -472,8 +475,9 @@ extern "C" __global__ void __anyhit__shadow()
   // fetch base color texture
   if (material.base_color_texture_id >= 0) {
     const float alpha =
-        tex2D<float4>(params.textures[material.base_color_texture_id],
-                      texcoord.x, texcoord.y)
+        tex2D<float4>(
+            params.textures[material.base_color_texture_id].texture_object,
+            texcoord.x, texcoord.y)
             .w;
 
     // ignore intersection
@@ -483,8 +487,8 @@ extern "C" __global__ void __anyhit__shadow()
   // fetch alpha texture
   if (material.alpha_texture_id >= 0) {
     const float alpha =
-        tex2D<float4>(params.textures[material.alpha_texture_id], texcoord.x,
-                      texcoord.y)
+        tex2D<float4>(params.textures[material.alpha_texture_id].texture_object,
+                      texcoord.x, texcoord.y)
             .x;
 
     // ignore intersection
@@ -516,8 +520,9 @@ extern "C" __global__ void __anyhit__light()
   // fetch base color texture
   if (material.base_color_texture_id >= 0) {
     const float alpha =
-        tex2D<float4>(params.textures[material.base_color_texture_id],
-                      texcoord.x, texcoord.y)
+        tex2D<float4>(
+            params.textures[material.base_color_texture_id].texture_object,
+            texcoord.x, texcoord.y)
             .w;
 
     // ignore intersection
@@ -527,8 +532,8 @@ extern "C" __global__ void __anyhit__light()
   // fetch alpha texture
   if (material.alpha_texture_id >= 0) {
     const float alpha =
-        tex2D<float4>(params.textures[material.alpha_texture_id], texcoord.x,
-                      texcoord.y)
+        tex2D<float4>(params.textures[material.alpha_texture_id].texture_object,
+                      texcoord.x, texcoord.y)
             .x;
 
     // ignore intersection
@@ -561,14 +566,18 @@ extern "C" __global__ void __closesthit__radiance()
   ShadingParams shading_params;
   fill_shading_params(material, surf_info, params.textures, shading_params);
 
-  // normal mapping
   float3 tangent = surf_info.tangent;
   float3 normal = surf_info.n_s;
   float3 bitangent = surf_info.bitangent;
+
+  // bump mapping(with height map)
+  if (material.heightmap_texture_id >= 0) {}
+
+  // normal mapping
   if (material.normalmap_texture_id >= 0) {
-    float3 value = make_float3(
-        tex2D<float4>(params.textures[material.normalmap_texture_id],
-                      surf_info.texcoord.x, surf_info.texcoord.y));
+    float3 value = make_float3(tex2D<float4>(
+        params.textures[material.normalmap_texture_id].texture_object,
+        surf_info.texcoord.x, surf_info.texcoord.y));
     value = 2.0f * value - 1.0f;
     normal = normalize(local_to_world(value, surf_info.tangent,
                                       surf_info.bitangent, surf_info.n_s));
