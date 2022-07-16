@@ -270,6 +270,13 @@ static __forceinline__ __device__ float compute_mis_weight(float pdf0,
   return (pdf0) / (pdf0 + pdf1);
 }
 
+// TODO: need more nice way to suppress firefly
+static __forceinline__ __device__ float3
+regularize_contribution(const float3& contrib)
+{
+  return clamp(contrib, make_float3(0.0f), make_float3(10.0f));
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -606,9 +613,10 @@ extern "C" __global__ void __closesthit__radiance()
         const float pdf = abs_cos_theta(wi) / M_PIf;
         const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
         const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        payload->radiance += payload->throughput * mis_weight * f *
-                             abs_cos_theta(wi) *
-                             fetch_ibl(shadow_ray_direction) / pdf;
+        const float3 contrib = regularize_contribution(
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) *
+            fetch_ibl(shadow_ray_direction) / pdf);
+        payload->radiance += contrib;
       }
     } else {
       const float3 wi = sample_cosine_weighted_hemisphere(
@@ -626,8 +634,10 @@ extern "C" __global__ void __closesthit__radiance()
         const float pdf = abs_cos_theta(wi) / M_PIf;
         const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
         const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        payload->radiance += payload->throughput * mis_weight * f *
-                             abs_cos_theta(wi) * params.bg_color / pdf;
+        const float3 contrib =
+            regularize_contribution(payload->throughput * mis_weight * f *
+                                    abs_cos_theta(wi) * params.bg_color / pdf);
+        payload->radiance += contrib;
       }
     }
 
@@ -653,13 +663,13 @@ extern "C" __global__ void __closesthit__radiance()
             world_to_local(shadow_ray_direction, tangent, normal, bitangent);
         const float3 f = bsdf.eval(wo, wi);
         float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
-        // prevent firefly
-        pdf = fmax(pdf, 0.1f);
 
         const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
         const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        payload->radiance +=
-            payload->throughput * mis_weight * f * abs_cos_theta(wi) * le / pdf;
+        const float3 contrib =
+            regularize_contribution(payload->throughput * mis_weight * f *
+                                    abs_cos_theta(wi) * le / pdf);
+        payload->radiance += contrib;
       }
     }
   }
@@ -672,8 +682,6 @@ extern "C" __global__ void __closesthit__radiance()
     float3 f;
     float pdf;
     const float3 wi = bsdf.sample(wo, u, v, f, pdf);
-    // prevent firefly
-    pdf = fmax(pdf, 0.1f);
 
     const float3 light_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
     const float3 light_ray_direction =
@@ -696,8 +704,10 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     const float mis_weight = compute_mis_weight(pdf, pdf_light);
-    payload->radiance += payload->throughput * mis_weight * f *
-                         abs_cos_theta(wi) * light_payload.le / pdf;
+    const float3 contrib =
+        regularize_contribution(payload->throughput * mis_weight * f *
+                                abs_cos_theta(wi) * light_payload.le / pdf);
+    payload->radiance += contrib;
   }
 
   // generate next ray direction
