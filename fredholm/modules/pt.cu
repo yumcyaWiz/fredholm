@@ -226,14 +226,11 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   shading_params.transmission_color = material.transmission_color;
 }
 
-static __forceinline__ __device__ float3
-sample_position_on_light(const float u, const float2& v, const float3* vertices,
-                         const uint3* indices, const float3* normals,
-                         float3& le, float3& n, float& pdf)
+static __forceinline__ __device__ float3 sample_position_on_light(
+    uint light_idx, const float u, const float2& v, const float3* vertices,
+    const uint3* indices, const float3* normals, float3& le, float3& n,
+    float& pdf)
 {
-  // sample light
-  const uint light_idx =
-      clamp(static_cast<uint>(params.n_lights * u), 0u, params.n_lights - 1);
   const Light& light = params.lights[light_idx];
 
   // sample point on the light
@@ -254,7 +251,7 @@ sample_position_on_light(const float u, const float2& v, const float3* vertices,
   const float area = 0.5f * length(cross(v1 - v0, v2 - v0));
 
   le = light.le;
-  pdf = 1.0f / (params.n_lights * area);
+  pdf = 1.0f / area;
 
   return p;
 }
@@ -266,10 +263,11 @@ static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
       tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
 }
 
+// power heuristics
 static __forceinline__ __device__ float compute_mis_weight(float pdf0,
                                                            float pdf1)
 {
-  return pdf0 / (pdf0 + pdf1);
+  return (pdf0 * pdf0) / (pdf0 * pdf0 + pdf1 * pdf1);
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -634,11 +632,11 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     // area light
-    if (params.n_lights > 0) {
+    for (uint light_idx = 0; light_idx < params.n_lights; light_idx++) {
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(
-          frandom(payload->rng),
+          light_idx, frandom(payload->rng),
           make_float2(frandom(payload->rng), frandom(payload->rng)),
           sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
 
@@ -689,7 +687,7 @@ extern "C" __global__ void __closesthit__radiance()
     if (light_payload.hit) {
       const float r2 = dot(light_payload.p - light_ray_origin,
                            light_payload.p - light_ray_origin);
-      const float pdf_area = 1.0f / (params.n_lights * light_payload.area);
+      const float pdf_area = 1.0f / light_payload.area;
       pdf_light =
           r2 / fabs(dot(-light_ray_direction, light_payload.n)) * pdf_area;
     } else {
