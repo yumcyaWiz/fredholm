@@ -54,9 +54,14 @@ struct Material {
   int alpha_texture_id = -1;
 };
 
-struct Light {
+struct AreaLight {
   float3 le;      // emission
   uint3 indices;  // indices of vertex array
+};
+
+struct DirectionalLight {
+  float3 le;   // emission
+  float3 dir;  // direction
 };
 
 struct SurfaceInfo {
@@ -113,9 +118,10 @@ struct LaunchParams {
 
   Material* materials;
   cudaTextureObject_t* textures;
-  Light* lights;
+  AreaLight* lights;
   uint n_lights;
 
+  DirectionalLight* directional_light;
   cudaTextureObject_t ibl;
 
   OptixTraversableHandle ias_handle;

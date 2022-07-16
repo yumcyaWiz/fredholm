@@ -231,7 +231,7 @@ static __forceinline__ __device__ float3 sample_position_on_light(
     const uint3* indices, const float3* normals, float3& le, float3& n,
     float& pdf)
 {
-  const Light& light = params.lights[light_idx];
+  const AreaLight& light = params.lights[light_idx];
 
   // sample point on the light
   const float2 barycentric = sample_triangle(v);

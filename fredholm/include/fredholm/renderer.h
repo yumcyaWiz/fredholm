@@ -45,6 +45,9 @@ class Renderer
     if (m_d_sample_count) { m_d_sample_count.reset(); }
     if (m_d_rng_states) { m_d_rng_states.reset(); }
 
+    // release directional light
+    if (m_d_directional_light) { m_d_directional_light.reset(); }
+
     // release IBL
     if (m_d_ibl) { m_d_ibl.reset(); }
 
@@ -380,19 +383,19 @@ class Renderer
     m_d_texture_objects =
         std::make_unique<cwl::CUDABuffer<cudaTextureObject_t>>(texture_objects);
 
-    std::vector<Light> lights;
+    std::vector<AreaLight> lights;
     for (int face_idx = 0; face_idx < scene.m_material_ids.size(); ++face_idx) {
       const uint material_id = scene.m_material_ids[face_idx];
       const Material& m = scene.m_materials[material_id];
       if (m.emission_color.x > 0 || m.emission_color.y > 0 ||
           m.emission_color.z > 0) {
-        Light light;
+        AreaLight light;
         light.le = m.emission_color;
         light.indices = scene.m_indices[face_idx];
         lights.push_back(light);
       }
     }
-    m_d_lights = std::make_unique<cwl::CUDABuffer<Light>>(lights);
+    m_d_lights = std::make_unique<cwl::CUDABuffer<AreaLight>>(lights);
 
     spdlog::info("[Renderer] number of vertices: {}",
                  m_d_indices->get_size() * 3);
@@ -521,6 +524,16 @@ class Renderer
         ibl.m_width, ibl.m_height, ibl.m_data.data());
   }
 
+  void set_directional_light(const float3& le, const float3& dir)
+  {
+    DirectionalLight light;
+    light.le = le;
+    light.dir = dir;
+
+    m_d_directional_light =
+        std::make_unique<cwl::DeviceObject<DirectionalLight>>(light);
+  }
+
   void clear_ibl()
   {
     if (m_d_ibl) { m_d_ibl.reset(); }
@@ -584,6 +597,12 @@ class Renderer
     params.lights = m_d_lights->get_device_ptr();
     params.n_lights = m_d_lights->get_size();
 
+    if (m_d_directional_light) {
+      params.directional_light = m_d_directional_light->get_device_ptr();
+    } else {
+      params.directional_light = nullptr;
+    }
+
     if (m_d_ibl) {
       params.ibl = m_d_ibl->get_texture_object();
     } else {
@@ -644,7 +663,7 @@ class Renderer
   std::unique_ptr<cwl::CUDABuffer<cudaTextureObject_t>> m_d_texture_objects =
       {};
 
-  std::unique_ptr<cwl::CUDABuffer<Light>> m_d_lights = {};
+  std::unique_ptr<cwl::CUDABuffer<AreaLight>> m_d_lights = {};
 
   // optix handles
   CUstream m_stream = 0;
@@ -688,6 +707,7 @@ class Renderer
       nullptr;
 
   // LaunchParams data on device
+  std::unique_ptr<cwl::DeviceObject<DirectionalLight>> m_d_directional_light;
   std::unique_ptr<cwl::CUDATexture<float4>> m_d_ibl;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
   std::unique_ptr<cwl::CUDABuffer<RNGState>> m_d_rng_states;
