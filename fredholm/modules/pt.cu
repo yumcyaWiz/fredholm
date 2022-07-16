@@ -38,8 +38,14 @@ struct ShadowPayload {
 };
 
 struct LightPayload {
-  float3 direction;
-  float3 le = make_float3(0.0f);
+  float3 direction;  // ray direction
+
+  float3 le = make_float3(0.0f);  // emission
+
+  bool hit = false;  // hit area light?
+  float3 p;          // hit position
+  float3 n;          // hit normal
+  float area;        // triangle area
 };
 
 // upper-32bit + lower-32bit -> 64bit
@@ -382,6 +388,7 @@ extern "C" __global__ void __miss__shadow()
 extern "C" __global__ void __miss__light()
 {
   LightPayload* payload = get_payload_ptr<LightPayload>();
+  payload->hit = false;
 
   if (params.ibl) {
     payload->le = fetch_ibl(payload->direction);
@@ -599,7 +606,10 @@ extern "C" __global__ void __closesthit__radiance()
       if (shadow_payload.visible) {
         const float3 f = bsdf.eval(wo, wi);
         const float pdf = abs_cos_theta(wi) / M_PIf;
-        payload->radiance += payload->throughput * f * abs_cos_theta(wi) *
+        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+        payload->radiance += payload->throughput * mis_weight * f *
+                             abs_cos_theta(wi) *
                              fetch_ibl(shadow_ray_direction) / pdf;
       }
     } else {
@@ -616,8 +626,10 @@ extern "C" __global__ void __closesthit__radiance()
       if (shadow_payload.visible) {
         const float3 f = bsdf.eval(wo, wi);
         const float pdf = abs_cos_theta(wi) / M_PIf;
-        payload->radiance +=
-            payload->throughput * f * abs_cos_theta(wi) * params.bg_color / pdf;
+        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+        payload->radiance += payload->throughput * mis_weight * f *
+                             abs_cos_theta(wi) * params.bg_color / pdf;
       }
     }
 
@@ -644,8 +656,10 @@ extern "C" __global__ void __closesthit__radiance()
         const float3 f = bsdf.eval(wo, wi);
         const float pdf =
             r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
+        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
         payload->radiance +=
-            payload->throughput * f * abs_cos_theta(wi) * le / pdf;
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) * le / pdf;
       }
     }
   }
@@ -668,8 +682,19 @@ extern "C" __global__ void __closesthit__radiance()
     trace_light(params.ias_handle, light_ray_origin, light_ray_direction, 0.0f,
                 1e9f, &light_payload);
 
-    payload->radiance +=
-        payload->throughput * f * abs_cos_theta(wi) * light_payload.le / pdf;
+    float pdf_light;
+    if (light_payload.hit) {
+      const float r = length(light_payload.p - light_ray_origin);
+      const float pdf_area = 1.0f / light_payload.area;
+      pdf_light =
+          r * r / fabs(dot(-light_ray_direction, light_payload.n)) * pdf_area;
+    } else {
+      pdf_light = abs_cos_theta(wi) / M_PIf;
+    }
+
+    const float mis_weight = compute_mis_weight(pdf, pdf_light);
+    payload->radiance += payload->throughput * mis_weight * f *
+                         abs_cos_theta(wi) * light_payload.le / pdf;
   }
 
   // generate next ray direction
@@ -718,7 +743,23 @@ extern "C" __global__ void __closesthit__light()
   const Material& material = params.materials[material_id];
 
   if (has_emission(material)) {
+    payload->hit = true;
     payload->le = material.emission_color;
+
+    const uint3 idx = sbt->indices[prim_idx];
+    const float3 v0 = sbt->vertices[idx.x];
+    const float3 v1 = sbt->vertices[idx.y];
+    const float3 v2 = sbt->vertices[idx.z];
+    const float3 n0 = sbt->normals[idx.x];
+    const float3 n1 = sbt->normals[idx.y];
+    const float3 n2 = sbt->normals[idx.z];
+
+    const float2 barycentric = optixGetTriangleBarycentrics();
+    payload->p = (1.0f - barycentric.x - barycentric.y) * v0 +
+                 barycentric.x * v1 + barycentric.y * v2;
+    payload->n = (1.0f - barycentric.x - barycentric.y) * n0 +
+                 barycentric.x * n1 + barycentric.y * n2;
+    payload->area = 0.5f * length(cross(v1 - v0, v2 - v0));
   } else {
     payload->le = make_float3(0.0f);
   }
