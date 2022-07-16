@@ -360,6 +360,8 @@ extern "C" __global__ void __miss__shadow()
   payload->visible = true;
 }
 
+extern "C" __global__ void __miss__light() {}
+
 extern "C" __global__ void __anyhit__radiance()
 {
   const HitGroupSbtRecordData* sbt =
@@ -447,6 +449,8 @@ extern "C" __global__ void __anyhit__shadow()
     if (alpha < 0.5) { optixIgnoreIntersection(); }
   }
 }
+
+extern "C" __global__ void __anyhit__light() {}
 
 extern "C" __global__ void __closesthit__radiance()
 {
@@ -601,3 +605,5 @@ extern "C" __global__ void __closesthit__shadow()
   ShadowPayload* payload = get_payload_ptr<ShadowPayload>();
   payload->visible = false;
 }
+
+extern "C" __global__ void __closesthit__light() {}

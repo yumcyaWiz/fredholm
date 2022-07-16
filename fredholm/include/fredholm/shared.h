@@ -8,6 +8,7 @@ namespace fredholm
 enum class RayType : unsigned int {
   RAY_TYPE_RADIANCE = 0,
   RAY_TYPE_SHADOW = 1,
+  RAY_TYPE_LIGHT = 2,
   RAY_TYPE_COUNT
 };
 

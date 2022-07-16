@@ -85,17 +85,25 @@ class Renderer
     if (m_raygen_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_raygen_group));
     }
+
     if (m_radiance_miss_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_radiance_miss_group));
     }
     if (m_shadow_miss_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_shadow_miss_group));
     }
+    if (m_light_miss_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_light_miss_group));
+    }
+
     if (m_radiance_hit_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_radiance_hit_group));
     }
     if (m_shadow_hit_group) {
       OPTIX_CHECK(optixProgramGroupDestroy(m_shadow_hit_group));
+    }
+    if (m_light_hit_group) {
+      OPTIX_CHECK(optixProgramGroupDestroy(m_light_hit_group));
     }
 
     // release module
@@ -180,6 +188,12 @@ class Renderer
                                             1, &options, log, &sizeof_log,
                                             &m_shadow_miss_group));
 
+    miss_program_group_desc.miss.entryFunctionName = "__miss__light";
+    sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(m_context, &miss_program_group_desc,
+                                            1, &options, log, &sizeof_log,
+                                            &m_light_miss_group));
+
     // create hitgroup program group
     OptixProgramGroupDesc hitgroup_program_group_desc = {};
     hitgroup_program_group_desc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
@@ -202,6 +216,15 @@ class Renderer
     OPTIX_CHECK_LOG(optixProgramGroupCreate(
         m_context, &hitgroup_program_group_desc, 1, &options, log, &sizeof_log,
         &m_shadow_hit_group));
+
+    hitgroup_program_group_desc.hitgroup.entryFunctionNameCH =
+        "__closesthit__light";
+    hitgroup_program_group_desc.hitgroup.entryFunctionNameAH =
+        "__anyhit__light";
+    sizeof_log = sizeof(log);
+    OPTIX_CHECK_LOG(optixProgramGroupCreate(
+        m_context, &hitgroup_program_group_desc, 1, &options, log, &sizeof_log,
+        &m_light_hit_group));
   }
 
   void create_pipeline()
@@ -209,8 +232,9 @@ class Renderer
     spdlog::info("[Renderer] creating OptiX pipeline");
 
     OptixProgramGroup program_groups[] = {
-        m_raygen_group, m_radiance_miss_group, m_shadow_miss_group,
-        m_radiance_hit_group, m_shadow_hit_group};
+        m_raygen_group,     m_radiance_miss_group, m_shadow_miss_group,
+        m_light_miss_group, m_radiance_hit_group,  m_shadow_hit_group,
+        m_light_hit_group};
 
     // create pipeline
     OptixPipelineLinkOptions pipeline_link_options = {};
@@ -257,13 +281,19 @@ class Renderer
     // fill raygen header
     OPTIX_CHECK(optixSbtRecordPackHeader(m_raygen_group, &m_raygen_record));
 
-    // fill miss record
+    // radiance miss record
     MissSbtRecord miss_record = {};
     OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_miss_group, &miss_record));
     m_miss_records.push_back(miss_record);
 
+    // shadow miss record
     miss_record = {};
     OPTIX_CHECK(optixSbtRecordPackHeader(m_shadow_miss_group, &miss_record));
+    m_miss_records.push_back(miss_record);
+
+    // light miss record
+    miss_record = {};
+    OPTIX_CHECK(optixSbtRecordPackHeader(m_light_miss_group, &miss_record));
     m_miss_records.push_back(miss_record);
 
     // fill hitgroup record
@@ -285,6 +315,10 @@ class Renderer
 
       // shadow hitgroup record
       OPTIX_CHECK(optixSbtRecordPackHeader(m_shadow_hit_group, &hit_record));
+      m_hit_group_records.push_back(hit_record);
+
+      // light hitgroup record
+      OPTIX_CHECK(optixSbtRecordPackHeader(m_light_hit_group, &hit_record));
       m_hit_group_records.push_back(hit_record);
     }
 
@@ -627,10 +661,14 @@ class Renderer
   OptixModule m_module = 0;
 
   OptixProgramGroup m_raygen_group = 0;
+
   OptixProgramGroup m_radiance_miss_group = 0;
   OptixProgramGroup m_shadow_miss_group = 0;
+  OptixProgramGroup m_light_miss_group = 0;
+
   OptixProgramGroup m_radiance_hit_group = 0;
   OptixProgramGroup m_shadow_hit_group = 0;
+  OptixProgramGroup m_light_hit_group = 0;
 
   OptixPipelineCompileOptions m_pipeline_compile_options = {};
   OptixPipeline m_pipeline = 0;
