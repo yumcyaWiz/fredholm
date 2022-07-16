@@ -650,16 +650,19 @@ extern "C" __global__ void __closesthit__radiance()
       trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
                    0.0f, r, &shadow_payload);
 
-      if (shadow_payload.visible) {
+      if (shadow_payload.visible && dot(-shadow_ray_direction, n) > 0.0f) {
         const float3 wi =
             world_to_local(shadow_ray_direction, tangent, normal, bitangent);
         const float3 f = bsdf.eval(wo, wi);
-        const float pdf =
-            r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
-        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
-        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        payload->radiance +=
-            payload->throughput * mis_weight * f * abs_cos_theta(wi) * le / pdf;
+        float pdf = r * r / fabs(dot(-shadow_ray_direction, n)) * pdf_area;
+
+        // prevent firefly
+        if (pdf > 0.1f) {
+          const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+          const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+          payload->radiance += payload->throughput * mis_weight * f *
+                               abs_cos_theta(wi) * le / pdf;
+        }
       }
     }
   }
@@ -743,23 +746,25 @@ extern "C" __global__ void __closesthit__light()
   const uint material_id = sbt->material_ids[prim_idx];
   const Material& material = params.materials[material_id];
 
-  if (has_emission(material)) {
+  const uint3 idx = sbt->indices[prim_idx];
+  const float3 v0 = sbt->vertices[idx.x];
+  const float3 v1 = sbt->vertices[idx.y];
+  const float3 v2 = sbt->vertices[idx.z];
+  const float3 n0 = sbt->normals[idx.x];
+  const float3 n1 = sbt->normals[idx.y];
+  const float3 n2 = sbt->normals[idx.z];
+
+  const float2 barycentric = optixGetTriangleBarycentrics();
+  const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
+                   barycentric.x * v1 + barycentric.y * v2;
+  const float3 n = (1.0f - barycentric.x - barycentric.y) * n0 +
+                   barycentric.x * n1 + barycentric.y * n2;
+
+  if (has_emission(material) && dot(-payload->direction, n) > 0.0f) {
     payload->hit = true;
     payload->le = material.emission_color;
-
-    const uint3 idx = sbt->indices[prim_idx];
-    const float3 v0 = sbt->vertices[idx.x];
-    const float3 v1 = sbt->vertices[idx.y];
-    const float3 v2 = sbt->vertices[idx.z];
-    const float3 n0 = sbt->normals[idx.x];
-    const float3 n1 = sbt->normals[idx.y];
-    const float3 n2 = sbt->normals[idx.z];
-
-    const float2 barycentric = optixGetTriangleBarycentrics();
-    payload->p = (1.0f - barycentric.x - barycentric.y) * v0 +
-                 barycentric.x * v1 + barycentric.y * v2;
-    payload->n = (1.0f - barycentric.x - barycentric.y) * n0 +
-                 barycentric.x * n1 + barycentric.y * n2;
+    payload->p = p;
+    payload->n = n;
     payload->area = 0.5f * length(cross(v1 - v0, v2 - v0));
   } else {
     payload->le = make_float3(0.0f);
