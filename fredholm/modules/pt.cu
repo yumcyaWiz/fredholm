@@ -271,10 +271,9 @@ static __forceinline__ __device__ float compute_mis_weight(float pdf0,
 }
 
 // TODO: need more nice way to suppress firefly
-static __forceinline__ __device__ float3
-regularize_contribution(const float3& contrib)
+static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
 {
-  return clamp(contrib, make_float3(0.0f), make_float3(10.0f));
+  return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
 extern "C" __global__ void __raygen__rg()
@@ -613,10 +612,10 @@ extern "C" __global__ void __closesthit__radiance()
         const float pdf = abs_cos_theta(wi) / M_PIf;
         const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
         const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        const float3 contrib = regularize_contribution(
-            payload->throughput * mis_weight * f * abs_cos_theta(wi) *
-            fetch_ibl(shadow_ray_direction) / pdf);
-        payload->radiance += contrib;
+        const float3 weight = regularize_weight(
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
+        const float3 le = fetch_ibl(shadow_ray_direction);
+        payload->radiance += weight * le;
       }
     } else {
       const float3 wi = sample_cosine_weighted_hemisphere(
@@ -634,10 +633,10 @@ extern "C" __global__ void __closesthit__radiance()
         const float pdf = abs_cos_theta(wi) / M_PIf;
         const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
         const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        const float3 contrib =
-            regularize_contribution(payload->throughput * mis_weight * f *
-                                    abs_cos_theta(wi) * params.bg_color / pdf);
-        payload->radiance += contrib;
+        const float3 weight = regularize_weight(
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
+        const float3 le = params.bg_color;
+        payload->radiance += weight * le;
       }
     }
 
@@ -666,10 +665,9 @@ extern "C" __global__ void __closesthit__radiance()
 
         const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
         const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-        const float3 contrib =
-            regularize_contribution(payload->throughput * mis_weight * f *
-                                    abs_cos_theta(wi) * le / pdf);
-        payload->radiance += contrib;
+        const float3 weight = regularize_weight(
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
+        payload->radiance += weight * le;
       }
     }
   }
@@ -704,10 +702,9 @@ extern "C" __global__ void __closesthit__radiance()
     }
 
     const float mis_weight = compute_mis_weight(pdf, pdf_light);
-    const float3 contrib =
-        regularize_contribution(payload->throughput * mis_weight * f *
-                                abs_cos_theta(wi) * light_payload.le / pdf);
-    payload->radiance += contrib;
+    const float3 weight = regularize_weight(payload->throughput * mis_weight *
+                                            f * abs_cos_theta(wi) / pdf);
+    payload->radiance += weight * light_payload.le;
   }
 
   // generate next ray direction
