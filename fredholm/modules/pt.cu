@@ -571,7 +571,28 @@ extern "C" __global__ void __closesthit__radiance()
   float3 bitangent = surf_info.bitangent;
 
   // bump mapping(with height map)
-  if (material.heightmap_texture_id >= 0) {}
+  if (material.heightmap_texture_id >= 0) {
+    const TextureHeader& heightmap =
+        params.textures[material.heightmap_texture_id];
+    const float du = 1.0f / heightmap.size.x;
+    const float dv = 1.0f / heightmap.size.y;
+    const float v = tex2D<float4>(heightmap.texture_object,
+                                  surf_info.texcoord.x, surf_info.texcoord.y)
+                        .x;
+    const float dfdu =
+        (tex2D<float4>(heightmap.texture_object, surf_info.texcoord.x + du,
+                       surf_info.texcoord.y)
+             .x -
+         v);
+    const float dfdv =
+        (tex2D<float4>(heightmap.texture_object, surf_info.texcoord.x,
+                       surf_info.texcoord.y + dv)
+             .x -
+         v);
+    tangent = normalize(surf_info.tangent + dfdu * surf_info.n_s);
+    bitangent = normalize(surf_info.bitangent + dfdv * surf_info.n_s);
+    normal = normalize(cross(bitangent, tangent));
+  }
 
   // normal mapping
   if (material.normalmap_texture_id >= 0) {
