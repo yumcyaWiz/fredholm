@@ -25,6 +25,12 @@ struct RNGState {
   unsigned long long inc = 1;
 };
 
+struct SobolState {
+  unsigned long long index = 0;
+  unsigned int dimension = 0;
+  unsigned int scramble = 0;
+};
+
 // similar to arnold standard surface
 // https://autodesk.github.io/standard-surface/
 struct Material {

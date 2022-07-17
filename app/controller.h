@@ -58,7 +58,7 @@ class Controller
   int m_imgui_resolution[2] = {1920, 1080};
   int m_imgui_n_samples = 0;
   int m_imgui_max_samples = 100;
-  int m_imgui_max_depth = 100;
+  int m_imgui_max_depth = 10;
   AOVType m_imgui_aov_type = AOVType::BEAUTY;
   char m_imgui_filename[256] = "output.png";
 

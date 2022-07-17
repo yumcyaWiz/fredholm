@@ -10,6 +10,21 @@ static __forceinline__ __device__ float frandom(RNGState& rng)
   return pcg32_random_r(&rng) / static_cast<float>(0xffffffffu);
 }
 
+static __forceinline__ __device__ float2 frandom_2d(RNGState& rng)
+{
+  return make_float2(frandom(rng), frandom(rng));
+}
+
+static __forceinline__ __device__ float3 frandom_3d(RNGState& rng)
+{
+  return make_float3(frandom(rng), frandom(rng), frandom(rng));
+}
+
+static __forceinline__ __device__ float4 frandom_4d(RNGState& rng)
+{
+  return make_float4(frandom(rng), frandom(rng), frandom(rng), frandom(rng));
+}
+
 static __forceinline__ __device__ float3
 sample_cosine_weighted_hemisphere(const float2& u)
 {

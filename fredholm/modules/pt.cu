@@ -4,6 +4,7 @@
 #include "fredholm/shared.h"
 #include "math.cu"
 #include "sampling.cu"
+#include "sobol.cu"
 #include "sutil/vec_math.h"
 
 #define RAY_EPS 0.001f
@@ -286,13 +287,8 @@ extern "C" __global__ void __raygen__rg()
   const uint3 idx = optixGetLaunchIndex();
   const uint3 dim = optixGetLaunchDimensions();
   const uint image_idx = idx.x + params.width * idx.y;
-
-  // set RNG state
-  RadiancePayload payload;
-  payload.rng.state = params.rng_states[image_idx].state;
-  payload.rng.inc = params.rng_states[image_idx].inc;
-
   uint n_spp = params.sample_count[image_idx];
+
   float3 beauty = make_float3(params.render_layer.beauty[image_idx]);
   float3 position = make_float3(params.render_layer.position[image_idx]);
   float3 normal = make_float3(params.render_layer.normal[image_idx]);
@@ -300,7 +296,14 @@ extern "C" __global__ void __raygen__rg()
   float2 texcoord = make_float2(params.render_layer.texcoord[image_idx]);
   float3 albedo = make_float3(params.render_layer.albedo[image_idx]);
 
+  // set RNG state
+  RadiancePayload payload;
+  payload.rng = params.rng_states[image_idx];
   for (int spp = 0; spp < params.n_samples; ++spp) {
+    // payload.rng = params.sobol_states[image_idx];
+    // payload.rng.index = image_idx + n_spp * params.width * params.height;
+    // payload.rng.dimension = 1;
+
     // generate initial ray from camera
     float2 uv =
         make_float2((2.0f * (idx.x + frandom(payload.rng)) - dim.x) / dim.y,
@@ -357,8 +360,7 @@ extern "C" __global__ void __raygen__rg()
   params.sample_count[image_idx] = n_spp;
 
   // save RNG state for next render call
-  params.rng_states[image_idx].state = payload.rng.state;
-  params.rng_states[image_idx].inc = payload.rng.inc;
+  params.rng_states[image_idx] = payload.rng;
 
   // write results in render layers
   params.render_layer.beauty[image_idx] = make_float4(beauty, 1.0f);
@@ -654,8 +656,8 @@ extern "C" __global__ void __closesthit__radiance()
     // sky
     if (params.ibl) {
       // TODO: implement IBL importance sampling
-      const float3 wi = sample_cosine_weighted_hemisphere(
-          make_float2(frandom(payload->rng), frandom(payload->rng)));
+      const float3 wi =
+          sample_cosine_weighted_hemisphere(frandom_2d(payload->rng));
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           local_to_world(wi, tangent, normal, bitangent);
@@ -675,8 +677,8 @@ extern "C" __global__ void __closesthit__radiance()
         payload->radiance += weight * le;
       }
     } else {
-      const float3 wi = sample_cosine_weighted_hemisphere(
-          make_float2(frandom(payload->rng), frandom(payload->rng)));
+      const float3 wi =
+          sample_cosine_weighted_hemisphere(frandom_2d(payload->rng));
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           local_to_world(wi, tangent, normal, bitangent);
@@ -702,9 +704,8 @@ extern "C" __global__ void __closesthit__radiance()
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(
-          frandom(payload->rng),
-          make_float2(frandom(payload->rng), frandom(payload->rng)),
-          sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
+          frandom(payload->rng), frandom_2d(payload->rng), sbt->vertices,
+          sbt->indices, sbt->normals, le, n, pdf_area);
 
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
@@ -731,12 +732,10 @@ extern "C" __global__ void __closesthit__radiance()
 
   // BSDF sampling
   {
-    const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
-                                 frandom(payload->rng), frandom(payload->rng));
-    const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
     float3 f;
     float pdf;
-    const float3 wi = bsdf.sample(wo, u, v, f, pdf);
+    const float3 wi = bsdf.sample(wo, frandom_4d(payload->rng),
+                                  frandom_2d(payload->rng), f, pdf);
 
     const float3 light_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
     const float3 light_ray_direction =
@@ -766,12 +765,10 @@ extern "C" __global__ void __closesthit__radiance()
 
   // generate next ray direction
   {
-    const float4 u = make_float4(frandom(payload->rng), frandom(payload->rng),
-                                 frandom(payload->rng), frandom(payload->rng));
-    const float2 v = make_float2(frandom(payload->rng), frandom(payload->rng));
     float3 f;
     float pdf;
-    const float3 wi = bsdf.sample(wo, u, v, f, pdf);
+    const float3 wi = bsdf.sample(wo, frandom_4d(payload->rng),
+                                  frandom_2d(payload->rng), f, pdf);
     const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
 
     // update throughput
