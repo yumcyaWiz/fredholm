@@ -43,7 +43,6 @@ class Renderer
   {
     // release framebuffer data
     if (m_d_sample_count) { m_d_sample_count.reset(); }
-    if (m_d_rng_states) { m_d_rng_states.reset(); }
 
     // release directional light
     if (m_d_directional_light) { m_d_directional_light.reset(); }
@@ -553,21 +552,6 @@ class Renderer
     // init sample count buffer
     m_d_sample_count =
         std::make_unique<cwl::CUDABuffer<uint>>(m_width * m_height, 0);
-
-    // init RNG state buffer
-    // TODO: apply some hash function
-    std::vector<RNGState> rng_states(m_width * m_height);
-    for (int j = 0; j < m_height; ++j) {
-      for (int i = 0; i < m_width; ++i) {
-        const int idx = i + m_width * j;
-        rng_states[idx].state = idx;
-        rng_states[idx].inc = 0xdeadbeef;
-
-        // warm up
-        for (int k = 0; k < 10; ++k) { pcg32_random_r(&rng_states[idx]); }
-      }
-    }
-    m_d_rng_states = std::make_unique<cwl::CUDABuffer<RNGState>>(rng_states);
   }
 
   void render(const Camera& camera, const float3& bg_color,
@@ -577,7 +561,6 @@ class Renderer
     LaunchParams params;
     params.render_layer = render_layer;
     params.sample_count = m_d_sample_count->get_device_ptr();
-    params.rng_states = m_d_rng_states->get_device_ptr();
     params.seed = 1;
 
     params.width = m_width;
@@ -710,7 +693,6 @@ class Renderer
   std::unique_ptr<cwl::DeviceObject<DirectionalLight>> m_d_directional_light;
   std::unique_ptr<cwl::CUDATexture<float4>> m_d_ibl;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
-  std::unique_ptr<cwl::CUDABuffer<RNGState>> m_d_rng_states;
 
   static std::vector<char> read_file(const std::filesystem::path& filepath)
   {

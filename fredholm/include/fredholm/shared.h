@@ -20,7 +20,7 @@ struct CameraParams {
   float f;
 };
 
-struct RNGState {
+struct PCGState {
   unsigned long long state = 0;
   unsigned long long inc = 1;
 };
@@ -29,6 +29,11 @@ struct SobolState {
   unsigned long long index = 0;
   unsigned int dimension = 0;
   unsigned int seed = 0;
+};
+
+struct SamplerState {
+  PCGState pcg_state;
+  SobolState sobol_state;
 };
 
 // similar to arnold standard surface
@@ -117,7 +122,6 @@ struct RenderLayer {
 struct LaunchParams {
   RenderLayer render_layer;
   uint* sample_count;
-  RNGState* rng_states;
   uint seed;
 
   uint width;
@@ -167,7 +171,7 @@ using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-static __forceinline__ __device__ __host__ uint pcg32_random_r(RNGState* rng)
+static __forceinline__ __device__ __host__ uint pcg32_random_r(PCGState* rng)
 {
   unsigned long long oldstate = rng->state;
   // Advance internal state

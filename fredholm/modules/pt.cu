@@ -22,8 +22,7 @@ struct RadiancePayload {
   float3 throughput = make_float3(1);
   float3 radiance = make_float3(0);
 
-  RNGState rng;
-  SobolState sobol;
+  SamplerState sampler;
 
   bool done = false;
 
@@ -283,6 +282,29 @@ static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
   return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
+static __forceinline__ __device__ unsigned int hash(unsigned int x)
+{
+  // finalizer from murmurhash3
+  x ^= x >> 16;
+  x *= 0x85ebca6bu;
+  x ^= x >> 13;
+  x *= 0xc2b2ae35u;
+  x ^= x >> 16;
+  return x;
+}
+
+static __forceinline__ __device__ void init_sampler_state(
+    unsigned int image_idx, unsigned int n_spp, SamplerState& state)
+{
+  state.pcg_state.state =
+      hash(image_idx + n_spp * params.width * params.height);
+  state.pcg_state.inc = hash(params.seed);
+
+  state.sobol_state.index = image_idx + n_spp * params.width * params.height;
+  state.sobol_state.dimension = 1;
+  state.sobol_state.seed = hash(params.seed);
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -299,16 +321,13 @@ extern "C" __global__ void __raygen__rg()
 
   // set RNG state
   RadiancePayload payload;
-  payload.rng = params.rng_states[image_idx];
   for (int spp = 0; spp < params.n_samples; ++spp) {
-    payload.sobol.index = image_idx + n_spp * params.width * params.height;
-    payload.sobol.dimension = 1;
-    payload.sobol.seed = params.seed;
+    init_sampler_state(image_idx, n_spp, payload.sampler);
 
     // generate initial ray from camera
-    float2 uv =
-        make_float2((2.0f * (idx.x + fsobol(payload.sobol)) - dim.x) / dim.y,
-                    (2.0f * (idx.y + fsobol(payload.sobol)) - dim.y) / dim.y);
+    float2 uv = make_float2(
+        (2.0f * (idx.x + sample_1d(payload.sampler)) - dim.x) / dim.y,
+        (2.0f * (idx.y + sample_1d(payload.sampler)) - dim.y) / dim.y);
     // flip x
     uv.x = -uv.x;
     float camera_pdf;
@@ -326,7 +345,7 @@ extern "C" __global__ void __raygen__rg()
           ray_depth == 0
               ? 1.0f
               : clamp(rgb_to_luminance(payload.throughput), 0.0f, 1.0f);
-      if (fsobol(payload.sobol) >= russian_roulette_prob) { break; }
+      if (sample_1d(payload.sampler) >= russian_roulette_prob) { break; }
       payload.throughput /= russian_roulette_prob;
 
       // trace ray and update payloads
@@ -359,9 +378,6 @@ extern "C" __global__ void __raygen__rg()
 
   // update total number of samples
   params.sample_count[image_idx] = n_spp;
-
-  // save RNG state for next render call
-  params.rng_states[image_idx] = payload.rng;
 
   // write results in render layers
   params.render_layer.beauty[image_idx] = make_float4(beauty, 1.0f);
@@ -658,7 +674,7 @@ extern "C" __global__ void __closesthit__radiance()
     if (params.ibl) {
       // TODO: implement IBL importance sampling
       const float3 wi =
-          sample_cosine_weighted_hemisphere(fsobol_2d(payload->sobol));
+          sample_cosine_weighted_hemisphere(sample_2d(payload->sampler));
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           local_to_world(wi, tangent, normal, bitangent);
@@ -679,7 +695,7 @@ extern "C" __global__ void __closesthit__radiance()
       }
     } else {
       const float3 wi =
-          sample_cosine_weighted_hemisphere(fsobol_2d(payload->sobol));
+          sample_cosine_weighted_hemisphere(sample_2d(payload->sampler));
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           local_to_world(wi, tangent, normal, bitangent);
@@ -705,8 +721,8 @@ extern "C" __global__ void __closesthit__radiance()
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(
-          fsobol(payload->sobol), fsobol_2d(payload->sobol), sbt->vertices,
-          sbt->indices, sbt->normals, le, n, pdf_area);
+          sample_1d(payload->sampler), sample_2d(payload->sampler),
+          sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
 
       const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
@@ -735,8 +751,8 @@ extern "C" __global__ void __closesthit__radiance()
   {
     float3 f;
     float pdf;
-    const float3 wi = bsdf.sample(wo, fsobol_4d(payload->sobol),
-                                  fsobol_2d(payload->sobol), f, pdf);
+    const float3 wi = bsdf.sample(wo, sample_4d(payload->sampler),
+                                  sample_2d(payload->sampler), f, pdf);
 
     const float3 light_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
     const float3 light_ray_direction =
@@ -768,8 +784,8 @@ extern "C" __global__ void __closesthit__radiance()
   {
     float3 f;
     float pdf;
-    const float3 wi = bsdf.sample(wo, fsobol_4d(payload->sobol),
-                                  fsobol_2d(payload->sobol), f, pdf);
+    const float3 wi = bsdf.sample(wo, sample_4d(payload->sampler),
+                                  sample_2d(payload->sampler), f, pdf);
     const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
 
     // update throughput

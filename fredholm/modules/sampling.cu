@@ -5,24 +5,30 @@
 
 using namespace fredholm;
 
-static __forceinline__ __device__ float frandom(RNGState& rng)
+static __forceinline__ __device__ float funiform(PCGState& state)
 {
-  return pcg32_random_r(&rng) / static_cast<float>(0xffffffffu);
+  return pcg32_random_r(&state) * (1.0f / (1ULL << 32));
 }
 
-static __forceinline__ __device__ float2 frandom_2d(RNGState& rng)
+static __forceinline__ __device__ float sample_1d(SamplerState& state)
 {
-  return make_float2(frandom(rng), frandom(rng));
+  return funiform(state.pcg_state);
 }
 
-static __forceinline__ __device__ float3 frandom_3d(RNGState& rng)
+static __forceinline__ __device__ float2 sample_2d(SamplerState& state)
 {
-  return make_float3(frandom(rng), frandom(rng), frandom(rng));
+  return make_float2(sample_1d(state), sample_1d(state));
 }
 
-static __forceinline__ __device__ float4 frandom_4d(RNGState& rng)
+static __forceinline__ __device__ float3 sampler_3d(SamplerState& state)
 {
-  return make_float4(frandom(rng), frandom(rng), frandom(rng), frandom(rng));
+  return make_float3(sample_1d(state), sample_1d(state), sample_1d(state));
+}
+
+static __forceinline__ __device__ float4 sample_4d(SamplerState& state)
+{
+  return make_float4(sample_1d(state), sample_1d(state), sample_1d(state),
+                     sample_1d(state));
 }
 
 static __forceinline__ __device__ float3
