@@ -303,7 +303,7 @@ extern "C" __global__ void __raygen__rg()
   for (int spp = 0; spp < params.n_samples; ++spp) {
     payload.sobol.index = image_idx + n_spp * params.width * params.height;
     payload.sobol.dimension = 1;
-    payload.sobol.scramble = params.seed;
+    payload.sobol.seed = params.seed;
 
     // generate initial ray from camera
     float2 uv =
