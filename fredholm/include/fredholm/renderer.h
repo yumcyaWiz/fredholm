@@ -567,7 +567,6 @@ class Renderer
         for (int k = 0; k < 10; ++k) { pcg32_random_r(&rng_states[idx]); }
       }
     }
-
     m_d_rng_states = std::make_unique<cwl::CUDABuffer<RNGState>>(rng_states);
   }
 
@@ -579,6 +578,7 @@ class Renderer
     params.render_layer = render_layer;
     params.sample_count = m_d_sample_count->get_device_ptr();
     params.rng_states = m_d_rng_states->get_device_ptr();
+    params.seed = 1;
 
     params.width = m_width;
     params.height = m_height;

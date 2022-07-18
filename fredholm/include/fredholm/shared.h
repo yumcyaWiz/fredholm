@@ -118,6 +118,7 @@ struct LaunchParams {
   RenderLayer render_layer;
   uint* sample_count;
   RNGState* rng_states;
+  uint seed;
 
   uint width;
   uint height;
