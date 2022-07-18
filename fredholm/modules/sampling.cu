@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fredholm/shared.h"
+#include "sobol.cu"
 #include "sutil/vec_math.h"
 
 using namespace fredholm;
@@ -12,7 +13,7 @@ static __forceinline__ __device__ float funiform(PCGState& state)
 
 static __forceinline__ __device__ float sample_1d(SamplerState& state)
 {
-  return funiform(state.pcg_state);
+  return fsobol_owen(state.sobol_state);
 }
 
 static __forceinline__ __device__ float2 sample_2d(SamplerState& state)

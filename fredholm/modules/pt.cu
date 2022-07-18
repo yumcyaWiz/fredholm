@@ -4,7 +4,6 @@
 #include "fredholm/shared.h"
 #include "math.cu"
 #include "sampling.cu"
-#include "sobol.cu"
 #include "sutil/vec_math.h"
 
 #define RAY_EPS 0.001f
