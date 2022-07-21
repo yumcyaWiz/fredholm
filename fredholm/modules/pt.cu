@@ -145,13 +145,15 @@ static __forceinline__ __device__ void fill_surface_info(
     uint prim_idx, SurfaceInfo& info)
 {
   info.t = ray_tmax;
-  info.x = ray_origin + ray_tmax * ray_direction;
   info.barycentric = barycentric;
 
   const uint3 idx = indices[prim_idx];
   const float3 v0 = vertices[idx.x];
   const float3 v1 = vertices[idx.y];
   const float3 v2 = vertices[idx.z];
+  // surface based robust hit position, Ray Tracing Gems Chapter 6
+  info.x = (1.0f - info.barycentric.x - info.barycentric.y) * v0 +
+           info.barycentric.x * v1 + info.barycentric.y * v2;
   info.n_g = normalize(cross(v1 - v0, v2 - v0));
 
   const float3 n0 = normals[idx.x];
