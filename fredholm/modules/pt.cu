@@ -306,6 +306,23 @@ static __forceinline__ __device__ void init_sampler_state(
   state.sobol_state.seed = hash(params.seed);
 }
 
+// Ray Tracing Gems Chapter 6
+static __forceinline__ __device__ float3 ray_origin_offset(const float3& p,
+                                                           const float3& n)
+{
+  constexpr float origin = 1.0f / 32.0f;
+  constexpr float float_scale = 1.0f / 65536.0f;
+  constexpr float int_scale = 256.0f;
+  const int3 of_i = make_int3(int_scale * n);
+  const float3 p_i = make_float3(
+      __int_as_float(__float_as_int(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
+      __int_as_float(__float_as_int(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
+      __int_as_float(__float_as_int(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
+  return make_float3(fabsf(p.x) < origin ? p.x + float_scale * n.x : p_i.x,
+                     fabsf(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
+                     fabsf(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
+}
+
 extern "C" __global__ void __raygen__rg()
 {
   const uint3 idx = optixGetLaunchIndex();
@@ -647,9 +664,11 @@ extern "C" __global__ void __closesthit__radiance()
 
   // light sampling
   {
+    const float3 shadow_ray_origin =
+        ray_origin_offset(surf_info.x, surf_info.n_g);
+
     // directional light
     if (params.directional_light) {
-      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           normalize(params.directional_light->dir);
 
@@ -676,7 +695,6 @@ extern "C" __global__ void __closesthit__radiance()
       // TODO: implement IBL importance sampling
       const float3 wi =
           sample_cosine_weighted_hemisphere(sample_2d(payload->sampler));
-      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           local_to_world(wi, tangent, normal, bitangent);
 
@@ -697,7 +715,6 @@ extern "C" __global__ void __closesthit__radiance()
     } else {
       const float3 wi =
           sample_cosine_weighted_hemisphere(sample_2d(payload->sampler));
-      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction =
           local_to_world(wi, tangent, normal, bitangent);
 
@@ -725,7 +742,6 @@ extern "C" __global__ void __closesthit__radiance()
           sample_1d(payload->sampler), sample_2d(payload->sampler),
           sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
 
-      const float3 shadow_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
       const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
       const float r = length(p - shadow_ray_origin);
 
@@ -755,7 +771,8 @@ extern "C" __global__ void __closesthit__radiance()
     const float3 wi = bsdf.sample(wo, sample_4d(payload->sampler),
                                   sample_2d(payload->sampler), f, pdf);
 
-    const float3 light_ray_origin = surf_info.x + RAY_EPS * surf_info.n_g;
+    const float3 light_ray_origin =
+        ray_origin_offset(surf_info.x, surf_info.n_g);
     const float3 light_ray_direction =
         local_to_world(wi, tangent, normal, bitangent);
 
@@ -793,16 +810,10 @@ extern "C" __global__ void __closesthit__radiance()
     payload->throughput *= f * abs_cos_theta(wi) / pdf;
 
     // advance ray
-    payload->origin = surf_info.x;
-    payload->direction = wi_world;
-
-    // adjust ray origin to prevent self-intersection
     const bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
-    if (is_transmitted) {
-      payload->origin -= RAY_EPS * surf_info.n_g;
-    } else {
-      payload->origin += RAY_EPS * surf_info.n_g;
-    }
+    payload->origin = ray_origin_offset(
+        surf_info.x, is_transmitted ? -surf_info.n_g : surf_info.n_g);
+    payload->direction = wi_world;
   }
 }
 
