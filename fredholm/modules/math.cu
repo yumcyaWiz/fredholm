@@ -2,15 +2,18 @@
 
 #include "sutil/vec_math.h"
 
-static __forceinline__ __device__ void orthonormal_basis(const float3& n,
-                                                         float3& t, float3& b)
+// Duff, T., Burgess, J., Christensen, P., Hery, C., Kensler, A., Liani, M., &
+// Villemin, R. (2017). Building an orthonormal basis, revisited. JCGT, 6(1).
+static __forceinline__ __device__ void orthonormal_basis(const float3& normal,
+                                                         float3& tangent,
+                                                         float3& bitangent)
 {
-  if (abs(n.y) < 0.9f) {
-    t = normalize(cross(n, make_float3(0, 1, 0)));
-  } else {
-    t = normalize(cross(n, make_float3(0, 0, -1)));
-  }
-  b = normalize(cross(t, n));
+  float sign = copysignf(1.0f, normal.z);
+  const float a = -1.0f / (sign + normal.z);
+  const float b = normal.x * normal.y * a;
+  tangent = make_float3(1.0f + sign * normal.x * normal.x * a, sign * b,
+                        -sign * normal.x);
+  bitangent = make_float3(b, sign + normal.y * normal.y * a, -normal.y);
 }
 
 static __forceinline__ __device__ float3 world_to_local(const float3& v,
