@@ -39,10 +39,22 @@ static __forceinline__ __device__ float2 sample_uniform_disk(const float2& u)
   return make_float2(r * cosf(theta), r * sinf(theta));
 }
 
+static __forceinline__ __device__ float2 sample_concentric_disk(const float2& u)
+{
+  const float2 u0 = 2.0f * u - 1.0f;
+  if (u0.x == 0.0f && u0.y == 0.0f) return make_float2(0.0f);
+
+  const float r = fabsf(u0.x) > fabsf(u0.y) ? u0.x : u0.y;
+  const float theta = fabsf(u0.x) > fabsf(u0.y)
+                          ? 0.25f * M_PIf * u0.y / u0.x
+                          : 0.5f * M_PIf - 0.25f * M_PIf * u0.x / u0.y;
+  return make_float2(r * cosf(theta), r * sinf(theta));
+}
+
 static __forceinline__ __device__ float3
 sample_cosine_weighted_hemisphere(const float2& u)
 {
-  const float2 p_disk = sample_uniform_disk(u);
+  const float2 p_disk = sample_concentric_disk(u);
 
   float3 p;
   p.x = p_disk.x;
