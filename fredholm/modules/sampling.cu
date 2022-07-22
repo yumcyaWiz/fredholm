@@ -32,16 +32,21 @@ static __forceinline__ __device__ float4 sample_4d(SamplerState& state)
                      sample_1d(state));
 }
 
+static __forceinline__ __device__ float2 sample_uniform_disk(const float2& u)
+{
+  const float r = sqrtf(u.x);
+  const float theta = 2.0f * M_PIf * u.y;
+  return make_float2(r * cosf(theta), r * sinf(theta));
+}
+
 static __forceinline__ __device__ float3
 sample_cosine_weighted_hemisphere(const float2& u)
 {
-  // Uniformly sample disk.
-  const float r = sqrtf(u.x);
-  const float phi = 2.0f * M_PIf * u.y;
+  const float2 p_disk = sample_uniform_disk(u);
 
   float3 p;
-  p.x = r * cosf(phi);
-  p.z = r * sinf(phi);
+  p.x = p_disk.x;
+  p.z = p_disk.y;
   // Project up to hemisphere.
   p.y = sqrtf(fmaxf(0.0f, 1.0f - p.x * p.x - p.z * p.z));
 
