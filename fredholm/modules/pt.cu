@@ -6,8 +6,6 @@
 #include "sampling.cu"
 #include "sutil/vec_math.h"
 
-#define RAY_EPS 0.001f
-
 using namespace fredholm;
 
 extern "C" {
@@ -99,7 +97,7 @@ static __forceinline__ __device__ void trace_shadow(
   unsigned int u0, u1;
   pack_ptr(payload_ptr, u0, u1);
   optixTrace(handle, ray_origin, ray_direction, tmin, tmax, 0.0f,
-             OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE,
+             OptixVisibilityMask(1), OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
              static_cast<unsigned int>(RayType::RAY_TYPE_SHADOW),
              static_cast<unsigned int>(RayType::RAY_TYPE_COUNT),
              static_cast<unsigned int>(RayType::RAY_TYPE_SHADOW), u0, u1);
