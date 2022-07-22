@@ -628,7 +628,7 @@ extern "C" __global__ void __closesthit__radiance()
          v);
     tangent = normalize(surf_info.tangent + dfdu * surf_info.n_s);
     bitangent = normalize(surf_info.bitangent + dfdv * surf_info.n_s);
-    normal = normalize(cross(bitangent, tangent));
+    normal = normalize(cross(tangent, bitangent));
   }
 
   // normal mapping
