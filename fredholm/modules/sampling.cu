@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cmj.cu"
 #include "fredholm/shared.h"
 #include "sobol.cu"
 #include "sutil/vec_math.h"
@@ -18,18 +19,23 @@ static __forceinline__ __device__ float sample_1d(SamplerState& state)
 
 static __forceinline__ __device__ float2 sample_2d(SamplerState& state)
 {
-  return make_float2(sample_1d(state), sample_1d(state));
+  return cmj_2d(state.cmj_state);
 }
 
 static __forceinline__ __device__ float3 sampler_3d(SamplerState& state)
 {
-  return make_float3(sample_1d(state), sample_1d(state), sample_1d(state));
+  // return make_float3(fsobol_owen(state.sobol_state),
+  //                    fsobol_owen(state.sobol_state),
+  //                    fsobol_owen(state.sobol_state));
+  return make_float3(cmj_2d(state.cmj_state), cmj_1d(state.cmj_state));
 }
 
 static __forceinline__ __device__ float4 sample_4d(SamplerState& state)
 {
-  return make_float4(sample_1d(state), sample_1d(state), sample_1d(state),
-                     sample_1d(state));
+  // return make_float4(
+  //     fsobol_owen(state.sobol_state), fsobol_owen(state.sobol_state),
+  //     fsobol_owen(state.sobol_state), fsobol_owen(state.sobol_state));
+  return make_float4(cmj_2d(state.cmj_state), cmj_2d(state.cmj_state));
 }
 
 static __forceinline__ __device__ float2 sample_uniform_disk(const float2& u)

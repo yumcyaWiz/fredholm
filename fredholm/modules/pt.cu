@@ -281,27 +281,21 @@ static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
   return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
-static __forceinline__ __device__ unsigned int hash(unsigned int x)
-{
-  // finalizer from murmurhash3
-  x ^= x >> 16;
-  x *= 0x85ebca6bu;
-  x ^= x >> 13;
-  x *= 0xc2b2ae35u;
-  x ^= x >> 16;
-  return x;
-}
-
 static __forceinline__ __device__ void init_sampler_state(
     unsigned int image_idx, unsigned int n_spp, SamplerState& state)
 {
   state.pcg_state.state =
-      hash(image_idx + n_spp * params.width * params.height);
-  state.pcg_state.inc = hash(params.seed);
+      xxhash32(image_idx + n_spp * params.width * params.height);
+  state.pcg_state.inc = xxhash32(params.seed);
 
   state.sobol_state.index = image_idx + n_spp * params.width * params.height;
   state.sobol_state.dimension = 1;
-  state.sobol_state.seed = hash(params.seed);
+  state.sobol_state.seed = xxhash32(params.seed);
+
+  state.cmj_state.image_idx = image_idx;
+  state.cmj_state.depth = 0;
+  state.cmj_state.n_spp = n_spp;
+  state.cmj_state.scramble = xxhash32(params.seed);
 }
 
 // Ray Tracing Gems Chapter 6
@@ -335,9 +329,9 @@ extern "C" __global__ void __raygen__rg()
   float2 texcoord = make_float2(params.render_layer.texcoord[image_idx]);
   float3 albedo = make_float3(params.render_layer.albedo[image_idx]);
 
-  // set RNG state
   RadiancePayload payload;
   for (int spp = 0; spp < params.n_samples; ++spp) {
+    // initialize sampler
     init_sampler_state(image_idx, n_spp, payload.sampler);
 
     // generate initial ray from camera
