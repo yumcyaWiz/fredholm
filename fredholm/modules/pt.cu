@@ -335,9 +335,9 @@ extern "C" __global__ void __raygen__rg()
     init_sampler_state(image_idx, n_spp, payload.sampler);
 
     // generate initial ray from camera
-    float2 uv = make_float2(
-        (2.0f * (idx.x + sample_1d(payload.sampler)) - dim.x) / dim.y,
-        (2.0f * (idx.y + sample_1d(payload.sampler)) - dim.y) / dim.y);
+    const float2 u = sample_2d(payload.sampler);
+    float2 uv = make_float2((2.0f * (idx.x + u.x) - dim.x) / dim.y,
+                            (2.0f * (idx.y + u.y) - dim.y) / dim.y);
     // flip x
     uv.x = -uv.x;
     float camera_pdf;
