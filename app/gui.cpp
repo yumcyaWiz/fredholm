@@ -202,8 +202,13 @@ int main()
             controller.update_directional_light();
             controller.clear_render();
           }
-          if (ImGui::InputFloat3("Directional Light direction",
+          if (ImGui::InputFloat3("Directional light direction",
                                  controller.m_imgui_directional_light_dir)) {
+            controller.update_directional_light();
+            controller.clear_render();
+          }
+          if (ImGui::InputFloat("Directional light angle",
+                                &controller.m_imgui_directional_light_angle)) {
             controller.update_directional_light();
             controller.clear_render();
           }

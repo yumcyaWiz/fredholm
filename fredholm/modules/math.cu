@@ -49,6 +49,11 @@ static __forceinline__ __device__ bool isinf(const float3& v)
   return isinf(v.x) || isinf(v.y) || isinf(v.z);
 }
 
+static __forceinline__ __device__ float deg_to_rad(float deg)
+{
+  return deg * M_PIf / 180.0f;
+}
+
 // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
 static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
 {

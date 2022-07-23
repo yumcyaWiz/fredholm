@@ -261,6 +261,26 @@ sample_position_on_light(const float u, const float2& v, const float3* vertices,
   return p;
 }
 
+static __forceinline__ __device__ float3
+sample_position_on_directional_light(const float2& u)
+{
+  constexpr float DIRECTIONAL_LIGHT_DISTANCE = 1e9f;
+
+  // sample point on disk
+  const float2 p_disk = sample_concentric_disk(u);
+
+  // compute world space position
+  const float disk_radius =
+      DIRECTIONAL_LIGHT_DISTANCE *
+      tanf(deg_to_rad(0.5f * params.directional_light->angle));
+  float3 t, b;
+  orthonormal_basis(params.directional_light->dir, t, b);
+  const float3 p = DIRECTIONAL_LIGHT_DISTANCE * params.directional_light->dir +
+                   disk_radius * (t * p_disk.x + b * p_disk.y);
+
+  return p;
+}
+
 static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
 {
   const float2 thphi = cartesian_to_spherical(v);
@@ -661,8 +681,9 @@ extern "C" __global__ void __closesthit__radiance()
 
     // directional light
     if (params.directional_light) {
-      const float3 shadow_ray_direction =
-          normalize(params.directional_light->dir);
+      const float3 shadow_ray_direction = normalize(
+          sample_position_on_directional_light(sample_2d(payload->sampler)) -
+          shadow_ray_origin);
 
       ShadowPayload shadow_payload;
       trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,

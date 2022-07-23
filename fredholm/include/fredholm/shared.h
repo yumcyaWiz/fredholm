@@ -85,8 +85,9 @@ struct AreaLight {
 };
 
 struct DirectionalLight {
-  float3 le;   // emission
-  float3 dir;  // direction
+  float3 le;        // emission
+  float3 dir;       // direction
+  float angle = 0;  // angle size
 };
 
 struct SurfaceInfo {

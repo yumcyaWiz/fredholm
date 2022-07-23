@@ -70,6 +70,7 @@ class Controller
 
   float m_imgui_directional_light_le[3] = {0, 0, 0};
   float m_imgui_directional_light_dir[3] = {0, 1, 0};
+  float m_imgui_directional_light_angle = 0.0f;
 
   SkyType m_imgui_sky_type = SkyType::CONSTANT;
   float m_imgui_bg_color[3] = {0, 0, 0};
@@ -201,7 +202,8 @@ class Controller
                     m_imgui_directional_light_le[2]),
         make_float3(m_imgui_directional_light_dir[0],
                     m_imgui_directional_light_dir[1],
-                    m_imgui_directional_light_dir[2]));
+                    m_imgui_directional_light_dir[2]),
+        m_imgui_directional_light_angle);
   }
 
   void update_sky_type()

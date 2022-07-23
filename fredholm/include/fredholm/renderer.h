@@ -524,11 +524,12 @@ class Renderer
         ibl.m_width, ibl.m_height, ibl.m_data.data());
   }
 
-  void set_directional_light(const float3& le, const float3& dir)
+  void set_directional_light(const float3& le, const float3& dir, float angle)
   {
     DirectionalLight light;
     light.le = le;
     light.dir = dir;
+    light.angle = angle;
 
     m_d_directional_light =
         std::make_unique<cwl::DeviceObject<DirectionalLight>>(light);
