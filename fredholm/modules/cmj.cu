@@ -72,7 +72,8 @@ static __forceinline__ __device__ float2 cmj_2d(CMJState& state)
 {
   const unsigned int index = state.n_spp % (CMJ_M * CMJ_N);
   const unsigned int scramble =
-      xxhash32(make_uint3(state.image_idx, state.depth, state.scramble));
+      xxhash32(make_uint4(state.n_spp / (CMJ_M * CMJ_N), state.image_idx,
+                          state.depth, state.scramble));
   const float2 result = cmj(index, scramble);
   state.depth++;
   return result;
