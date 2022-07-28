@@ -68,3 +68,21 @@ static __forceinline__ __device__ float2 cartesian_to_spherical(const float3& w)
   if (ret.y < 0) ret.y += 2.0f * M_PIf;
   return ret;
 }
+
+template <typename T>
+static __forceinline__ __device__ int binary_search(T* values, int size,
+                                                    float value)
+{
+  int idx_min = 0;
+  int idx_max = size - 1;
+  while (idx_max > idx_min) {
+    const int mid_idx = idx_min + (idx_max - idx_min) / 2;
+    const T mid = values[mid_idx];
+    if (value < mid) {
+      idx_max = mid_idx - 1;
+    } else {
+      idx_min = mid_idx + 1;
+    }
+  }
+  return idx_min;
+}
