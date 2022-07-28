@@ -5,6 +5,8 @@
 #include "sobol.cu"
 #include "sutil/vec_math.h"
 
+#define DISCRETE_DISTRIBUTION_1D_MAX_SIZE 16
+
 using namespace fredholm;
 
 static __forceinline__ __device__ float funiform(PCGState& state)
@@ -102,3 +104,26 @@ static __device__ float3 sample_vndf(const float3& wo, const float2& alpha,
 
   return Ne;
 }
+
+struct DiscreteDistribution1D {
+  float m_cdf[DISCRETE_DISTRIBUTION_1D_MAX_SIZE + 1];
+  float m_size;
+
+  __device__ DiscreteDistribution1D(float* values, int size) : m_size(size)
+  {
+    float sum = 0.0f;
+    for (int i = 0; i < size; ++i) { sum += values[i]; }
+
+    // compute cdf
+    m_cdf[0] = 0.0f;
+    for (int i = 1; i < size + 1; ++i) {
+      m_cdf[i] = m_cdf[i - 1] + values[i - 1] / sum;
+    }
+  }
+
+  int sample(float u, float& pmf) const
+  {
+    // TODO: impl
+    return 0;
+  }
+};
