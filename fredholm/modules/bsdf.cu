@@ -21,18 +21,24 @@ class BSDF
     // compute directional albedo
     const float clearcoat_F0 = compute_F0(m_ni, m_nt);
     m_coat_directional_albedo =
-        compute_directional_albedo(wo, m_params.coat_roughness, clearcoat_F0);
+        m_is_entering ? compute_directional_albedo(wo, m_params.coat_roughness,
+                                                   clearcoat_F0)
+                      : 0.0f;
     m_coat_absorption_color =
         lerp(make_float3(1.0f),
              m_params.coat_color * (1.0f - m_coat_directional_albedo),
              m_params.coat);
 
     const float specular_F0 = compute_F0(m_ni, m_nt);
+    // m_specular_directional_albedo =
+    //     m_eta >= 1.0f ? compute_directional_albedo(
+    //                         wo, m_params.specular_roughness, specular_F0)
+    //                   : compute_directional_albedo2(
+    //                         wo, m_params.specular_roughness, m_eta);
     m_specular_directional_albedo =
         m_eta >= 1.0f ? compute_directional_albedo(
                             wo, m_params.specular_roughness, specular_F0)
-                      : compute_directional_albedo2(
-                            wo, m_params.specular_roughness, m_eta);
+                      : 0.0f;
 
     // compute weights of each BxDF
     // coat, metal, specular, transmission, diffuse
