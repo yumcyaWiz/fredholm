@@ -128,4 +128,9 @@ struct DiscreteDistribution1D {
     pmf = m_cdf[idx] - m_cdf[idx - 1];
     return idx - 1;
   }
+
+  __device__ float eval_pmf(int idx) const
+  {
+    return m_cdf[idx + 1] - m_cdf[idx];
+  }
 };
