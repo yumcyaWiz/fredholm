@@ -136,14 +136,14 @@ int main()
       ImGui::Begin("UI");
       {
         {
-          if (ImGui::Combo(
-                  "Scene", &controller.m_imgui_scene_id,
-                  "CornellBox\0Sponza\0Salle de "
-                  "bain\0Sibenik\0San "
-                  "Miguel\0Rungholt\0Vokselia\0BMW\0Specular "
-                  "Test\0Metal Test\0Coat Test\0Transmission "
-                  "Test\0Texture Test\0Normal Map Test\0Specular White Furnace "
-                  "Test\0Coat White Furnace Test\0\0")) {
+          if (ImGui::Combo("Scene", &controller.m_imgui_scene_id,
+                           "CornellBox\0Sponza\0Salle de "
+                           "bain\0Sibenik\0San "
+                           "Miguel\0Rungholt\0Vokselia\0BMW\0Specular "
+                           "Test\0Metal Test\0Coat Test\0Transmission "
+                           "Test\0Specular Transmission Test\0Texture "
+                           "Test\0Normal Map Test\0Specular White Furnace "
+                           "Test\0Coat White Furnace Test\0\0")) {
             controller.load_scene();
           }
 
