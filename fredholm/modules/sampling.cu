@@ -136,5 +136,5 @@ struct DiscreteDistribution1D {
   }
 
   float m_cdf[DISCRETE_DISTRIBUTION_1D_MAX_SIZE + 1];
-  float m_size;
+  int m_size;
 };
