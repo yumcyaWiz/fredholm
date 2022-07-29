@@ -781,7 +781,7 @@ extern "C" __global__ void __closesthit__radiance()
   {
     float3 f;
     float pdf;
-    const float3 wi = bsdf.sample(wo, sample_4d(payload->sampler),
+    const float3 wi = bsdf.sample(wo, sample_1d(payload->sampler),
                                   sample_2d(payload->sampler), f, pdf);
 
     const float3 light_ray_origin =
@@ -815,7 +815,7 @@ extern "C" __global__ void __closesthit__radiance()
   {
     float3 f;
     float pdf;
-    const float3 wi = bsdf.sample(wo, sample_4d(payload->sampler),
+    const float3 wi = bsdf.sample(wo, sample_1d(payload->sampler),
                                   sample_2d(payload->sampler), f, pdf);
     const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
 

@@ -2,6 +2,7 @@
 
 #include "cmj.cu"
 #include "fredholm/shared.h"
+#include "math.cu"
 #include "sobol.cu"
 #include "sutil/vec_math.h"
 
@@ -121,9 +122,10 @@ struct DiscreteDistribution1D {
     }
   }
 
-  int sample(float u, float& pmf) const
+  __device__ int sample(float u, float& pmf) const
   {
-    // TODO: impl
-    return 0;
+    int idx = max(binary_search(m_cdf, m_size + 1, u), 1);
+    pmf = m_cdf[idx] - m_cdf[idx - 1];
+    return idx - 1;
   }
 };
