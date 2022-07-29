@@ -75,8 +75,8 @@ static __forceinline__ __device__ int binary_search(T* values, int size,
 {
   int idx_min = 0;
   int idx_max = size - 1;
-  while (idx_max > idx_min) {
-    const int idx_mid = idx_min + (idx_max - idx_min) / 2;
+  while (idx_max >= idx_min) {
+    const int idx_mid = (idx_min + idx_max) / 2;
     const T mid = values[idx_mid];
     if (value < mid) {
       idx_max = idx_mid - 1;
@@ -86,5 +86,5 @@ static __forceinline__ __device__ int binary_search(T* values, int size,
       return idx_mid;
     }
   }
-  return idx_min;
+  return idx_max;
 }

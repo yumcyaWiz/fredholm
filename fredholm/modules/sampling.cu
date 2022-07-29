@@ -109,7 +109,7 @@ static __device__ float3 sample_vndf(const float3& wo, const float2& alpha,
 struct DiscreteDistribution1D {
   __device__ DiscreteDistribution1D() {}
 
-  __device__ void init(float* values, int size)
+  __device__ void init(const float* values, int size)
   {
     m_size = size;
 
@@ -125,9 +125,9 @@ struct DiscreteDistribution1D {
 
   __device__ int sample(float u, float& pmf) const
   {
-    int idx = max(binary_search(m_cdf, m_size + 1, u), 1);
-    pmf = m_cdf[idx] - m_cdf[idx - 1];
-    return idx - 1;
+    const int idx = binary_search(m_cdf, m_size + 1, u);
+    pmf = m_cdf[idx + 1] - m_cdf[idx];
+    return idx;
   }
 
   __device__ float eval_pmf(int idx) const

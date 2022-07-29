@@ -18,27 +18,6 @@ class BSDF
     m_nt = m_is_entering ? 1.5f : 1.0f;
     m_eta = m_nt / m_ni;
 
-    // init each BxDF
-    m_coat_brdf =
-        MicrofacetReflectionDielectric(m_eta, m_params.coat_roughness, 0.0f);
-
-    m_specular_brdf = MicrofacetReflectionDielectric(
-        m_eta, m_params.specular_roughness, 0.0f);
-
-    float3 n, k;
-    const float3 reflectivity =
-        clamp(m_params.base_color, make_float3(0), make_float3(0.99));
-    const float3 edge_tint =
-        clamp(m_params.specular_color, make_float3(0), make_float3(0.99));
-    artist_friendly_metallic_fresnel(reflectivity, edge_tint, n, k);
-    m_metal_brdf =
-        MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
-
-    m_transmission_btdf =
-        MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
-
-    m_diffuse_brdf = OrenNayer(m_params.base_color, 0.0f);
-
     // compute directional albedo
     const float clearcoat_F0 = compute_F0(m_ni, m_nt);
     m_coat_directional_albedo =
@@ -53,7 +32,7 @@ class BSDF
         m_eta >= 1.0f ? compute_directional_albedo(
                             wo, m_params.specular_roughness, specular_F0)
                       : compute_directional_albedo2(
-                            wo, m_params.specular_roughness, m_nt / m_ni);
+                            wo, m_params.specular_roughness, m_eta);
 
     // compute weights of each BxDF
     // coat, metal, specular, transmission, diffuse
@@ -75,6 +54,27 @@ class BSDF
 
     // init distribution for sampling BxDF
     m_dist.init(weights, 5);
+
+    // init each BxDF
+    m_coat_brdf =
+        MicrofacetReflectionDielectric(m_eta, m_params.coat_roughness, 0.0f);
+
+    m_specular_brdf = MicrofacetReflectionDielectric(
+        m_eta, m_params.specular_roughness, 0.0f);
+
+    float3 n, k;
+    const float3 reflectivity =
+        clamp(m_params.base_color, make_float3(0), make_float3(0.99));
+    const float3 edge_tint =
+        clamp(m_params.specular_color, make_float3(0), make_float3(0.99));
+    artist_friendly_metallic_fresnel(reflectivity, edge_tint, n, k);
+    m_metal_brdf =
+        MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
+
+    m_transmission_btdf =
+        MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
+
+    m_diffuse_brdf = OrenNayer(m_params.base_color, 0.0f);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -102,9 +102,7 @@ class BSDF
 
     // coat
     ret += m_params.coat * coat;
-    f_mult *= lerp(make_float3(1.0f),
-                   m_params.coat_color * (1.0f - m_coat_directional_albedo),
-                   m_params.coat);
+    f_mult *= m_coat_absorption_color;
 
     // metal
     ret += f_mult * m_params.metalness * metal;
