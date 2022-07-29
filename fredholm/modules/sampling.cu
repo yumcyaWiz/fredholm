@@ -107,11 +107,12 @@ static __device__ float3 sample_vndf(const float3& wo, const float2& alpha,
 }
 
 struct DiscreteDistribution1D {
-  float m_cdf[DISCRETE_DISTRIBUTION_1D_MAX_SIZE + 1];
-  float m_size;
+  __device__ DiscreteDistribution1D() {}
 
-  __device__ DiscreteDistribution1D(float* values, int size) : m_size(size)
+  __device__ void init(float* values, int size)
   {
+    m_size = size;
+
     float sum = 0.0f;
     for (int i = 0; i < size; ++i) { sum += values[i]; }
 
@@ -133,4 +134,7 @@ struct DiscreteDistribution1D {
   {
     return m_cdf[idx + 1] - m_cdf[idx];
   }
+
+  float m_cdf[DISCRETE_DISTRIBUTION_1D_MAX_SIZE + 1];
+  float m_size;
 };
