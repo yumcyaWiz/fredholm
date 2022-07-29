@@ -673,8 +673,7 @@ extern "C" __global__ void __closesthit__radiance()
 
   // init BSDF
   const float3 wo = world_to_local(-ray_direction, tangent, normal, bitangent);
-  BSDF bsdf = BSDF(shading_params, surf_info.is_entering);
-  bsdf.init(wo);
+  const BSDF bsdf = BSDF(wo, shading_params, surf_info.is_entering);
 
   // light sampling
   {

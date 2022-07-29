@@ -8,13 +8,10 @@
 class BSDF
 {
  public:
-  __device__ BSDF(const ShadingParams& shading_params, bool is_entering)
+  __device__ BSDF(const float3& wo, const ShadingParams& shading_params,
+                  bool is_entering)
 
       : m_params(shading_params), m_is_entering(is_entering)
-  {
-  }
-
-  __device__ void init(const float3& wo)
   {
     // init IOR
     m_ni = m_is_entering ? 1.0f : 1.5f;
