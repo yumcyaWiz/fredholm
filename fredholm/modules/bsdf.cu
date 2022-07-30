@@ -33,7 +33,7 @@ class BSDF
     m_specular_directional_albedo =
         m_eta >= 1.0f ? compute_directional_albedo(
                             wo, m_params.specular_roughness, specular_F0)
-                      : compute_directional_albedo2(
+                      : compute_directional_albedo_reflection_ior1(
                             wo, m_params.specular_roughness, m_eta);
 
     m_sheen_directional_albedo =

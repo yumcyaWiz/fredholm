@@ -90,8 +90,8 @@ __constant__ float LUT_SCHLICK[] = {
     0.613799, 0.0217743,   0.616803, 0.0235416,   0.620872, 0.0263185,
     0.626059, 0.0318956};
 
-#define LUT_SCHLICK2_SIZE 16
-__constant__ float LUT_SCHLICK2[] = {
+#define REFLECTION_IOR1_LUT_SIZE 16
+__constant__ float REFLECTION_IOR1_LUT[] = {
     0.99996,     1,           1,           1,           1,
     1,           1,           1,           1,           1,
     1,           1,           1,           1,           1,
@@ -991,37 +991,38 @@ __forceinline__ __device__ float compute_directional_albedo(const float3& w,
   return F0 * RG.x + (1.0f - F0) * RG.y;
 }
 
-__forceinline__ __device__ float fetch_lut2_idx(int i, int j, int k)
+__forceinline__ __device__ float fetch_reflection_ior1_lut_idx(int i, int j,
+                                                               int k)
 {
-  i = clamp(i, 0, LUT_SCHLICK2_SIZE - 1);
-  j = clamp(j, 0, LUT_SCHLICK2_SIZE - 1);
-  k = clamp(k, 0, LUT_SCHLICK2_SIZE - 1);
-  const int idx =
-      i + LUT_SCHLICK2_SIZE * j + LUT_SCHLICK2_SIZE * LUT_SCHLICK2_SIZE * k;
-  return LUT_SCHLICK2[idx];
+  i = clamp(i, 0, REFLECTION_IOR1_LUT_SIZE - 1);
+  j = clamp(j, 0, REFLECTION_IOR1_LUT_SIZE - 1);
+  k = clamp(k, 0, REFLECTION_IOR1_LUT_SIZE - 1);
+  const int idx = i + REFLECTION_IOR1_LUT_SIZE * j +
+                  REFLECTION_IOR1_LUT_SIZE * REFLECTION_IOR1_LUT_SIZE * k;
+  return REFLECTION_IOR1_LUT[idx];
 }
 
-__forceinline__ __device__ float fetch_lut2(const float3& uv)
+__forceinline__ __device__ float fetch_reflection_ior1_lut(const float3& uv)
 {
-  const int i = clamp(static_cast<int>(uv.x * LUT_SCHLICK2_SIZE), 0,
-                      LUT_SCHLICK2_SIZE - 1);
-  const int j = clamp(static_cast<int>(uv.y * LUT_SCHLICK2_SIZE), 0,
-                      LUT_SCHLICK2_SIZE - 1);
-  const int k = clamp(static_cast<int>(uv.z * LUT_SCHLICK2_SIZE), 0,
-                      LUT_SCHLICK2_SIZE - 1);
+  const int i = clamp(static_cast<int>(uv.x * REFLECTION_IOR1_LUT_SIZE), 0,
+                      REFLECTION_IOR1_LUT_SIZE - 1);
+  const int j = clamp(static_cast<int>(uv.y * REFLECTION_IOR1_LUT_SIZE), 0,
+                      REFLECTION_IOR1_LUT_SIZE - 1);
+  const int k = clamp(static_cast<int>(uv.z * REFLECTION_IOR1_LUT_SIZE), 0,
+                      REFLECTION_IOR1_LUT_SIZE - 1);
 
-  const float hx = uv.x * LUT_SCHLICK2_SIZE - i;
-  const float hy = uv.y * LUT_SCHLICK2_SIZE - j;
-  const float hz = uv.z * LUT_SCHLICK2_SIZE - k;
+  const float hx = uv.x * REFLECTION_IOR1_LUT_SIZE - i;
+  const float hy = uv.y * REFLECTION_IOR1_LUT_SIZE - j;
+  const float hz = uv.z * REFLECTION_IOR1_LUT_SIZE - k;
 
-  const float t000 = fetch_lut2_idx(i, j, k);
-  const float t100 = fetch_lut2_idx(i + 1, j, k);
-  const float t010 = fetch_lut2_idx(i, j + 1, k);
-  const float t110 = fetch_lut2_idx(i + 1, j + 1, k);
-  const float t001 = fetch_lut2_idx(i, j, k + 1);
-  const float t101 = fetch_lut2_idx(i + 1, j, k + 1);
-  const float t011 = fetch_lut2_idx(i, j + 1, k + 1);
-  const float t111 = fetch_lut2_idx(i + 1, j + 1, k + 1);
+  const float t000 = fetch_reflection_ior1_lut_idx(i, j, k);
+  const float t100 = fetch_reflection_ior1_lut_idx(i + 1, j, k);
+  const float t010 = fetch_reflection_ior1_lut_idx(i, j + 1, k);
+  const float t110 = fetch_reflection_ior1_lut_idx(i + 1, j + 1, k);
+  const float t001 = fetch_reflection_ior1_lut_idx(i, j, k + 1);
+  const float t101 = fetch_reflection_ior1_lut_idx(i + 1, j, k + 1);
+  const float t011 = fetch_reflection_ior1_lut_idx(i, j + 1, k + 1);
+  const float t111 = fetch_reflection_ior1_lut_idx(i + 1, j + 1, k + 1);
 
   const float t00 = t000 * (1.0f - hx) + t100 * hx;
   const float t01 = t001 * (1.0f - hx) + t101 * hx;
@@ -1034,14 +1035,13 @@ __forceinline__ __device__ float fetch_lut2(const float3& uv)
   return t0 * (1.0f - hz) + t1 * hz;
 }
 
-__forceinline__ __device__ float compute_directional_albedo2(const float3& w,
-                                                             float roughness,
-                                                             float eta)
+__forceinline__ __device__ float compute_directional_albedo_reflection_ior1(
+    const float3& w, float roughness, float eta)
 {
   const float u = fabs(w.y);
   const float v = clamp(roughness, 0.0f, 1.0f);
   const float z = clamp(eta, 0.0f, 1.0f);
-  return fetch_lut2(make_float3(u, v, z));
+  return fetch_reflection_ior1_lut(make_float3(u, v, z));
 }
 
 __forceinline__ __device__ float fetch_sheen_lut_idx(int i, int j)
