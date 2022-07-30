@@ -173,6 +173,7 @@ struct LaunchParams {
 
   float3 bg_color;
   cudaTextureObject_t ibl;
+  float3 sun_direction;
   ArHosekSkyModelState* arhosek;
 
   OptixTraversableHandle ias_handle;

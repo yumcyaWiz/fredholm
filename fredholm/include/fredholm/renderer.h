@@ -537,6 +537,8 @@ class Renderer
     light.dir = dir;
     light.angle = angle;
 
+    m_d_sun_direction = dir;
+
     m_d_directional_light =
         std::make_unique<cwl::DeviceObject<DirectionalLight>>(light);
   }
@@ -546,9 +548,19 @@ class Renderer
     if (m_d_ibl) { m_d_ibl.reset(); }
   }
 
-  void load_arhosek_sky(float turbidity, float albedo, float elevation)
+  void load_arhosek_sky(float turbidity, float albedo)
   {
     spdlog::info("[Renderer] init Arhosek sky");
+
+    const auto cartesian_to_spherical = [](const float3& w) {
+      float2 ret;
+      ret.x = acosf(clamp(w.y, -1.0f, 1.0f));
+      ret.y = atan2f(w.z, w.x);
+      if (ret.y < 0) ret.y += 2.0f * M_PIf;
+      return ret;
+    };
+    float elevation = cartesian_to_spherical(m_d_sun_direction).x;
+    elevation = 0.5f * M_PI - elevation;
 
     ArHosekSkyModelState state =
         arhosek_rgb_skymodelstate_alloc_init(turbidity, albedo, elevation);
@@ -604,11 +616,14 @@ class Renderer
     }
 
     params.bg_color = bg_color;
+
     if (m_d_ibl) {
       params.ibl = m_d_ibl->get_texture_object();
     } else {
       params.ibl = 0;
     }
+
+    params.sun_direction = m_d_sun_direction;
     if (m_d_arhosek) {
       params.arhosek = m_d_arhosek->get_device_ptr();
     } else {
@@ -714,6 +729,7 @@ class Renderer
   // LaunchParams data on device
   std::unique_ptr<cwl::DeviceObject<DirectionalLight>> m_d_directional_light;
   std::unique_ptr<cwl::CUDATexture<float4>> m_d_ibl;
+  float3 m_d_sun_direction = make_float3(0.0f, 1.0f, 0.0f);
   std::unique_ptr<cwl::DeviceObject<ArHosekSkyModelState>> m_d_arhosek;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
 
