@@ -18,28 +18,41 @@ class BSDF
     m_nt = m_is_entering ? 1.5f : 1.0f;
     m_eta = m_nt / m_ni;
 
-    // compute directional albedo
-    const float clearcoat_F0 = compute_F0(m_ni, m_nt);
-    m_coat_directional_albedo =
-        m_is_entering ? compute_directional_albedo_reflection(
-                            wo, m_params.coat_roughness, clearcoat_F0)
-                      : 0.0f;
+    // compute luminance
+    m_coat_color_luminance = rgb_to_luminance(m_params.coat_color);
+    m_specular_color_luminance = rgb_to_luminance(m_params.specular_color);
+    m_sheen_color_luminance = rgb_to_luminance(m_params.sheen_color);
+
+    // compute coat absorption color
     m_coat_absorption_color =
         lerp(make_float3(1.0f),
              m_params.coat_color * (1.0f - m_coat_directional_albedo),
              m_params.coat);
 
-    const float specular_F0 = compute_F0(m_ni, m_nt);
-    m_specular_directional_albedo =
-        m_eta >= 1.0f ? compute_directional_albedo_reflection(
-                            wo, m_params.specular_roughness, specular_F0)
-                      : compute_directional_albedo_reflection_ior1(
-                            wo, m_params.specular_roughness, m_eta);
+    // compute directional albedo
+    const float clearcoat_F0 = compute_F0(m_ni, m_nt);
+    if (m_params.coat * m_coat_color_luminance > 0.0f) {
+      m_coat_directional_albedo =
+          m_is_entering ? compute_directional_albedo_reflection(
+                              wo, m_params.coat_roughness, clearcoat_F0)
+                        : 0.0f;
+    }
 
-    m_sheen_directional_albedo =
-        m_is_entering
-            ? compute_directional_albedo_sheen(wo, m_params.sheen_roughness)
-            : 0.0f;
+    if (m_params.specular * m_specular_color_luminance > 0.0f) {
+      const float specular_F0 = compute_F0(m_ni, m_nt);
+      m_specular_directional_albedo =
+          m_eta >= 1.0f ? compute_directional_albedo_reflection(
+                              wo, m_params.specular_roughness, specular_F0)
+                        : compute_directional_albedo_reflection_ior1(
+                              wo, m_params.specular_roughness, m_eta);
+    }
+
+    if (m_params.sheen * m_sheen_color_luminance) {
+      m_sheen_directional_albedo =
+          m_is_entering
+              ? compute_directional_albedo_sheen(wo, m_params.sheen_roughness)
+              : 0.0f;
+    }
 
     // compute weights of each BxDF
     // coat, metal, specular, transmission, sheen, diffuse transmission, diffuse
@@ -292,10 +305,16 @@ class BSDF
   DiffuseTransmission m_diffuse_btdf;
   OrenNayer m_diffuse_brdf;
 
-  float m_coat_directional_albedo;
-  float3 m_coat_absorption_color;
-  float m_specular_directional_albedo;
-  float m_sheen_directional_albedo;
+  float3 m_coat_absorption_color = make_float3(1.0f);
+  float m_coat_color_luminance = 0.0f;
+  float m_coat_directional_albedo = 0.0f;
+
+  float m_specular_color_luminance = 0.0f;
+  float m_specular_directional_albedo = 0.0f;
+
+  float m_sheen_color_luminance = 0.0f;
+  float m_sheen_directional_albedo = 0.0f;
+
   DiscreteDistribution1D m_dist;
 
   static __device__ float compute_F0(float ior_i, float ior_t)
