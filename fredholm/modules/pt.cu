@@ -313,6 +313,16 @@ static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
       tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf), thphi.x / M_PIf));
 }
 
+static __forceinline__ __device__ float3 evaluate_arhosek_sky(const float3& v)
+{
+  const float2 thphi = cartesian_to_spherical(v);
+  const float gamma = acosf(dot(params.sun_direction, v));
+  return make_float3(
+      arhosek_tristim_skymodel_radiance(params.arhosek, thphi.x, gamma, 0),
+      arhosek_tristim_skymodel_radiance(params.arhosek, thphi.x, gamma, 1),
+      arhosek_tristim_skymodel_radiance(params.arhosek, thphi.x, gamma, 2));
+}
+
 // power heuristics
 static __forceinline__ __device__ float compute_mis_weight(float pdf0,
                                                            float pdf1)
