@@ -587,16 +587,17 @@ class MicrofacetSheen
   {
   }
 
-  __device__ float eval(const float3& wo, const float3& wi) const
+  __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
     const float f = m_fresnel.eval(fabs(dot(wo, wh)));
     const float d = D(wh);
     const float g = G2(wo, wi);
-    return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
+    return make_float3(0.25f * (f * d * g) /
+                       (abs_cos_theta(wo) * abs_cos_theta(wi)));
   }
 
-  __device__ float3 sample(const float3& wo, const float2& u, float& f,
+  __device__ float3 sample(const float3& wo, const float2& u, float3& f,
                            float& pdf) const
   {
     // sample half-vector

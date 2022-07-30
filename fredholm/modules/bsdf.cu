@@ -40,10 +40,15 @@ class BSDF
                             wo, m_params.specular_roughness, specular_F0)
                       : 0.0f;
 
+    m_sheen_directional_albedo =
+        m_is_entering
+            ? compute_directional_albedo_sheen(wo, m_params.sheen_roughness)
+            : 0.0f;
+
     // compute weights of each BxDF
-    // coat, metal, specular, transmission, diffuse transmission, diffuse
+    // coat, metal, specular, transmission, sheen, diffuse transmission, diffuse
     // reflection
-    float weights[6];
+    float weights[7];
     weights[0] = m_params.coat * m_coat_directional_albedo;
     weights[1] =
         (1.0f - m_params.coat * m_coat_directional_albedo) * m_params.metalness;
@@ -57,16 +62,22 @@ class BSDF
     weights[4] = (1.0f - m_params.coat * m_coat_directional_albedo) *
                  (1.0f - m_params.metalness) *
                  (1.0f - m_params.specular * m_specular_directional_albedo) *
-                 (1.0f - m_params.transmission) * m_params.subsurface *
-                 m_params.thin_walled;
+                 m_params.sheen * m_sheen_directional_albedo;
     weights[5] = (1.0f - m_params.coat * m_coat_directional_albedo) *
                  (1.0f - m_params.metalness) *
                  (1.0f - m_params.specular * m_specular_directional_albedo) *
-                 (1.0f - m_params.transmission) * (1.0f - m_params.subsurface) *
-                 m_params.diffuse;
+                 (1.0f - m_params.transmission) *
+                 (1.0f - m_params.sheen * m_sheen_directional_albedo) *
+                 m_params.subsurface * m_params.thin_walled;
+    weights[6] = (1.0f - m_params.coat * m_coat_directional_albedo) *
+                 (1.0f - m_params.metalness) *
+                 (1.0f - m_params.specular * m_specular_directional_albedo) *
+                 (1.0f - m_params.transmission) *
+                 (1.0f - m_params.sheen * m_sheen_directional_albedo) *
+                 (1.0f - m_params.subsurface) * m_params.diffuse;
 
     // init distribution for sampling BxDF
-    m_dist.init(weights, 6);
+    m_dist.init(weights, 7);
 
     // init each BxDF
     m_coat_brdf =
@@ -86,6 +97,8 @@ class BSDF
 
     m_transmission_btdf =
         MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
+
+    m_sheen_brdf = MicrofacetSheen(m_params.sheen_roughness, 1.5f);
 
     m_diffuse_btdf =
         DiffuseTransmission(m_params.base_color, m_params.diffuse_roughness);
@@ -109,6 +122,9 @@ class BSDF
     transmission = (isinf(transmission) || isnan(transmission))
                        ? make_float3(0.0f)
                        : transmission;
+
+    float3 sheen = m_sheen_brdf.eval(wo, wi);
+    sheen = (isinf(sheen) || isnan(sheen)) ? make_float3(0.0f) : sheen;
 
     float3 diffuse_t = m_diffuse_btdf.eval(wo, wi);
     diffuse_t =
@@ -138,6 +154,9 @@ class BSDF
     ret += f_mult * m_params.transmission * m_params.transmission_color *
            transmission;
     f_mult *= (1.0f - m_params.transmission);
+
+    ret += f_mult * m_params.sheen * m_params.sheen_color * sheen;
+    f_mult *= (1.0f - m_params.sheen * m_sheen_directional_albedo);
 
     // diffuse transmission
     ret += f_mult * m_params.subsurface * m_params.subsurface_color *
@@ -190,25 +209,39 @@ class BSDF
         pdf *= bxdf_pdf;
         return wi;
       } break;
-      // diffuse transmission
+      // sheen
       case 4: {
+        const float3 wi = m_sheen_brdf.sample(wo, v, f, pdf);
+        f *= m_coat_absorption_color * (1.0f - m_params.metalness) *
+             (1.0f - m_params.specular * m_params.specular_color *
+                         m_specular_directional_albedo) *
+             (1.0f - m_params.transmission) * m_params.sheen *
+             m_params.sheen_color;
+        pdf *= bxdf_pdf;
+        return wi;
+      } break;
+      // diffuse transmission
+      case 5: {
         const float3 wi = m_diffuse_btdf.sample(wo, v, f, pdf);
         f *= m_coat_absorption_color * (1.0f - m_params.metalness) *
              (1.0f - m_params.specular * m_params.specular_color *
                          m_specular_directional_albedo) *
-             (1.0f - m_params.transmission) * m_params.subsurface *
-             m_params.subsurface_color * m_params.thin_walled;
+             (1.0f - m_params.transmission) *
+             (1.0f - m_params.sheen * m_sheen_directional_albedo) *
+             m_params.subsurface * m_params.subsurface_color *
+             m_params.thin_walled;
         pdf *= bxdf_pdf;
         return wi;
       } break;
       // diffuse reflection
-      case 5: {
+      case 6: {
         const float3 wi = m_diffuse_brdf.sample(wo, v, f, pdf);
         f *= m_coat_absorption_color * (1.0f - m_params.metalness) *
              (1.0f - m_params.specular * m_params.specular_color *
                          m_specular_directional_albedo) *
-             (1.0f - m_params.transmission) * (1.0f - m_params.subsurface) *
-             m_params.diffuse;
+             (1.0f - m_params.transmission) *
+             (1.0f - m_params.sheen * m_sheen_directional_albedo) *
+             (1.0f - m_params.subsurface) * m_params.diffuse;
         pdf *= bxdf_pdf;
         return wi;
       } break;
@@ -233,6 +266,9 @@ class BSDF
     transmission =
         (isinf(transmission) || isnan(transmission)) ? 0.0f : transmission;
 
+    float sheen = m_sheen_brdf.eval_pdf(wo, wi);
+    sheen = (isinf(sheen) || isnan(sheen)) ? 0.0f : sheen;
+
     float diffuse_t = m_diffuse_btdf.eval_pdf(wo, wi);
     diffuse_t = (isinf(diffuse_t) || isnan(diffuse_t)) ? 0.0f : diffuse_t;
 
@@ -241,7 +277,8 @@ class BSDF
 
     return m_dist.eval_pmf(0) * coat + m_dist.eval_pmf(1) * metal +
            m_dist.eval_pmf(2) * specular + m_dist.eval_pmf(3) * transmission +
-           m_dist.eval_pmf(4) * diffuse_t + m_dist.eval_pmf(5) * diffuse_r;
+           m_dist.eval_pmf(4) * sheen + m_dist.eval_pmf(5) * diffuse_t +
+           m_dist.eval_pmf(6) * diffuse_r;
   }
 
  private:
@@ -255,12 +292,14 @@ class BSDF
   MicrofacetReflectionDielectric m_specular_brdf;
   MicrofacetReflectionConductor m_metal_brdf;
   MicrofacetTransmission m_transmission_btdf;
+  MicrofacetSheen m_sheen_brdf;
   DiffuseTransmission m_diffuse_btdf;
   OrenNayer m_diffuse_brdf;
 
   float m_coat_directional_albedo;
   float3 m_coat_absorption_color;
   float m_specular_directional_albedo;
+  float m_sheen_directional_albedo;
   DiscreteDistribution1D m_dist;
 
   static __device__ float compute_F0(float ior_i, float ior_t)
