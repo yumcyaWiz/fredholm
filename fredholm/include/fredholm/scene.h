@@ -318,6 +318,23 @@ struct Scene {
             m.transmittance[0], m.transmittance[1], m.transmittance[2]);
       }
 
+      // sheen
+      if (m.unknown_parameter.count("sheen")) {
+        m_materials[i].sheen = parse_float(m.unknown_parameter.at("sheen"));
+      }
+
+      // sheen color
+      if (m.unknown_parameter.count("sheen_color")) {
+        m_materials[i].sheen_color =
+            parse_float3(m.unknown_parameter.at("sheen_color"));
+      }
+
+      // sheen roughness
+      if (m.unknown_parameter.count("sheen_roughness")) {
+        m_materials[i].sheen_roughness =
+            parse_float(m.unknown_parameter.at("sheen_roughness"));
+      }
+
       // subsurface
       if (m.unknown_parameter.count("subsurface")) {
         m_materials[i].subsurface =
