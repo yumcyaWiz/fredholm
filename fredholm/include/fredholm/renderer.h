@@ -17,6 +17,7 @@
 #include "cwl/texture.h"
 #include "cwl/util.h"
 //
+#include "fredholm/arhosek.h"
 #include "fredholm/camera.h"
 #include "fredholm/io.h"
 #include "fredholm/scene.h"
@@ -49,6 +50,9 @@ class Renderer
 
     // release IBL
     if (m_d_ibl) { m_d_ibl.reset(); }
+
+    // release Arhosek sky
+    if (m_d_arhosek) { m_d_arhosek.reset(); }
 
     // release scene data
     if (m_d_vertices) { m_d_vertices.reset(); }
@@ -526,6 +530,8 @@ class Renderer
 
   void set_directional_light(const float3& le, const float3& dir, float angle)
   {
+    spdlog::info("[Renderer] set directional light");
+
     DirectionalLight light;
     light.le = le;
     light.dir = dir;
@@ -538,6 +544,17 @@ class Renderer
   void clear_ibl()
   {
     if (m_d_ibl) { m_d_ibl.reset(); }
+  }
+
+  void load_arhosek_sky(float turbidity, float albedo, float elevation)
+  {
+    spdlog::info("[Renderer] init Arhosek sky");
+
+    ArHosekSkyModelState state =
+        arhosek_rgb_skymodelstate_alloc_init(turbidity, albedo, elevation);
+
+    m_d_arhosek =
+        std::make_unique<cwl::DeviceObject<ArHosekSkyModelState>>(state);
   }
 
   void set_resolution(uint32_t width, uint32_t height)
@@ -575,8 +592,6 @@ class Renderer
     params.camera.up = camera.m_up;
     params.camera.f = camera.m_f;
 
-    params.bg_color = bg_color;
-
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_headers->get_device_ptr();
     params.lights = m_d_lights->get_device_ptr();
@@ -588,10 +603,16 @@ class Renderer
       params.directional_light = nullptr;
     }
 
+    params.bg_color = bg_color;
     if (m_d_ibl) {
       params.ibl = m_d_ibl->get_texture_object();
     } else {
       params.ibl = 0;
+    }
+    if (m_d_arhosek) {
+      params.arhosek = m_d_arhosek->get_device_ptr();
+    } else {
+      params.arhosek = nullptr;
     }
 
     params.ias_handle = m_ias_handle;
@@ -693,6 +714,7 @@ class Renderer
   // LaunchParams data on device
   std::unique_ptr<cwl::DeviceObject<DirectionalLight>> m_d_directional_light;
   std::unique_ptr<cwl::CUDATexture<float4>> m_d_ibl;
+  std::unique_ptr<cwl::DeviceObject<ArHosekSkyModelState>> m_d_arhosek;
   std::unique_ptr<cwl::CUDABuffer<uint>> m_d_sample_count;
 
   static std::vector<char> read_file(const std::filesystem::path& filepath)

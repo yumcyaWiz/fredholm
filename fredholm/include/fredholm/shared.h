@@ -2,6 +2,8 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 
+#include "fredholm/arhosek.h"
+
 namespace fredholm
 {
 
@@ -162,15 +164,16 @@ struct LaunchParams {
 
   CameraParams camera;
 
-  float3 bg_color;
-
   Material* materials;
   TextureHeader* textures;
   AreaLight* lights;
   uint n_lights;
 
   DirectionalLight* directional_light;
+
+  float3 bg_color;
   cudaTextureObject_t ibl;
+  ArHosekSkyModelState* arhosek;
 
   OptixTraversableHandle ias_handle;
 };
