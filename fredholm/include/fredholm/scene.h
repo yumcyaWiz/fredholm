@@ -217,6 +217,28 @@ struct Scene {
       }
     };
 
+    const auto parse_float = [](const std::string& str) {
+      return std::stof(str);
+    };
+    const auto parse_float3 = [](const std::string& str) {
+      // split string by space
+      std::vector<std::string> tokens;
+      std::stringstream ss(str);
+      std::string buf;
+      while (std::getline(ss, buf, ' ')) {
+        if (!buf.empty()) { tokens.emplace_back(buf); }
+      }
+
+      if (tokens.size() != 3) {
+        spdlog::error("invalid vec3 string");
+        std::exit(EXIT_FAILURE);
+      }
+
+      // string to float conversion
+      return make_float3(std::stof(tokens[0]), std::stof(tokens[1]),
+                         std::stof(tokens[2]));
+    };
+
     m_materials.resize(tinyobj_materials.size());
     for (int i = 0; i < m_materials.size(); ++i) {
       const auto& m = tinyobj_materials[i];
@@ -284,6 +306,26 @@ struct Scene {
         m_materials[i].transmission_color = make_float3(
             m.transmittance[0], m.transmittance[1], m.transmittance[2]);
       }
+
+      // subsurface
+      if (m.unknown_parameter.count("subsurface")) {
+        m_materials[i].subsurface =
+            parse_float(m.unknown_parameter.at("subsurface"));
+      }
+
+      // subsurface color
+      if (m.unknown_parameter.count("subsurface_color")) {
+        m_materials[i].subsurface_color =
+            parse_float3(m.unknown_parameter.at("subsurface_color"));
+      }
+
+      // thin walled
+      if (m.unknown_parameter.count("thin_walled")) {
+        m_materials[i].thin_walled =
+            parse_float(m.unknown_parameter.at("thin_walled"));
+      }
+
+      // subsurface color
 
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
