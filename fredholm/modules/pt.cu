@@ -383,6 +383,7 @@ extern "C" __global__ void __raygen__rg()
     payload.radiance = make_float3(0);
     payload.throughput =
         make_float3(dot(payload.direction, params.camera.forward) / camera_pdf);
+    payload.throughput = make_float3(1.0f);
     payload.done = false;
     for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth) {
       // russian roulette
