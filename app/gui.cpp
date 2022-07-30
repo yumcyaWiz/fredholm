@@ -141,7 +141,8 @@ int main()
                            "bain\0Sibenik\0San "
                            "Miguel\0Rungholt\0Vokselia\0BMW\0Specular "
                            "Test\0Metal Test\0Coat Test\0Transmission "
-                           "Test\0Specular Transmission Test\0Texture "
+                           "Test\0Transmission Test(Sphere)\0Specular "
+                           "Transmission Test\0Texture "
                            "Test\0Normal Map Test\0Specular White Furnace "
                            "Test\0Coat White Furnace Test\0\0")) {
             controller.load_scene();
