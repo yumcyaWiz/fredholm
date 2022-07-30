@@ -171,6 +171,7 @@ struct LaunchParams {
 
   DirectionalLight* directional_light;
 
+  float sky_intensity;
   float3 bg_color;
   cudaTextureObject_t ibl;
   float3 sun_direction;

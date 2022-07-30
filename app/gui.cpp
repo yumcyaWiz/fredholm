@@ -229,7 +229,7 @@ int main()
 
           switch (controller.m_imgui_sky_type) {
             case SkyType::CONSTANT: {
-              if (ImGui::InputFloat3("background color",
+              if (ImGui::InputFloat3("Background color",
                                      controller.m_imgui_bg_color)) {
                 controller.clear_render();
               }
@@ -240,8 +240,20 @@ int main()
                 controller.load_ibl();
                 controller.clear_render();
               }
+
+              if (ImGui::InputFloat("Intensity",
+                                    &controller.m_imgui_sky_intensity)) {
+                controller.set_sky_intensity();
+                controller.clear_render();
+              }
+
             } break;
             case SkyType::ARHOSEK: {
+              if (ImGui::InputFloat("Intensity",
+                                    &controller.m_imgui_sky_intensity)) {
+                controller.set_sky_intensity();
+                controller.clear_render();
+              }
             } break;
           }
         }

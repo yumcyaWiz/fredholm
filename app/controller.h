@@ -79,6 +79,7 @@ class Controller
 
   SkyType m_imgui_sky_type = SkyType::CONSTANT;
   float m_imgui_bg_color[3] = {0, 0, 0};
+  float m_imgui_sky_intensity = 1.0f;
   int m_imgui_ibl_id = 0;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
@@ -227,6 +228,11 @@ class Controller
         load_arhosek();
       } break;
     }
+  }
+
+  void set_sky_intensity()
+  {
+    m_renderer->set_sky_intensity(m_imgui_sky_intensity);
   }
 
   void load_ibl() { m_renderer->load_ibl(ibl_filepaths[m_imgui_ibl_id]); }

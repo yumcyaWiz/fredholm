@@ -519,15 +519,6 @@ class Renderer
         ias_buffer_sizes.outputSizeInBytes, &m_ias_handle, nullptr, 0));
   }
 
-  void load_ibl(const std::filesystem::path& filepath)
-  {
-    spdlog::info("[Renderer] load IBL");
-
-    const FloatTexture ibl = FloatTexture(filepath);
-    m_d_ibl = std::make_unique<cwl::CUDATexture<float4>>(
-        ibl.m_width, ibl.m_height, ibl.m_data.data());
-  }
-
   void set_directional_light(const float3& le, const float3& dir, float angle)
   {
     spdlog::info("[Renderer] set directional light");
@@ -541,6 +532,20 @@ class Renderer
 
     m_d_directional_light =
         std::make_unique<cwl::DeviceObject<DirectionalLight>>(light);
+  }
+
+  void set_sky_intensity(float sky_intensity)
+  {
+    m_d_sky_intensity = sky_intensity;
+  }
+
+  void load_ibl(const std::filesystem::path& filepath)
+  {
+    spdlog::info("[Renderer] load IBL");
+
+    const FloatTexture ibl = FloatTexture(filepath);
+    m_d_ibl = std::make_unique<cwl::CUDATexture<float4>>(
+        ibl.m_width, ibl.m_height, ibl.m_data.data());
   }
 
   void clear_ibl()
@@ -622,6 +627,7 @@ class Renderer
 
     params.bg_color = bg_color;
 
+    params.sky_intensity = m_d_sky_intensity;
     if (m_d_ibl) {
       params.ibl = m_d_ibl->get_texture_object();
     } else {
@@ -733,6 +739,7 @@ class Renderer
 
   // LaunchParams data on device
   std::unique_ptr<cwl::DeviceObject<DirectionalLight>> m_d_directional_light;
+  float m_d_sky_intensity = 1.0f;
   std::unique_ptr<cwl::CUDATexture<float4>> m_d_ibl;
   float3 m_d_sun_direction = make_float3(0.0f, 1.0f, 0.0f);
   std::unique_ptr<cwl::DeviceObject<ArHosekSkyModelState>> m_d_arhosek;
