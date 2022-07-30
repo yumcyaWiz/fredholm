@@ -222,7 +222,7 @@ int main()
         {
           if (ImGui::Combo("Sky Type",
                            reinterpret_cast<int*>(&controller.m_imgui_sky_type),
-                           "Constant\0IBL\0\0")) {
+                           "Constant\0IBL\0Arhosek\0\0")) {
             controller.update_sky_type();
             controller.clear_render();
           }
@@ -240,6 +240,8 @@ int main()
                 controller.load_ibl();
                 controller.clear_render();
               }
+            } break;
+            case SkyType::ARHOSEK: {
             } break;
           }
         }

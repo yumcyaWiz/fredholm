@@ -317,10 +317,12 @@ static __forceinline__ __device__ float3 evaluate_arhosek_sky(const float3& v)
 {
   const float2 thphi = cartesian_to_spherical(v);
   const float gamma = acosf(dot(params.sun_direction, v));
-  return make_float3(
-      arhosek_tristim_skymodel_radiance(params.arhosek, thphi.x, gamma, 0),
-      arhosek_tristim_skymodel_radiance(params.arhosek, thphi.x, gamma, 1),
-      arhosek_tristim_skymodel_radiance(params.arhosek, thphi.x, gamma, 2));
+  return 0.01f * make_float3(arhosek_tristim_skymodel_radiance(
+                                 params.arhosek, thphi.x, gamma, 0),
+                             arhosek_tristim_skymodel_radiance(
+                                 params.arhosek, thphi.x, gamma, 1),
+                             arhosek_tristim_skymodel_radiance(
+                                 params.arhosek, thphi.x, gamma, 2));
 }
 
 // power heuristics

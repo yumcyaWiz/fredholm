@@ -569,6 +569,11 @@ class Renderer
         std::make_unique<cwl::DeviceObject<ArHosekSkyModelState>>(state);
   }
 
+  void clear_arhosek_sky()
+  {
+    if (m_d_arhosek) { m_d_arhosek.reset(); }
+  }
+
   void set_resolution(uint32_t width, uint32_t height)
   {
     m_width = width;

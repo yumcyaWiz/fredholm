@@ -28,7 +28,7 @@ enum class AOVType : int {
   ALBEDO
 };
 
-enum class SkyType : int { CONSTANT, IBL };
+enum class SkyType : int { CONSTANT, IBL, ARHOSEK };
 
 static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/cornellbox/CornellBox.obj",
@@ -216,14 +216,22 @@ class Controller
     switch (m_imgui_sky_type) {
       case SkyType::CONSTANT: {
         m_renderer->clear_ibl();
+        m_renderer->clear_arhosek_sky();
       } break;
       case SkyType::IBL: {
+        m_renderer->clear_arhosek_sky();
         load_ibl();
+      } break;
+      case SkyType::ARHOSEK: {
+        m_renderer->clear_ibl();
+        load_arhosek();
       } break;
     }
   }
 
   void load_ibl() { m_renderer->load_ibl(ibl_filepaths[m_imgui_ibl_id]); }
+
+  void load_arhosek() { m_renderer->load_arhosek_sky(0.1f, 1.0f); }
 
   void update_resolution()
   {
