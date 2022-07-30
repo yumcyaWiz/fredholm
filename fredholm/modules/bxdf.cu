@@ -86,11 +86,10 @@ __forceinline__ __device__ float3 reflect(const float3& w, const float3& n)
 __forceinline__ __device__ bool refract(const float3& w, const float3& n,
                                         float ior_i, float ior_t, float3& wt)
 {
-  const float w_dot_n = dot(w, n);
-  const float eta = ior_i / ior_t;
-  const float t = eta * (w_dot_n * w_dot_n - 1.0f);
-  if (t < -1.0f) return false;
-  wt = normalize(-eta * w + (eta * w_dot_n - sqrtf(fmax(1.0f + t, 0.0f))) * n);
+  const float3 th = -ior_i / ior_t * (w - dot(w, n) * n);
+  if (dot(th, th) > 1.0f) return false;
+  const float3 tp = -sqrtf(fmax(1.0f - dot(th, th), 0.0f)) * n;
+  wt = th + tp;
   return true;
 }
 
@@ -453,7 +452,7 @@ class MicrofacetTransmission
     float3 wi;
     if (!refract(wo, wh, m_ior_i, m_ior_t, wi)) {
       // total internal reflection
-      f = make_float3(0);
+      f = make_float3(0.0f);
       pdf = 1;
       return wi;
     }
