@@ -117,31 +117,52 @@ class BSDF
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
-    float3 coat = m_coat_brdf.eval(wo, wi);
-    coat = (isinf(coat) || isnan(coat)) ? make_float3(0.0f) : coat;
+    float3 coat = make_float3(0.0f);
+    if (m_params.coat * m_coat_color_luminance > 0.0f) {
+      coat = m_coat_brdf.eval(wo, wi);
+      coat = (isinf(coat) || isnan(coat)) ? make_float3(0.0f) : coat;
+    }
 
-    float3 metal = m_metal_brdf.eval(wo, wi);
-    metal = (isinf(metal) || isnan(metal)) ? make_float3(0.0f) : metal;
+    float3 metal = make_float3(0.0f);
+    if (m_params.metalness > 0.0f) {
+      metal = m_metal_brdf.eval(wo, wi);
+      metal = (isinf(metal) || isnan(metal)) ? make_float3(0.0f) : metal;
+    }
 
-    float3 specular = m_specular_brdf.eval(wo, wi);
-    specular =
-        (isinf(specular) || isnan(specular)) ? make_float3(0.0f) : specular;
+    float3 specular = make_float3(0.0f);
+    if (m_params.specular * m_specular_color_luminance > 0.0f) {
+      specular = m_specular_brdf.eval(wo, wi);
+      specular =
+          (isinf(specular) || isnan(specular)) ? make_float3(0.0f) : specular;
+    }
 
-    float3 transmission = m_transmission_btdf.eval(wo, wi);
-    transmission = (isinf(transmission) || isnan(transmission))
-                       ? make_float3(0.0f)
-                       : transmission;
+    float3 transmission = make_float3(0.0f);
+    if (m_params.transmission > 0.0f) {
+      transmission = m_transmission_btdf.eval(wo, wi);
+      transmission = (isinf(transmission) || isnan(transmission))
+                         ? make_float3(0.0f)
+                         : transmission;
+    }
 
-    float3 sheen = m_sheen_brdf.eval(wo, wi);
-    sheen = (isinf(sheen) || isnan(sheen)) ? make_float3(0.0f) : sheen;
+    float3 sheen = make_float3(0.0f);
+    if (m_params.sheen * m_sheen_color_luminance > 0.0f) {
+      sheen = m_sheen_brdf.eval(wo, wi);
+      sheen = (isinf(sheen) || isnan(sheen)) ? make_float3(0.0f) : sheen;
+    }
 
-    float3 diffuse_t = m_diffuse_btdf.eval(wo, wi);
-    diffuse_t =
-        (isinf(diffuse_t) || isnan(diffuse_t)) ? make_float3(0.0f) : diffuse_t;
+    float3 diffuse_t = make_float3(0.0f);
+    if (m_params.subsurface * m_params.thin_walled > 0.0f) {
+      diffuse_t = m_diffuse_btdf.eval(wo, wi);
+      diffuse_t = (isinf(diffuse_t) || isnan(diffuse_t)) ? make_float3(0.0f)
+                                                         : diffuse_t;
+    }
 
-    float3 diffuse_r = m_diffuse_brdf.eval(wo, wi);
-    diffuse_r =
-        (isinf(diffuse_r) || isnan(diffuse_r)) ? make_float3(0.0f) : diffuse_r;
+    float3 diffuse_r = make_float3(0.0f);
+    if (m_params.diffuse > 0.0f) {
+      diffuse_r = m_diffuse_brdf.eval(wo, wi);
+      diffuse_r = (isinf(diffuse_r) || isnan(diffuse_r)) ? make_float3(0.0f)
+                                                         : diffuse_r;
+    }
 
     float3 ret = make_float3(0.0f);
     float3 f_mult = make_float3(1.0f);
@@ -262,27 +283,48 @@ class BSDF
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
   {
     // evaluate each BxDF pdf
-    float coat = m_coat_brdf.eval_pdf(wo, wi);
-    coat = (isinf(coat) || isnan(coat)) ? 0.0f : coat;
+    float coat = 0.0f;
+    if (m_params.coat * m_coat_color_luminance > 0.0f) {
+      coat = m_coat_brdf.eval_pdf(wo, wi);
+      coat = (isinf(coat) || isnan(coat)) ? 0.0f : coat;
+    }
 
-    float metal = m_metal_brdf.eval_pdf(wo, wi);
-    metal = (isinf(metal) || isnan(metal)) ? 0.0f : metal;
+    float metal = 0.0f;
+    if (m_params.metalness > 0.0f) {
+      metal = m_metal_brdf.eval_pdf(wo, wi);
+      metal = (isinf(metal) || isnan(metal)) ? 0.0f : metal;
+    }
 
-    float specular = m_specular_brdf.eval_pdf(wo, wi);
-    specular = (isinf(specular) || isnan(specular)) ? 0.0f : specular;
+    float specular = 0.0f;
+    if (m_params.specular * m_specular_color_luminance > 0.0f) {
+      specular = m_specular_brdf.eval_pdf(wo, wi);
+      specular = (isinf(specular) || isnan(specular)) ? 0.0f : specular;
+    }
 
-    float transmission = m_transmission_btdf.eval_pdf(wo, wi);
-    transmission =
-        (isinf(transmission) || isnan(transmission)) ? 0.0f : transmission;
+    float transmission = 0.0f;
+    if (m_params.transmission > 0.0f) {
+      transmission = m_transmission_btdf.eval_pdf(wo, wi);
+      transmission =
+          (isinf(transmission) || isnan(transmission)) ? 0.0f : transmission;
+    }
 
-    float sheen = m_sheen_brdf.eval_pdf(wo, wi);
-    sheen = (isinf(sheen) || isnan(sheen)) ? 0.0f : sheen;
+    float sheen = 0.0f;
+    if (m_params.sheen * m_sheen_color_luminance > 0.0f) {
+      sheen = m_sheen_brdf.eval_pdf(wo, wi);
+      sheen = (isinf(sheen) || isnan(sheen)) ? 0.0f : sheen;
+    }
 
-    float diffuse_t = m_diffuse_btdf.eval_pdf(wo, wi);
-    diffuse_t = (isinf(diffuse_t) || isnan(diffuse_t)) ? 0.0f : diffuse_t;
+    float diffuse_t = 0.0f;
+    if (m_params.subsurface * m_params.thin_walled > 0.0f) {
+      diffuse_t = m_diffuse_btdf.eval_pdf(wo, wi);
+      diffuse_t = (isinf(diffuse_t) || isnan(diffuse_t)) ? 0.0f : diffuse_t;
+    }
 
-    float diffuse_r = m_diffuse_brdf.eval_pdf(wo, wi);
-    diffuse_r = (isinf(diffuse_r) || isnan(diffuse_r)) ? 0.0f : diffuse_r;
+    float diffuse_r = 0.0f;
+    if (m_params.diffuse > 0.0f) {
+      diffuse_r = m_diffuse_brdf.eval_pdf(wo, wi);
+      diffuse_r = (isinf(diffuse_r) || isnan(diffuse_r)) ? 0.0f : diffuse_r;
+    }
 
     return m_dist.eval_pmf(0) * coat + m_dist.eval_pmf(1) * metal +
            m_dist.eval_pmf(2) * specular + m_dist.eval_pmf(3) * transmission +
