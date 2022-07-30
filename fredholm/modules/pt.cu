@@ -784,13 +784,12 @@ extern "C" __global__ void __closesthit__radiance()
     float pdf;
     const float3 wi = bsdf.sample(wo, sample_1d(payload->sampler),
                                   sample_2d(payload->sampler), f, pdf);
-    const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
 
-    const bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
-    const float3 light_ray_origin = ray_origin_offset(
-        surf_info.x, is_transmitted ? surf_info.n_g : surf_info.n_g);
     const float3 light_ray_direction =
         local_to_world(wi, tangent, normal, bitangent);
+    const bool is_transmitted = dot(light_ray_direction, surf_info.n_g) < 0;
+    const float3 light_ray_origin = ray_origin_offset(
+        surf_info.x, is_transmitted ? -surf_info.n_g : surf_info.n_g);
 
     LightPayload light_payload;
     light_payload.direction = light_ray_direction;
