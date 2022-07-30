@@ -1,5 +1,6 @@
 #include <optix.h>
 
+#include "arhosek.cu"
 #include "bsdf.cu"
 #include "fredholm/shared.h"
 #include "math.cu"
