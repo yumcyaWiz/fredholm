@@ -68,6 +68,10 @@ struct Material {
   float transmission = 0;
   float3 transmission_color = make_float3(1, 1, 1);
 
+  float sheen = 0.0f;
+  float3 sheen_color = make_float3(1.0f, 1.0f, 1.0f);
+  float sheen_roughness = 0.3f;
+
   float subsurface = 0;
   float3 subsurface_color = make_float3(1.0f, 1.0f, 1.0f);
 
@@ -126,6 +130,10 @@ struct ShadingParams {
 
   float transmission = 0;
   float3 transmission_color = make_float3(1, 1, 1);
+
+  float sheen = 0.0f;
+  float3 sheen_color = make_float3(1.0f, 1.0f, 1.0f);
+  float sheen_roughness = 0.3f;
 
   float subsurface = 0;
   float3 subsurface_color = make_float3(1.0f, 1.0f, 1.0f);

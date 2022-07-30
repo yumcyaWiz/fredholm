@@ -233,6 +233,15 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   // transmission color
   shading_params.transmission_color = material.transmission_color;
 
+  // sheen
+  shading_params.sheen = material.sheen;
+
+  // sheen color
+  shading_params.sheen_color = material.sheen_color;
+
+  // sheen roughness
+  shading_params.sheen_roughness = material.sheen_roughness;
+
   // subsurface
   shading_params.subsurface = material.subsurface;
 
