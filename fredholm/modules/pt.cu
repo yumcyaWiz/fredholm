@@ -463,6 +463,8 @@ extern "C" __global__ void __miss__radiance()
     float3 le;
     if (params.ibl) {
       le = fetch_ibl(payload->direction);
+    } else if (params.arhosek) {
+      le = evaluate_arhosek_sky(payload->direction);
     } else {
       le = params.bg_color;
     }
@@ -486,6 +488,8 @@ extern "C" __global__ void __miss__light()
 
   if (params.ibl) {
     payload->le = fetch_ibl(payload->direction);
+  } else if (params.arhosek) {
+    payload->le = evaluate_arhosek_sky(payload->direction);
   } else {
     payload->le = params.bg_color;
   }
@@ -760,6 +764,26 @@ extern "C" __global__ void __closesthit__radiance()
         const float3 weight = regularize_weight(
             payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
         const float3 le = fetch_ibl(shadow_ray_direction);
+        payload->radiance += weight * le;
+      }
+    } else if (params.arhosek) {
+      const float3 wi =
+          sample_cosine_weighted_hemisphere(sample_2d(payload->sampler));
+      const float3 shadow_ray_direction =
+          local_to_world(wi, tangent, normal, bitangent);
+
+      ShadowPayload shadow_payload;
+      trace_shadow(params.ias_handle, shadow_ray_origin, shadow_ray_direction,
+                   0.0f, 1e9f, &shadow_payload);
+
+      if (shadow_payload.visible) {
+        const float3 f = bsdf.eval(wo, wi);
+        const float pdf = abs_cos_theta(wi) / M_PIf;
+        const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+        const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+        const float3 weight = regularize_weight(
+            payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
+        const float3 le = evaluate_arhosek_sky(shadow_ray_direction);
         payload->radiance += weight * le;
       }
     } else {
