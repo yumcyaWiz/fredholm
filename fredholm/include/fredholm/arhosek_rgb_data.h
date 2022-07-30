@@ -102,7 +102,7 @@ the model.
 
 #pragma once
 
-float datasetRGB1[] = {
+inline float datasetRGB1[] = {
     // albedo 0, turbidity 1
     -1.099459e+000,
     -1.335146e-001,
@@ -1205,7 +1205,7 @@ float datasetRGB1[] = {
     6.658012e-001,
 };
 
-float datasetRGBRad1[] = {
+inline float datasetRGBRad1[] = {
     // albedo 0, turbidity 1
     1.962684e+000,
     1.159831e+000,
@@ -1348,7 +1348,7 @@ float datasetRGBRad1[] = {
     2.574284e+001,
 };
 
-float datasetRGB2[] = {
+inline float datasetRGB2[] = {
     // albedo 0, turbidity 1
     -1.140530e+000,
     -1.982747e-001,
@@ -2451,7 +2451,7 @@ float datasetRGB2[] = {
     6.588427e-001,
 };
 
-float datasetRGBRad2[] = {
+inline float datasetRGBRad2[] = {
     // albedo 0, turbidity 1
     1.590330e+000,
     1.355401e+000,
@@ -2594,7 +2594,7 @@ float datasetRGBRad2[] = {
     2.643066e+001,
 };
 
-float datasetRGB3[] = {
+inline float datasetRGB3[] = {
     // albedo 0, turbidity 1
     -1.372629e+000,
     -4.905585e-001,
@@ -3697,7 +3697,7 @@ float datasetRGB3[] = {
     6.966285e-001,
 };
 
-float datasetRGBRad3[] = {
+inline float datasetRGBRad3[] = {
     // albedo 0, turbidity 1
     9.926518e-001,
     1.999494e+000,
@@ -3840,6 +3840,7 @@ float datasetRGBRad3[] = {
     2.893432e+001,
 };
 
-float *datasetsRGB[] = {datasetRGB1, datasetRGB2, datasetRGB3};
+inline float *datasetsRGB[] = {datasetRGB1, datasetRGB2, datasetRGB3};
 
-float *datasetsRGBRad[] = {datasetRGBRad1, datasetRGBRad2, datasetRGBRad3};
+inline float *datasetsRGBRad[] = {datasetRGBRad1, datasetRGBRad2,
+                                  datasetRGBRad3};
