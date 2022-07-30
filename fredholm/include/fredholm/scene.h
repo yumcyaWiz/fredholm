@@ -243,6 +243,17 @@ struct Scene {
     for (int i = 0; i < m_materials.size(); ++i) {
       const auto& m = tinyobj_materials[i];
 
+      // diffuse
+      if (m.unknown_parameter.count("diffuse")) {
+        m_materials[i].diffuse = parse_float(m.unknown_parameter.at("diffuse"));
+      }
+
+      // diffuse roughness
+      if (m.unknown_parameter.count("diffuse_roughness")) {
+        m_materials[i].diffuse_roughness =
+            parse_float(m.unknown_parameter.at("diffuse_roughness"));
+      }
+
       // base color
       m_materials[i].base_color =
           make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);

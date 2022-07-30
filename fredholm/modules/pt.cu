@@ -178,6 +178,12 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
     const Material& material, const SurfaceInfo& surf_info,
     const TextureHeader* textures, ShadingParams& shading_params)
 {
+  // diffuse
+  shading_params.diffuse = material.diffuse;
+
+  // diffuse roughness
+  shading_params.diffuse_roughness = material.diffuse_roughness;
+
   // base color
   shading_params.base_color =
       material.base_color_texture_id >= 0

@@ -62,7 +62,8 @@ class BSDF
     weights[5] = (1.0f - m_params.coat * m_coat_directional_albedo) *
                  (1.0f - m_params.metalness) *
                  (1.0f - m_params.specular * m_specular_directional_albedo) *
-                 (1.0f - m_params.transmission) * (1.0f - m_params.subsurface);
+                 (1.0f - m_params.transmission) * (1.0f - m_params.subsurface) *
+                 m_params.diffuse;
 
     // init distribution for sampling BxDF
     m_dist.init(weights, 6);
@@ -86,9 +87,10 @@ class BSDF
     m_transmission_btdf =
         MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
 
-    m_diffuse_btdf = DiffuseTransmission(m_params.base_color, 0.0f);
+    m_diffuse_btdf =
+        DiffuseTransmission(m_params.base_color, m_params.diffuse_roughness);
 
-    m_diffuse_brdf = OrenNayer(m_params.base_color, 0.0f);
+    m_diffuse_brdf = OrenNayer(m_params.base_color, m_params.diffuse_roughness);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -143,7 +145,7 @@ class BSDF
     f_mult *= (1.0f - m_params.subsurface);
 
     // diffuse
-    ret += f_mult * diffuse_r;
+    ret += f_mult * m_params.diffuse * diffuse_r;
 
     return ret;
   }
@@ -205,7 +207,8 @@ class BSDF
         f *= m_coat_absorption_color * (1.0f - m_params.metalness) *
              (1.0f - m_params.specular * m_params.specular_color *
                          m_specular_directional_albedo) *
-             (1.0f - m_params.transmission) * (1.0f - m_params.subsurface);
+             (1.0f - m_params.transmission) * (1.0f - m_params.subsurface) *
+             m_params.diffuse;
         pdf *= bxdf_pdf;
         return wi;
       } break;
