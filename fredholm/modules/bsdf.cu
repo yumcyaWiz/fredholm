@@ -30,15 +30,11 @@ class BSDF
              m_params.coat);
 
     const float specular_F0 = compute_F0(m_ni, m_nt);
-    // m_specular_directional_albedo =
-    //     m_eta >= 1.0f ? compute_directional_albedo(
-    //                         wo, m_params.specular_roughness, specular_F0)
-    //                   : compute_directional_albedo2(
-    //                         wo, m_params.specular_roughness, m_eta);
     m_specular_directional_albedo =
         m_eta >= 1.0f ? compute_directional_albedo(
                             wo, m_params.specular_roughness, specular_F0)
-                      : 0.0f;
+                      : compute_directional_albedo2(
+                            wo, m_params.specular_roughness, m_eta);
 
     m_sheen_directional_albedo =
         m_is_entering
