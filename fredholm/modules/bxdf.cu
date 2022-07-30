@@ -576,3 +576,91 @@ class MicrofacetTransmission
   FresnelDielectric m_fresnel;
   float2 m_alpha;
 };
+
+// Production Friendly Microfacet Sheen BRDF
+class MicrofacetSheen
+{
+ public:
+  __device__ MicrofacetSheen() {}
+  __device__ MicrofacetSheen(float roughness, float eta)
+      : m_fresnel(eta), m_roughness(roughness)
+  {
+  }
+
+  __device__ float eval(const float3& wo, const float3& wi) const
+  {
+    const float3 wh = normalize(wo + wi);
+    const float f = m_fresnel.eval(fabs(dot(wo, wh)));
+    const float d = D(wh);
+    const float g = G2(wo, wi);
+    return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
+  }
+
+  __device__ float3 sample(const float3& wo, const float2& u, float& f,
+                           float& pdf) const
+  {
+    // sample half-vector
+    const float3 wh = sample_cosine_weighted_hemisphere(u);
+
+    // compute incident direction
+    const float3 wi = reflect(wo, wh);
+
+    // evaluate BxDF and pdf
+    f = eval(wo, wi);
+    pdf = eval_pdf(wo, wi);
+
+    return wi;
+  }
+
+  __device__ float eval_pdf(const float3& wo, const float3& wi) const
+  {
+    return abs_cos_theta(wi) / M_PIf;
+  }
+
+ private:
+  __device__ float D(const float3& wh) const
+  {
+    const float s = abs_sin_theta(wh);
+    return (2.0f + 1.0f / m_roughness) * powf(s, 1.0f / m_roughness) /
+           (2.0f * M_PIf);
+  }
+
+  __device__ float lambda(const float3& w) const
+  {
+    const float cos = abs_cos_theta(w);
+    if (cos < 0.5f) {
+      return expf(L(cos));
+    } else {
+      return expf(2.0f * L(0.5f) - L(1.0f - cos));
+    }
+  }
+  __device__ float G1(const float3& w) const
+  {
+    return 1.0f / (1.0f + lambda(w));
+  }
+
+  __device__ float G2(const float3& wo, const float3& wi) const
+  {
+    return 1.0f / (1.0f + lambda(wo) + lambda(wi));
+  }
+
+  __device__ float L(float x) const
+  {
+    const auto interpolate = [](float roughness, float p0, float p1) {
+      const float t = (1.0f - roughness);
+      const float t2 = t * t;
+      return t2 * p0 + (1.0f - t2) * p1;
+    };
+
+    const float a = interpolate(m_roughness, 25.3245, 21.5473);
+    const float b = interpolate(m_roughness, 3.32435, 3.82987);
+    const float c = interpolate(m_roughness, 0.16801, 0.19823);
+    const float d = interpolate(m_roughness, -1.27393, -1.97760);
+    const float e = interpolate(m_roughness, -4.85967, -4.32054);
+
+    return a / (1.0f + b * powf(x, c)) + d * x + e;
+  }
+
+  float m_roughness;
+  FresnelDielectric m_fresnel;
+};
