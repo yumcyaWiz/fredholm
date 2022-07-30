@@ -325,8 +325,6 @@ struct Scene {
             parse_float(m.unknown_parameter.at("thin_walled"));
       }
 
-      // subsurface color
-
       // emission
       if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
         m_materials[i].emission = 1.0f;

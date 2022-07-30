@@ -226,6 +226,15 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
 
   // transmission color
   shading_params.transmission_color = material.transmission_color;
+
+  // subsurface
+  shading_params.subsurface = material.subsurface;
+
+  // subsurface color
+  shading_params.subsurface_color = material.subsurface_color;
+
+  // thin walled
+  shading_params.thin_walled = material.thin_walled;
 }
 
 static __forceinline__ __device__ float3

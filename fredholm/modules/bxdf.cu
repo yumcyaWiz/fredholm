@@ -240,13 +240,14 @@ class DiffuseTransmission
   __device__ float3 sample(const float3& wo, const float2& u, float3& f,
                            float& pdf) const
   {
-    const float3 wi = sample_cosine_weighted_hemisphere(u);
+    float3 wi = sample_cosine_weighted_hemisphere(u);
+    // flip direction
+    wi = -wi;
 
     f = eval(wo, wi);
     pdf = abs_cos_theta(wi) / M_PIf;
 
-    // flip direction
-    return -wi;
+    return wi;
   }
 
   __device__ float eval_pdf(const float3& wo, const float3& wi) const
