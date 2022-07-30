@@ -1,8 +1,8 @@
 #pragma once
 #include "sutil/vec_math.h"
 
-#define LUT_SCHLICK_SIZE 16
-__constant__ float LUT_SCHLICK[] = {
+#define REFLECTION_LUT_SIZE 16
+__constant__ float REFLECTION_LUT[] = {
     0.99996,  0.857567,    1,        0.613357,    1,        0.430158,
     1,        0.291317,    1,        0.191123,    1,        0.121853,
     1,        0.0737236,   1,        0.0426714,   1,        0.0226787,
@@ -953,41 +953,40 @@ __constant__ float SHEEN_LUT[] = {
     0.1272,    0.112453,  0.100759,  0.0911051, 0.0831121, 0.0761491, 0.0696862,
     0.063281,  0.0564918, 0.0487627, 0.0389094};
 
-__forceinline__ __device__ float2 fetch_lut_idx(int i, int j)
+__forceinline__ __device__ float2 fetch_reflection_lut_idx(int i, int j)
 {
-  i = clamp(i, 0, LUT_SCHLICK_SIZE - 1);
-  j = clamp(j, 0, LUT_SCHLICK_SIZE - 1);
-  const int idx = 2 * i + 2 * LUT_SCHLICK_SIZE * j;
-  return make_float2(LUT_SCHLICK[idx], LUT_SCHLICK[idx + 1]);
+  i = clamp(i, 0, REFLECTION_LUT_SIZE - 1);
+  j = clamp(j, 0, REFLECTION_LUT_SIZE - 1);
+  const int idx = 2 * i + 2 * REFLECTION_LUT_SIZE * j;
+  return make_float2(REFLECTION_LUT[idx], REFLECTION_LUT[idx + 1]);
 }
 
-__forceinline__ __device__ float2 fetch_lut(const float2& uv)
+__forceinline__ __device__ float2 fetch_reflection_lut(const float2& uv)
 {
-  const int i =
-      clamp(static_cast<int>(uv.x * LUT_SCHLICK_SIZE), 0, LUT_SCHLICK_SIZE - 1);
-  const int j =
-      clamp(static_cast<int>(uv.y * LUT_SCHLICK_SIZE), 0, LUT_SCHLICK_SIZE - 1);
+  const int i = clamp(static_cast<int>(uv.x * REFLECTION_LUT_SIZE), 0,
+                      REFLECTION_LUT_SIZE - 1);
+  const int j = clamp(static_cast<int>(uv.y * REFLECTION_LUT_SIZE), 0,
+                      REFLECTION_LUT_SIZE - 1);
 
-  const float2 t0 = fetch_lut_idx(i, j);
-  const float2 t1 = fetch_lut_idx(i + 1, j);
-  const float2 t2 = fetch_lut_idx(i, j + 1);
-  const float2 t3 = fetch_lut_idx(i + 1, j + 1);
+  const float2 t0 = fetch_reflection_lut_idx(i, j);
+  const float2 t1 = fetch_reflection_lut_idx(i + 1, j);
+  const float2 t2 = fetch_reflection_lut_idx(i, j + 1);
+  const float2 t3 = fetch_reflection_lut_idx(i + 1, j + 1);
 
   // bilinear interpolation
-  const float hx = uv.x * LUT_SCHLICK_SIZE - i;
-  const float hy = uv.y * LUT_SCHLICK_SIZE - j;
+  const float hx = uv.x * REFLECTION_LUT_SIZE - i;
+  const float hy = uv.y * REFLECTION_LUT_SIZE - j;
   const float2 tx0 = (1.0f - hx) * t0 + hx * t1;
   const float2 tx1 = (1.0f - hx) * t2 + hx * t3;
   return (1.0f - hy) * tx0 + hy * tx1;
 }
 
-__forceinline__ __device__ float compute_directional_albedo(const float3& w,
-                                                            float roughness,
-                                                            float F0)
+__forceinline__ __device__ float compute_directional_albedo_reflection(
+    const float3& w, float roughness, float F0)
 {
   const float u = fabs(w.y);
   const float v = clamp(roughness, 0.0f, 1.0f);
-  const float2 RG = fetch_lut(make_float2(u, v));
+  const float2 RG = fetch_reflection_lut(make_float2(u, v));
   return F0 * RG.x + (1.0f - F0) * RG.y;
 }
 

@@ -21,8 +21,8 @@ class BSDF
     // compute directional albedo
     const float clearcoat_F0 = compute_F0(m_ni, m_nt);
     m_coat_directional_albedo =
-        m_is_entering ? compute_directional_albedo(wo, m_params.coat_roughness,
-                                                   clearcoat_F0)
+        m_is_entering ? compute_directional_albedo_reflection(
+                            wo, m_params.coat_roughness, clearcoat_F0)
                       : 0.0f;
     m_coat_absorption_color =
         lerp(make_float3(1.0f),
@@ -31,7 +31,7 @@ class BSDF
 
     const float specular_F0 = compute_F0(m_ni, m_nt);
     m_specular_directional_albedo =
-        m_eta >= 1.0f ? compute_directional_albedo(
+        m_eta >= 1.0f ? compute_directional_albedo_reflection(
                             wo, m_params.specular_roughness, specular_F0)
                       : compute_directional_albedo_reflection_ior1(
                             wo, m_params.specular_roughness, m_eta);
