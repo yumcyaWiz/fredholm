@@ -66,6 +66,11 @@ struct Material {
   float transmission = 0;
   float3 transmission_color = make_float3(1, 1, 1);
 
+  float subsurface = 0;
+  float3 subsurface_color = make_float3(1.0f, 1.0f, 1.0f);
+
+  float thin_walled = 0.0f;
+
   float emission = 0;
   float3 emission_color = make_float3(0, 0, 0);
 
@@ -117,6 +122,11 @@ struct ShadingParams {
 
   float transmission = 0;
   float3 transmission_color = make_float3(1, 1, 1);
+
+  float subsurface = 0;
+  float3 subsurface_color = make_float3(1.0f, 1.0f, 1.0f);
+
+  float thin_walled = 0.0f;
 };
 
 struct RenderLayer {

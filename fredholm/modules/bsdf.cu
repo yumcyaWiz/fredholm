@@ -41,8 +41,9 @@ class BSDF
                       : 0.0f;
 
     // compute weights of each BxDF
-    // coat, metal, specular, transmission, diffuse
-    float weights[5];
+    // coat, metal, specular, transmission, diffuse transmission, diffuse
+    // reflection
+    float weights[6];
     weights[0] = m_params.coat * m_coat_directional_albedo;
     weights[1] =
         (1.0f - m_params.coat * m_coat_directional_albedo) * m_params.metalness;
@@ -56,10 +57,15 @@ class BSDF
     weights[4] = (1.0f - m_params.coat * m_coat_directional_albedo) *
                  (1.0f - m_params.metalness) *
                  (1.0f - m_params.specular * m_specular_directional_albedo) *
-                 (1.0f - m_params.transmission);
+                 (1.0f - m_params.transmission) * m_params.subsurface *
+                 m_params.thin_walled;
+    weights[5] = (1.0f - m_params.coat * m_coat_directional_albedo) *
+                 (1.0f - m_params.metalness) *
+                 (1.0f - m_params.specular * m_specular_directional_albedo) *
+                 (1.0f - m_params.transmission) * (1.0f - m_params.subsurface);
 
     // init distribution for sampling BxDF
-    m_dist.init(weights, 5);
+    m_dist.init(weights, 6);
 
     // init each BxDF
     m_coat_brdf =
@@ -80,28 +86,35 @@ class BSDF
     m_transmission_btdf =
         MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
 
+    m_diffuse_btdf = DiffuseTransmission(m_params.base_color, 0.0f);
+
     m_diffuse_brdf = OrenNayer(m_params.base_color, 0.0f);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
-    float3 diffuse = m_diffuse_brdf.eval(wo, wi);
-    diffuse = (isinf(diffuse) || isnan(diffuse)) ? make_float3(0.0f) : diffuse;
+    float3 coat = m_coat_brdf.eval(wo, wi);
+    coat = (isinf(coat) || isnan(coat)) ? make_float3(0.0f) : coat;
+
+    float3 metal = m_metal_brdf.eval(wo, wi);
+    metal = (isinf(metal) || isnan(metal)) ? make_float3(0.0f) : metal;
 
     float3 specular = m_specular_brdf.eval(wo, wi);
     specular =
         (isinf(specular) || isnan(specular)) ? make_float3(0.0f) : specular;
 
-    float3 metal = m_metal_brdf.eval(wo, wi);
-    metal = (isinf(metal) || isnan(metal)) ? make_float3(0.0f) : metal;
-
-    float3 coat = m_coat_brdf.eval(wo, wi);
-    coat = (isinf(coat) || isnan(coat)) ? make_float3(0.0f) : coat;
-
     float3 transmission = m_transmission_btdf.eval(wo, wi);
     transmission = (isinf(transmission) || isnan(transmission))
                        ? make_float3(0.0f)
                        : transmission;
+
+    float3 diffuse_t = m_diffuse_btdf.eval(wo, wi);
+    diffuse_t =
+        (isinf(diffuse_t) || isnan(diffuse_t)) ? make_float3(0.0f) : diffuse_t;
+
+    float3 diffuse_r = m_diffuse_brdf.eval(wo, wi);
+    diffuse_r =
+        (isinf(diffuse_r) || isnan(diffuse_r)) ? make_float3(0.0f) : diffuse_r;
 
     float3 ret = make_float3(0.0f);
     float3 f_mult = make_float3(1.0f);
@@ -124,8 +137,13 @@ class BSDF
            transmission;
     f_mult *= (1.0f - m_params.transmission);
 
+    // diffuse transmission
+    ret += f_mult * m_params.subsurface * m_params.subsurface_color *
+           m_params.thin_walled * diffuse_t;
+    f_mult *= (1.0f - m_params.subsurface);
+
     // diffuse
-    ret += f_mult * diffuse;
+    ret += f_mult * diffuse_r;
 
     return ret;
   }
@@ -170,13 +188,24 @@ class BSDF
         pdf *= bxdf_pdf;
         return wi;
       } break;
-      // diffuse
+      // diffuse transmission
       case 4: {
+        const float3 wi = m_diffuse_btdf.sample(wo, v, f, pdf);
+        f *= m_coat_absorption_color * (1.0f - m_params.metalness) *
+             (1.0f - m_params.specular * m_params.specular_color *
+                         m_specular_directional_albedo) *
+             (1.0f - m_params.transmission) * m_params.subsurface *
+             m_params.subsurface_color * m_params.thin_walled;
+        pdf *= bxdf_pdf;
+        return wi;
+      } break;
+      // diffuse reflection
+      case 5: {
         const float3 wi = m_diffuse_brdf.sample(wo, v, f, pdf);
         f *= m_coat_absorption_color * (1.0f - m_params.metalness) *
              (1.0f - m_params.specular * m_params.specular_color *
                          m_specular_directional_albedo) *
-             (1.0f - m_params.transmission);
+             (1.0f - m_params.transmission) * (1.0f - m_params.subsurface);
         pdf *= bxdf_pdf;
         return wi;
       } break;
@@ -201,12 +230,15 @@ class BSDF
     transmission =
         (isinf(transmission) || isnan(transmission)) ? 0.0f : transmission;
 
-    float diffuse = m_diffuse_brdf.eval_pdf(wo, wi);
-    diffuse = (isinf(diffuse) || isnan(diffuse)) ? 0.0f : diffuse;
+    float diffuse_t = m_diffuse_btdf.eval_pdf(wo, wi);
+    diffuse_t = (isinf(diffuse_t) || isnan(diffuse_t)) ? 0.0f : diffuse_t;
 
-    return m_dist.eval_pmf(0) * diffuse + m_dist.eval_pmf(1) * metal +
+    float diffuse_r = m_diffuse_brdf.eval_pdf(wo, wi);
+    diffuse_r = (isinf(diffuse_r) || isnan(diffuse_r)) ? 0.0f : diffuse_r;
+
+    return m_dist.eval_pmf(0) * coat + m_dist.eval_pmf(1) * metal +
            m_dist.eval_pmf(2) * specular + m_dist.eval_pmf(3) * transmission +
-           m_dist.eval_pmf(4) * diffuse;
+           m_dist.eval_pmf(4) * diffuse_t + m_dist.eval_pmf(5) * diffuse_r;
   }
 
  private:
@@ -220,6 +252,7 @@ class BSDF
   MicrofacetReflectionDielectric m_specular_brdf;
   MicrofacetReflectionConductor m_metal_brdf;
   MicrofacetTransmission m_transmission_btdf;
+  DiffuseTransmission m_diffuse_btdf;
   OrenNayer m_diffuse_brdf;
 
   float m_coat_directional_albedo;
