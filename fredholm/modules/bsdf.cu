@@ -43,8 +43,7 @@ class BSDF
       m_specular_directional_albedo =
           m_eta >= 1.0f ? compute_directional_albedo_reflection(
                               wo, m_params.specular_roughness, specular_F0)
-                        : compute_directional_albedo_reflection_ior1(
-                              wo, m_params.specular_roughness, m_eta);
+                        : 0.0f;
     }
 
     if (m_params.sheen * m_sheen_color_luminance) {
@@ -53,6 +52,14 @@ class BSDF
               ? compute_directional_albedo_sheen(wo, m_params.sheen_roughness)
               : 0.0f;
     }
+
+    // disable coat, metal, specular, sheen, diffuse reflection when evaluating
+    // from inside
+    m_params.coat = m_is_entering ? m_params.coat : 0.0f;
+    m_params.metalness = m_is_entering ? m_params.metalness : 0.0f;
+    m_params.specular = m_is_entering ? m_params.specular : 0.0f;
+    m_params.sheen = m_is_entering ? m_params.sheen : 0.0f;
+    m_params.diffuse = m_is_entering ? m_params.diffuse : 0.0f;
 
     // compute weights of each BxDF
     // coat, metal, specular, transmission, sheen, diffuse transmission, diffuse
