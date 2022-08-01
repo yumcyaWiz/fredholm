@@ -84,6 +84,8 @@ class Controller
   float m_imgui_arhosek_turbidity = 3.0f;
   float m_imgui_arhosek_albedo = 0.3f;
 
+  float m_imgui_iso = 400.0f;
+
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
 

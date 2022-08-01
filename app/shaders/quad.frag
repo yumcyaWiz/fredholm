@@ -28,6 +28,7 @@ out vec4 fragColor;
 
 uniform vec2 resolution;
 uniform int aov_type;
+uniform float ISO;
 
 vec3 linear_to_srgb(vec3 rgb) {
   rgb.x = rgb.x < 0.0031308 ? 12.92 * rgb.x : 1.055 * pow(rgb.x, 1.0f / 2.4f) - 0.055;
@@ -114,6 +115,16 @@ vec3 uncharted2(vec3 color) {
   return curr * whiteScale;
 }
 
+// https://seblagarde.files.wordpress.com/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf
+float computeEV100(float aperture, float shutterTime, float ISO) {
+  return log2(aperture * aperture / shutterTime * 100.0 / ISO);
+}
+
+float convertEV100ToExposure(float EV100) {
+  float maxLuminance = 1.2 * pow(2.0, EV100);
+  return 1.0f / maxLuminance;
+}
+
 void main() {
   ivec2 xy = ivec2(texCoords * resolution);
   xy.y = int(resolution.y) - xy.y - 1;
@@ -123,12 +134,22 @@ void main() {
   // beauty
   if(aov_type == 0) {
     color = beauty[idx].xyz;
+
+    float EV100 = computeEV100(1.0, 1.0, ISO);
+    float exposure = convertEV100ToExposure(EV100);
+    color = exposure * color;
+
     color = uchimura(color);
     color = linear_to_srgb(color);
   }
   // denoised
   if(aov_type == 1) {
     color = denoised[idx].xyz;
+
+    float EV100 = computeEV100(1.0, 1.0, ISO);
+    float exposure = convertEV100ToExposure(EV100);
+    color = exposure * color;
+
     color = uchimura(color);
     color = linear_to_srgb(color);
   }
@@ -152,8 +173,6 @@ void main() {
   // albedo
   else if(aov_type == 6) {
     color = albedo[idx].xyz;
-    color = aces_tone_mapping(color);
-    color = linear_to_srgb(color);
   }
 
   fragColor = vec4(color, 1.0);

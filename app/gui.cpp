@@ -269,6 +269,12 @@ int main()
             } break;
           }
         }
+
+        ImGui::Separator();
+
+        {
+          ImGui::InputFloat("ISO", &controller.m_imgui_iso);
+        }
       }
       ImGui::End();
 
@@ -289,6 +295,7 @@ int main()
                                            controller.m_imgui_resolution[1]));
       fragment_shader.setUniform("aov_type",
                                  static_cast<int>(controller.m_imgui_aov_type));
+      fragment_shader.setUniform("ISO", controller.m_imgui_iso);
       controller.m_layer_beauty->get_gl_buffer().bindToShaderStorageBuffer(0);
       controller.m_layer_denoised->get_gl_buffer().bindToShaderStorageBuffer(1);
       controller.m_layer_position->get_gl_buffer().bindToShaderStorageBuffer(2);
