@@ -81,6 +81,8 @@ class Controller
   float m_imgui_bg_color[3] = {0, 0, 0};
   float m_imgui_sky_intensity = 1.0f;
   int m_imgui_ibl_id = 0;
+  float m_imgui_arhosek_turbidity = 3.0f;
+  float m_imgui_arhosek_albedo = 0.3f;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
   std::unique_ptr<fredholm::Scene> m_scene = nullptr;
@@ -237,7 +239,11 @@ class Controller
 
   void load_ibl() { m_renderer->load_ibl(ibl_filepaths[m_imgui_ibl_id]); }
 
-  void load_arhosek() { m_renderer->load_arhosek_sky(0.1f, 1.0f); }
+  void load_arhosek()
+  {
+    m_renderer->load_arhosek_sky(m_imgui_arhosek_turbidity,
+                                 m_imgui_arhosek_albedo);
+  }
 
   void update_resolution()
   {

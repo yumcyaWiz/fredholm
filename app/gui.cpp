@@ -249,6 +249,18 @@ int main()
 
             } break;
             case SkyType::ARHOSEK: {
+              if (ImGui::InputFloat("Turbidity",
+                                    &controller.m_imgui_arhosek_turbidity)) {
+                controller.load_arhosek();
+                controller.clear_render();
+              }
+
+              if (ImGui::InputFloat("Albedo",
+                                    &controller.m_imgui_arhosek_albedo)) {
+                controller.load_arhosek();
+                controller.clear_render();
+              }
+
               if (ImGui::InputFloat("Intensity",
                                     &controller.m_imgui_sky_intensity)) {
                 controller.set_sky_intensity();
