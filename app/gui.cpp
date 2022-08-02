@@ -208,6 +208,12 @@ int main()
           if (ImGui::InputFloat3("Directional light direction",
                                  controller.m_imgui_directional_light_dir)) {
             controller.update_directional_light();
+
+            // sync arhosek sky
+            if (controller.m_imgui_sky_type == SkyType::ARHOSEK) {
+              controller.load_arhosek();
+            }
+
             controller.clear_render();
           }
           if (ImGui::InputFloat("Directional light angle",

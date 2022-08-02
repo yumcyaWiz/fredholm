@@ -525,10 +525,10 @@ class Renderer
 
     DirectionalLight light;
     light.le = le;
-    light.dir = dir;
+    light.dir = normalize(dir);
     light.angle = angle;
 
-    m_d_sun_direction = dir;
+    m_d_sun_direction = normalize(dir);
 
     m_d_directional_light =
         std::make_unique<cwl::DeviceObject<DirectionalLight>>(light);
