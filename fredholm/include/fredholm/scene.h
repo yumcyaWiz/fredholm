@@ -7,19 +7,13 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include "spdlog/fmt/bundled/format.h"
-
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
-
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
-//
 #include "spdlog/spdlog.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "sutil/vec_math.h"
+#include "tiny_obj_loader.h"
 //
 #include "fredholm/shared.h"
 

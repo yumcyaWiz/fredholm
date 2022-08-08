@@ -3,8 +3,10 @@ add_library(sutil INTERFACE)
 target_include_directories(sutil INTERFACE "sutil/")
 
 # tinyobjloader
-add_library(tinyobjloader INTERFACE)
-target_include_directories(tinyobjloader INTERFACE "tinyobjloader/")
+add_library(tinyobjloader
+    "tinyobjloader.cpp"
+)
+target_include_directories(tinyobjloader PUBLIC "tinyobjloader/")
 
 # glm
 add_subdirectory("glm/")
@@ -36,5 +38,7 @@ SET(SPDLOG_MASTER_PROJECT ON CACHE BOOL "" FORCE)
 add_subdirectory(spdlog)
 
 # stb
-add_library(stb INTERFACE)
-target_include_directories(stb INTERFACE "stb")
+add_library(stb
+    "stb_image.cpp"
+)
+target_include_directories(stb PUBLIC "stb/")
