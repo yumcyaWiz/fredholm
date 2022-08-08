@@ -22,7 +22,9 @@ struct Camera {
   float3 m_right;
   float3 m_up;
 
-  float m_f;
+  float m_fov;
+  float m_F;      // F number
+  float m_focus;  // focus distance
 
   float m_movement_speed;
   float m_look_around_speed;
@@ -32,37 +34,40 @@ struct Camera {
 
   Camera()
       : m_origin(make_float3(0, 0, 0)),
+        m_fov(0.5f * M_PI),
+        m_F(8.0f),
+        m_focus(10000.0f),
         m_movement_speed(10.0f),
         m_look_around_speed(0.1f),
         m_phi(270.0f),
         m_theta(90.0f)
   {
     set_forward(make_float3(0, 0, -1));
-    set_fov(0.5f * M_PI);
   }
 
   Camera(const float3& origin, const float3& forward, float fov = 0.5f * M_PI,
-         float movement_speed = 1.0f, float look_around_speed = 0.1f)
+         float F = 8.0f, float focus = 10000.0f, float movement_speed = 1.0f,
+         float look_around_speed = 0.1f)
       : m_origin(origin),
+        m_fov(fov),
+        m_F(F),
+        m_focus(focus),
         m_movement_speed(movement_speed),
         m_look_around_speed(look_around_speed),
         m_phi(270.0f),
         m_theta(90.0f)
   {
     set_forward(forward);
-    set_fov(fov);
   }
 
   void set_origin(const float3& origin) { m_origin = origin; }
 
   void set_forward(const float3& forward)
   {
-    m_forward = forward;
+    m_forward = normalize(forward);
     m_right = normalize(cross(m_forward, make_float3(0.0f, 1.0f, 0.0f)));
     m_up = normalize(cross(m_right, m_forward));
   }
-
-  void set_fov(float fov) { m_f = 1.0f / std::tan(0.5f * fov); }
 
   void move(const CameraMovement& direction, float dt)
   {

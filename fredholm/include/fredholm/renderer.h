@@ -612,7 +612,9 @@ class Renderer
     params.camera.forward = camera.m_forward;
     params.camera.right = camera.m_right;
     params.camera.up = camera.m_up;
-    params.camera.f = camera.m_f;
+    params.camera.fov = camera.m_fov;
+    params.camera.F = camera.m_F;
+    params.camera.focus = camera.m_focus;
 
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_headers->get_device_ptr();

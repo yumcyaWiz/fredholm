@@ -187,6 +187,14 @@ int main()
             controller.update_camera();
             controller.clear_render();
           }
+          if (ImGui::InputFloat("F number", &controller.m_imgui_F)) {
+            controller.update_camera();
+            controller.clear_render();
+          }
+          if (ImGui::InputFloat("Focus distance", &controller.m_imgui_focus)) {
+            controller.update_camera();
+            controller.clear_render();
+          }
           if (ImGui::InputFloat("Movement speed",
                                 &controller.m_imgui_movement_speed)) {
             controller.update_camera();

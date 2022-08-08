@@ -19,7 +19,9 @@ struct CameraParams {
   float3 forward;
   float3 right;
   float3 up;
-  float f;
+  float fov;
+  float F;      // F number
+  float focus;  // focus distance
 };
 
 struct PCGState {
