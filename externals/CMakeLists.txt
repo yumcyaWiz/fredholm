@@ -8,6 +8,12 @@ add_library(tinyobjloader
 )
 target_include_directories(tinyobjloader PUBLIC "tinyobjloader/")
 
+# tinygltf
+add_library(tinygltf
+    "tinygltf.cpp"
+)
+target_include_directories(tinygltf PUBLIC "tinygltf/")
+
 # glm
 add_subdirectory("glm/")
 
