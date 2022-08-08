@@ -2,6 +2,7 @@
 
 #include "arhosek.cu"
 #include "bsdf.cu"
+#include "camera.cu"
 #include "fredholm/shared.h"
 #include "math.cu"
 #include "sampling.cu"
@@ -122,19 +123,6 @@ static __forceinline__ __device__ bool has_emission(const Material& material)
 {
   return (material.emission_color.x > 0 || material.emission_color.y > 0 ||
           material.emission_color.z > 0);
-}
-
-static __forceinline__ __device__ void sample_ray_pinhole_camera(
-    const float2& uv, float3& origin, float3& direction, float& pdf)
-{
-  const float3 p_sensor = params.camera.origin + uv.x * params.camera.right +
-                          uv.y * params.camera.up;
-  const float3 p_pinhole =
-      params.camera.origin + params.camera.f * params.camera.forward;
-
-  origin = p_pinhole;
-  direction = normalize(p_pinhole - p_sensor);
-  pdf = 1.0f / dot(direction, params.camera.forward);
 }
 
 static __forceinline__ __device__ void fill_surface_info(
@@ -394,14 +382,15 @@ extern "C" __global__ void __raygen__rg()
     init_sampler_state(image_idx, n_spp, payload.sampler);
 
     // generate initial ray from camera
-    const float2 u = sample_2d(payload.sampler);
+    float2 u = sample_2d(payload.sampler);
     float2 uv = make_float2((2.0f * (idx.x + u.x) - dim.x) / dim.y,
                             (2.0f * (idx.y + u.y) - dim.y) / dim.y);
     // flip x
     uv.x = -uv.x;
+    u = sample_2d(payload.sampler);
     float camera_pdf;
-    sample_ray_pinhole_camera(uv, payload.origin, payload.direction,
-                              camera_pdf);
+    sample_ray_thinlens_camera(params.camera, uv, u, payload.origin,
+                               payload.direction, camera_pdf);
 
     // start ray tracing from the camera
     payload.radiance = make_float3(0);

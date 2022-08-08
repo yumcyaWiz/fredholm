@@ -34,6 +34,11 @@ static __forceinline__ __device__ float3 local_to_world(const float3& v,
                      v.x * t.z + v.y * n.z + v.z * b.z);
 }
 
+static __forceinline__ __device__ float length2(const float3& v)
+{
+  return dot(v, v);
+}
+
 static __forceinline__ __device__ float3 sqrt(const float3& v)
 {
   return make_float3(sqrtf(v.x), sqrtf(v.y), sqrtf(v.z));
