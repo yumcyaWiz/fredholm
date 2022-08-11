@@ -376,7 +376,8 @@ class Renderer
     for (int i = 0; i < scene.m_textures.size(); ++i) {
       const auto& tex = scene.m_textures[i];
       m_d_textures[i] = std::make_unique<cwl::CUDATexture<uchar4>>(
-          tex.m_width, tex.m_height, tex.m_data.data(), tex.m_srgb_to_linear);
+          tex.m_width, tex.m_height, tex.m_data.data(),
+          tex.m_texture_type == TextureType::COLOR);
     }
 
     std::vector<TextureHeader> texture_headers(m_d_textures.size());

@@ -55,15 +55,18 @@ struct hash<fredholm::Vertex> {
 namespace fredholm
 {
 
+enum class TextureType { COLOR, NONCOLOR };
+
 struct Texture {
   uint32_t m_width;
   uint32_t m_height;
   std::vector<uchar4> m_data;
-  bool m_srgb_to_linear;
+  TextureType m_texture_type;
 
   Texture() {}
-  Texture(const std::filesystem::path& filepath, bool srgb_to_linear)
-      : m_srgb_to_linear(srgb_to_linear)
+  Texture(const std::filesystem::path& filepath,
+          const TextureType& texture_type)
+      : m_texture_type(texture_type)
   {
     spdlog::info("[Texture] loading {}", filepath.generic_string());
 
@@ -215,13 +218,12 @@ struct Scene {
 
     const auto load_texture = [&](const std::filesystem::path& parent_filepath,
                                   const std::filesystem::path& filepath,
-                                  bool srgb_to_linear) {
+                                  const TextureType& texture_type) {
       if (unique_textures.count(filepath) == 0) {
         // load texture id
         unique_textures[filepath] = m_textures.size();
         // load texture
-        m_textures.push_back(
-            Texture(parent_filepath / filepath, srgb_to_linear));
+        m_textures.push_back(Texture(parent_filepath / filepath, texture_type));
       }
     };
 
@@ -268,7 +270,8 @@ struct Scene {
 
       // base color(texture)
       if (!m.diffuse_texname.empty()) {
-        load_texture(filepath.parent_path(), m.diffuse_texname, true);
+        load_texture(filepath.parent_path(), m.diffuse_texname,
+                     TextureType::COLOR);
 
         // set texture id on material
         m_materials[i].base_color_texture_id =
@@ -281,7 +284,8 @@ struct Scene {
 
       // specular color(texture)
       if (!m.specular_texname.empty()) {
-        load_texture(filepath.parent_path(), m.specular_texname, false);
+        load_texture(filepath.parent_path(), m.specular_texname,
+                     TextureType::COLOR);
         m_materials[i].specular_color_texture_id =
             unique_textures[m.specular_texname];
       }
@@ -291,7 +295,8 @@ struct Scene {
 
       // specular roughness(texture)
       if (!m.roughness_texname.empty()) {
-        load_texture(filepath.parent_path(), m.roughness_texname, false);
+        load_texture(filepath.parent_path(), m.roughness_texname,
+                     TextureType::NONCOLOR);
         m_materials[i].specular_roughness_texture_id =
             unique_textures[m.roughness_texname];
       }
@@ -301,7 +306,8 @@ struct Scene {
 
       // metalness texture
       if (!m.metallic_texname.empty()) {
-        load_texture(filepath.parent_path(), m.metallic_texname, false);
+        load_texture(filepath.parent_path(), m.metallic_texname,
+                     TextureType::NONCOLOR);
         m_materials[i].metalness_texture_id =
             unique_textures[m.metallic_texname];
       }
@@ -370,19 +376,22 @@ struct Scene {
 
       // height map texture
       if (!m.bump_texname.empty()) {
-        load_texture(filepath.parent_path(), m.bump_texname, false);
+        load_texture(filepath.parent_path(), m.bump_texname,
+                     TextureType::NONCOLOR);
         m_materials[i].heightmap_texture_id = unique_textures[m.bump_texname];
       }
 
       // normal map texture
       if (!m.normal_texname.empty()) {
-        load_texture(filepath.parent_path(), m.normal_texname, false);
+        load_texture(filepath.parent_path(), m.normal_texname,
+                     TextureType::NONCOLOR);
         m_materials[i].normalmap_texture_id = unique_textures[m.normal_texname];
       }
 
       // alpha texture
       if (!m.alpha_texname.empty()) {
-        load_texture(filepath.parent_path(), m.alpha_texname, false);
+        load_texture(filepath.parent_path(), m.alpha_texname,
+                     TextureType::NONCOLOR);
         m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
       }
     }
@@ -567,6 +576,17 @@ struct Scene {
       if (pmr.baseColorTexture.index != -1) {
         m_materials[i].base_color_texture_id = pmr.baseColorTexture.index;
       }
+
+      // specular roughness
+      m_materials[i].specular_roughness = pmr.roughnessFactor;
+
+      // metalness
+      m_materials[i].metalness = pmr.metallicFactor;
+
+      // normal texture
+      if (material.normalTexture.index != -1) {
+        m_materials[i].normalmap_texture_id = material.normalTexture.index;
+      }
     }
 
     // load textures
@@ -577,7 +597,8 @@ struct Scene {
 
       const auto& image = model.images[texture.source];
       // TODO: set sRGB to Linear flag, create Texture Type instead?
-      m_textures[i] = Texture(filepath.parent_path() / image.uri, true);
+      m_textures[i] =
+          Texture(filepath.parent_path() / image.uri, TextureType::NONCOLOR);
     }
 
     const auto get_buffer = [](const tinygltf::Model& model, int accessor_id,
