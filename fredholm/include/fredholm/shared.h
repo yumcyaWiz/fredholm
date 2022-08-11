@@ -68,8 +68,10 @@ struct Material {
   int metallic_roughness_texture_id = -1;
 
   float coat = 0;
+  int coat_texture_id = -1;
   float3 coat_color = make_float3(1, 1, 1);
   float coat_roughness = 0.1;
+  int coat_roughness_texture_id = -1;
 
   float transmission = 0;
   float3 transmission_color = make_float3(1, 1, 1);

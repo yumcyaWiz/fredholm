@@ -589,6 +589,26 @@ struct Scene {
             pmr.metallicRoughnessTexture.index;
       }
 
+      if (material.extensions.contains("KHR_materials_clearcoat")) {
+        const auto p = material.extensions.at("KHR_materials_clearcoat");
+
+        if (p.Has("clearcoatFactor")) {
+          m_materials[i].coat = p.Get("clearcoatFactor").GetNumberAsDouble();
+        }
+        if (p.Has("clearcoatTexture")) {
+          m_materials[i].coat_texture_id =
+              p.Get("clearcoatTexture").GetNumberAsInt();
+        }
+        if (p.Has("clearcoatRoughnessFactor")) {
+          m_materials[i].coat_roughness =
+              p.Get("clearcoatRoughnessFactor").GetNumberAsDouble();
+        }
+        if (p.Has("clearcoatRoughnessTexture")) {
+          m_materials[i].coat_roughness_texture_id =
+              p.Get("clearcoatRoughnessTexture").GetNumberAsInt();
+        }
+      }
+
       // normal texture
       if (material.normalTexture.index != -1) {
         m_materials[i].normalmap_texture_id = material.normalTexture.index;
