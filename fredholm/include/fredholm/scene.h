@@ -174,6 +174,10 @@ struct Scene {
 
   void load_model(const std::filesystem::path& filepath)
   {
+    clear();
+
+    spdlog::info("[Scene] loading {}", filepath.generic_string());
+
     if (filepath.extension() == ".obj") {
       load_obj(filepath);
     } else if (filepath.extension() == ".gltf") {
@@ -186,10 +190,6 @@ struct Scene {
 
   void load_obj(const std::filesystem::path& filepath)
   {
-    spdlog::info("loading {}", filepath.generic_string());
-
-    clear();
-
     tinyobj::ObjReaderConfig reader_config;
     reader_config.triangulate = true;
 
@@ -595,6 +595,8 @@ struct Scene {
     int prev_indices_size = 0;
     for (const auto& mesh : model.meshes) {
       spdlog::info("[tinygltf] loading mesh: {}", mesh.name);
+      spdlog::info("[tinygltf] number of primitives: {}",
+                   mesh.primitives.size());
 
       // load primitives
       // NOTE: assuming each primitive has position, normal, texcoord
@@ -629,7 +631,7 @@ struct Scene {
             const auto positions =
                 reinterpret_cast<const float*>(positions_raw);
 
-            for (int i = 0; i < positions_count / 3; ++i) {
+            for (int i = 0; i < positions_count; ++i) {
               m_vertices.push_back(make_float3(positions[3 * i + 0],
                                                positions[3 * i + 1],
                                                positions[3 * i + 2]));
@@ -645,7 +647,7 @@ struct Scene {
             }
 
             const auto normals = reinterpret_cast<const float*>(normals_raw);
-            for (int i = 0; i < normals_count / 3; ++i) {
+            for (int i = 0; i < normals_count; ++i) {
               m_normals.push_back(make_float3(
                   normals[3 * i + 0], normals[3 * i + 1], normals[3 * i + 2]));
             }
@@ -658,7 +660,7 @@ struct Scene {
             }
 
             const auto texcoord = reinterpret_cast<const float*>(texcoord_raw);
-            for (int i = 0; i < texcoord_count / 2; ++i) {
+            for (int i = 0; i < texcoord_count; ++i) {
               m_texcoords.push_back(
                   make_float2(texcoord[2 * i + 0], texcoord[2 * i + 1]));
             }

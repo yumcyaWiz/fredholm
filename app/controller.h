@@ -51,7 +51,8 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/texture_test/plane.obj",
     "../resources/normalmap_test/normalmap_test.obj",
     "../resources/specular_white_furnace_test/spheres.obj",
-    "../resources/coat_white_furnace_test/spheres.obj"};
+    "../resources/coat_white_furnace_test/spheres.obj",
+    "../resources/gltf_test/untitled.gltf"};
 
 static std::vector<std::filesystem::path> ibl_filepaths = {
     "../resources/ibl/PaperMill_Ruins_E/PaperMill_E_3k.hdr"};
