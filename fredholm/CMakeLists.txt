@@ -22,6 +22,7 @@ target_include_directories(fredholm INTERFACE
 target_link_libraries(fredholm INTERFACE
     cwl
     tinyobjloader
+    tinygltf
     sutil
     glm
     stb

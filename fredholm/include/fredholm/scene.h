@@ -13,6 +13,7 @@
 #include "spdlog/spdlog.h"
 #include "stb_image.h"
 #include "sutil/vec_math.h"
+#include "tiny_gltf.h"
 #include "tiny_obj_loader.h"
 //
 #include "fredholm/shared.h"
@@ -60,6 +61,7 @@ struct Texture {
   std::vector<uchar4> m_data;
   bool m_srgb_to_linear;
 
+  Texture() {}
   Texture(const std::filesystem::path& filepath, bool srgb_to_linear)
       : m_srgb_to_linear(srgb_to_linear)
   {
@@ -496,6 +498,177 @@ struct Scene {
                  m_submesh_offsets.size());
     spdlog::info("[tinyobjloader] number of materials: {}", m_materials.size());
     spdlog::info("[tinyobjloader] number of textures: {}", m_textures.size());
+  }
+
+  void load_gltf(const std::filesystem::path& filepath)
+  {
+    tinygltf::Model model;
+    tinygltf::TinyGLTF loader;
+    std::string err;
+    std::string warn;
+
+    const bool ret = loader.LoadASCIIFromFile(&model, &err, &warn,
+                                              filepath.generic_string());
+
+    if (!warn.empty()) { spdlog::warn("[tinygltf] {}", warn); }
+
+    if (!err.empty()) {
+      spdlog::error("[tinygltf] {}", err);
+      throw std::runtime_error("failed to load " + filepath.generic_string());
+    }
+
+    if (!ret) {
+      throw std::runtime_error("failed to load " + filepath.generic_string());
+    }
+
+    spdlog::info("[tinygltf] number of accessors: {}", model.accessors.size());
+    spdlog::info("[tinygltf] number of animations: {}",
+                 model.animations.size());
+    spdlog::info("[tinygltf] number of buffers: {}", model.buffers.size());
+    spdlog::info("[tinygltf] number of bufferViews: {}",
+                 model.bufferViews.size());
+    spdlog::info("[tinygltf] number of materials: {}", model.materials.size());
+    spdlog::info("[tinygltf] number of meshes: {}", model.meshes.size());
+    spdlog::info("[tinygltf] number of nodes: {}", model.nodes.size());
+    spdlog::info("[tinygltf] number of textures: {}", model.textures.size());
+    spdlog::info("[tinygltf] number of images: {}", model.images.size());
+    spdlog::info("[tinygltf] number of skins: {}", model.skins.size());
+    spdlog::info("[tinygltf] number of samplers: {}", model.samplers.size());
+    spdlog::info("[tinygltf] number of cameras: {}", model.cameras.size());
+    spdlog::info("[tinygltf] number of scenes: {}", model.scenes.size());
+    spdlog::info("[tinygltf] number of lights: {}", model.lights.size());
+
+    // load materials
+    m_materials.resize(model.materials.size());
+    for (int i = 0; i < model.materials.size(); ++i) {
+      const auto& material = model.materials[i];
+      spdlog::info("[tinygltf] loading material: {}", material.name);
+
+      const auto& pmr = material.pbrMetallicRoughness;
+
+      // base color
+      m_materials[i].base_color =
+          make_float3(pmr.baseColorFactor[0], pmr.baseColorFactor[1],
+                      pmr.baseColorFactor[2]);
+
+      // base color(texture)
+      if (pmr.baseColorTexture.index != -1) {
+        m_materials[i].base_color_texture_id = pmr.baseColorTexture.index;
+      }
+    }
+
+    // load textures
+    m_textures.resize(model.textures.size());
+    for (int i = 0; i < model.textures.size(); ++i) {
+      const auto& texture = model.textures[i];
+      spdlog::info("[tinygltf] loading texture: {}", texture.name);
+
+      const auto& image = model.images[texture.source];
+      // TODO: set sRGB to Linear flag, create Texture Type instead?
+      m_textures[i] = Texture(filepath.parent_path() / image.uri, true);
+    }
+
+    const auto get_buffer = [](const tinygltf::Model& model, int accessor_id,
+                               int& stride, int& count) {
+      const auto& accessor = model.accessors[accessor_id];
+      const auto& bufferview = model.bufferViews[accessor.bufferView];
+      const auto& buffer = model.buffers[bufferview.buffer];
+      stride = accessor.ByteStride(bufferview);
+      count = accessor.count;
+      return buffer.data.data() + bufferview.byteOffset + accessor.byteOffset;
+    };
+
+    // load sub meshes
+    int indices_offset = 0;
+    int prev_indices_size = 0;
+    for (const auto& mesh : model.meshes) {
+      spdlog::info("[tinygltf] loading mesh: {}", mesh.name);
+
+      // load primitives
+      // NOTE: assuming each primitive has position, normal, texcoord
+      for (const auto& primitive : mesh.primitives) {
+        // indices
+        int indices_stride, indices_count;
+        const auto indices_raw =
+            get_buffer(model, primitive.indices, indices_stride, indices_count);
+        if (indices_stride != 2) {
+          throw std::runtime_error("indices stride is not ushort");
+        }
+
+        const auto indices =
+            reinterpret_cast<const unsigned short*>(indices_raw);
+        for (int i = 0; i < indices_count / 3; ++i) {
+          m_indices.push_back(make_uint3(indices[3 * i + 0] + indices_offset,
+                                         indices[3 * i + 1] + indices_offset,
+                                         indices[3 * i + 2] + indices_offset));
+        }
+
+        // positions, normals, texcoords
+        int n_vertices = 0;
+        for (const auto& attribute : primitive.attributes) {
+          if (attribute.first == "POSITION") {
+            int positions_stride, positions_count;
+            const auto positions_raw = get_buffer(
+                model, attribute.second, positions_stride, positions_count);
+            if (positions_stride != 12) {
+              throw std::runtime_error("positions stride is not float3");
+            }
+
+            const auto positions =
+                reinterpret_cast<const float*>(positions_raw);
+
+            for (int i = 0; i < positions_count / 3; ++i) {
+              m_vertices.push_back(make_float3(positions[3 * i + 0],
+                                               positions[3 * i + 1],
+                                               positions[3 * i + 2]));
+            }
+
+            n_vertices += positions_count;
+          } else if (attribute.first == "NORMAL") {
+            int normals_stride, normals_count;
+            const auto normals_raw = get_buffer(model, attribute.second,
+                                                normals_stride, normals_count);
+            if (normals_stride != 12) {
+              throw std::runtime_error("normals stride is not float3");
+            }
+
+            const auto normals = reinterpret_cast<const float*>(normals_raw);
+            for (int i = 0; i < normals_count / 3; ++i) {
+              m_normals.push_back(make_float3(
+                  normals[3 * i + 0], normals[3 * i + 1], normals[3 * i + 2]));
+            }
+          } else if (attribute.first == "TEXCOORD_0") {
+            int texcoord_stride, texcoord_count;
+            const auto texcoord_raw = get_buffer(
+                model, attribute.second, texcoord_stride, texcoord_count);
+            if (texcoord_stride != 8) {
+              throw std::runtime_error("texcoord stride is not float2");
+            }
+
+            const auto texcoord = reinterpret_cast<const float*>(texcoord_raw);
+            for (int i = 0; i < texcoord_count / 2; ++i) {
+              m_texcoords.push_back(
+                  make_float2(texcoord[2 * i + 0], texcoord[2 * i + 1]));
+            }
+          }
+        }
+
+        // submesh offset, submesh nfaces
+        m_submesh_offsets.push_back(prev_indices_size);
+        m_submesh_n_faces.push_back(m_indices.size() - prev_indices_size);
+        prev_indices_size = m_indices.size();
+
+        // material id
+        for (int i = 0; i < indices_count / 3; ++i) {
+          m_material_ids.push_back(primitive.material);
+        }
+
+        indices_offset += n_vertices;
+      }
+    }
+
+    spdlog::info("[tinygltf] number of sub meshes: {}",
+                 m_submesh_offsets.size());
   }
 };
 
