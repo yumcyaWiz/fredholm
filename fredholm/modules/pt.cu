@@ -221,10 +221,23 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   }
 
   // coat
-  shading_params.coat = material.coat;
+  shading_params.coat = clamp(
+      material.coat_texture_id >= 0
+          ? tex2D<float4>(textures[material.coat_texture_id].texture_object,
+                          surf_info.texcoord.x, surf_info.texcoord.y)
+                .x
+          : material.coat,
+      0.0f, 1.0f);
 
   // coat roughness
-  shading_params.coat_roughness = material.coat_roughness;
+  shading_params.coat_roughness = clamp(
+      material.coat_roughness_texture_id >= 0
+          ? tex2D<float4>(
+                textures[material.coat_roughness_texture_id].texture_object,
+                surf_info.texcoord.x, surf_info.texcoord.y)
+                .x
+          : material.coat_roughness,
+      0.0f, 1.0f);
 
   // transmission
   shading_params.transmission = material.transmission;
