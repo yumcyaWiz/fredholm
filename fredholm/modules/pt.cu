@@ -193,13 +193,14 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
           : material.specular_color;
 
   // specular roughness
-  shading_params.specular_roughness =
+  shading_params.specular_roughness = clamp(
       material.specular_roughness_texture_id >= 0
           ? tex2D<float4>(
                 textures[material.specular_roughness_texture_id].texture_object,
                 surf_info.texcoord.x, surf_info.texcoord.y)
                 .x
-          : material.specular_roughness;
+          : material.specular_roughness,
+      0.01f, 1.0f);
 
   // metalness
   shading_params.metalness =
@@ -215,8 +216,8 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
     float4 mr = tex2D<float4>(
         textures[material.metallic_roughness_texture_id].texture_object,
         surf_info.texcoord.x, surf_info.texcoord.y);
-    shading_params.specular_roughness = mr.y;
-    shading_params.metalness = mr.z;
+    shading_params.specular_roughness = clamp(mr.y, 0.01f, 1.0f);
+    shading_params.metalness = clamp(mr.z, 0.0f, 1.0f);
   }
 
   // coat
