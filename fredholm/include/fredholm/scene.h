@@ -172,6 +172,18 @@ struct Scene {
     m_textures.clear();
   }
 
+  void load_model(const std::filesystem::path& filepath)
+  {
+    if (filepath.extension() == ".obj") {
+      load_obj(filepath);
+    } else if (filepath.extension() == ".gltf") {
+      load_gltf(filepath);
+    } else {
+      throw std::runtime_error("failed to load " + filepath.generic_string() +
+                               "\n" + "reason: invalid extension");
+    }
+  }
+
   void load_obj(const std::filesystem::path& filepath)
   {
     spdlog::info("loading {}", filepath.generic_string());

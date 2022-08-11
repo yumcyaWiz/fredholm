@@ -201,7 +201,7 @@ class Controller
 
   void load_scene()
   {
-    m_scene->load_obj(scene_filepaths[m_imgui_scene_id]);
+    m_scene->load_model(scene_filepaths[m_imgui_scene_id]);
 
     m_renderer->load_scene(*m_scene);
     m_renderer->build_accel();
