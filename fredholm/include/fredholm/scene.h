@@ -662,7 +662,7 @@ struct Scene {
             const auto texcoord = reinterpret_cast<const float*>(texcoord_raw);
             for (int i = 0; i < texcoord_count; ++i) {
               m_texcoords.push_back(
-                  make_float2(texcoord[2 * i + 0], texcoord[2 * i + 1]));
+                  make_float2(texcoord[2 * i + 0], 1.0f - texcoord[2 * i + 1]));
             }
           }
         }
