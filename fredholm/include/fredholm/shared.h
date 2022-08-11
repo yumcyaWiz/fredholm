@@ -65,6 +65,8 @@ struct Material {
   float metalness = 0;
   int metalness_texture_id = -1;
 
+  int metallic_roughness_texture_id = -1;
+
   float coat = 0;
   float3 coat_color = make_float3(1, 1, 1);
   float coat_roughness = 0.1;

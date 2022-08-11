@@ -210,6 +210,15 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
                 .x
           : material.metalness;
 
+  // metallic roughness
+  if (material.metallic_roughness_texture_id >= 0) {
+    float4 mr = tex2D<float4>(
+        textures[material.metallic_roughness_texture_id].texture_object,
+        surf_info.texcoord.x, surf_info.texcoord.y);
+    shading_params.specular_roughness = mr.y;
+    shading_params.metalness = mr.z;
+  }
+
   // coat
   shading_params.coat = material.coat;
 

@@ -583,6 +583,12 @@ struct Scene {
       // metalness
       m_materials[i].metalness = pmr.metallicFactor;
 
+      // metallic roughness(texture)
+      if (pmr.metallicRoughnessTexture.index != -1) {
+        m_materials[i].metallic_roughness_texture_id =
+            pmr.metallicRoughnessTexture.index;
+      }
+
       // normal texture
       if (material.normalTexture.index != -1) {
         m_materials[i].normalmap_texture_id = material.normalTexture.index;
