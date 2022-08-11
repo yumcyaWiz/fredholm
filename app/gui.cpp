@@ -146,7 +146,8 @@ int main()
                   "Transmission Test\0Sheen Test\0Diffuse Test\0Diffuse "
                   "Transmission Test\0Texture "
                   "Test\0Normal Map Test\0Specular White Furnace "
-                  "Test\0Coat White Furnace Test\0glTF Test\0\0")) {
+                  "Test\0Coat White Furnace Test\0Metal Rough Spheres\0glTF "
+                  "Test\0\0")) {
             controller.load_scene();
           }
 
