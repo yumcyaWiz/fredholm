@@ -151,7 +151,7 @@ struct Scene {
   std::vector<Material> m_materials;
   std::vector<Texture> m_textures;
 
-  std::vector<glm::mat3x4> m_transforms = {};
+  std::vector<glm::mat4> m_transforms = {};
 
   Scene() {}
 
@@ -506,6 +506,9 @@ struct Scene {
 
       // fill n_faces of sub-mesh
       m_submesh_n_faces.push_back(m_indices.size() - prev_indices_size);
+
+      // fill transforms
+      m_transforms.push_back(glm::identity<glm::mat4>());
     }
 
     // fill submesh vertices, normals, texcoords
@@ -733,6 +736,59 @@ struct Scene {
         m_submesh_offsets.push_back(prev_indices_size);
         m_submesh_n_faces.push_back(m_indices.size() - prev_indices_size);
         prev_indices_size = m_indices.size();
+
+        // transform
+        glm::vec3 translation = glm::vec3(0, 0, 0);
+        if (node.translation.size() == 3) {
+          translation.x = node.translation[0];
+          translation.y = node.translation[1];
+          translation.z = node.translation[2];
+        }
+        printf("%f, %f, %f\n", translation.x, translation.y, translation.z);
+
+        glm::quat rotation = glm::quat(0, 0, 0, 1);
+        if (node.rotation.size() == 4) {
+          rotation.x = node.rotation[0];
+          rotation.y = node.rotation[1];
+          rotation.z = node.rotation[2];
+          rotation.w = node.rotation[3];
+        }
+
+        glm::vec3 scale = glm::vec3(1, 1, 1);
+        if (node.scale.size() == 3) {
+          scale.x = node.scale[0];
+          scale.y = node.scale[1];
+          scale.z = node.scale[2];
+        }
+
+        glm::mat4 transform = glm::identity<glm::mat4>();
+        transform = glm::translate(transform, translation);
+        transform *= glm::mat4_cast(rotation);
+        transform = glm::scale(transform, scale);
+
+        if (node.matrix.size() == 16) {
+          transform[0][0] = node.matrix[0];
+          transform[0][1] = node.matrix[1];
+          transform[0][2] = node.matrix[2];
+          transform[0][3] = node.matrix[3];
+
+          transform[1][0] = node.matrix[4];
+          transform[1][1] = node.matrix[5];
+          transform[1][2] = node.matrix[6];
+          transform[1][3] = node.matrix[7];
+
+          transform[2][0] = node.matrix[8];
+          transform[2][1] = node.matrix[9];
+          transform[2][2] = node.matrix[10];
+          transform[2][3] = node.matrix[11];
+
+          transform[3][0] = node.matrix[12];
+          transform[3][1] = node.matrix[13];
+          transform[3][2] = node.matrix[14];
+          transform[3][3] = node.matrix[15];
+        }
+
+        m_transforms.push_back(transform);
       }
     }
 

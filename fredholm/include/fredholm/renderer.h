@@ -361,6 +361,7 @@ class Renderer
 
     m_submesh_offsets = scene.m_submesh_offsets;
     m_submesh_n_faces = scene.m_submesh_n_faces;
+    m_transforms = scene.m_transforms;
 
     m_d_vertices = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_vertices);
     m_d_indices = std::make_unique<cwl::CUDABuffer<uint3>>(scene.m_indices);
@@ -482,7 +483,10 @@ class Renderer
       OptixInstance instance = {};
 
       // identify matrix
-      float transform[] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+      const glm::mat4& mat = m_transforms[submesh_idx];
+      float transform[] = {mat[0][0], mat[1][0], mat[2][0], mat[3][0],
+                           mat[0][1], mat[1][1], mat[2][1], mat[3][1],
+                           mat[0][2], mat[1][2], mat[2][2], mat[3][2]};
       memcpy(instance.transform, transform, sizeof(float) * 12);
 
       instance.instanceId = submesh_idx;
@@ -684,6 +688,7 @@ class Renderer
   // scene data on host
   std::vector<uint> m_submesh_offsets = {};
   std::vector<uint> m_submesh_n_faces = {};
+  std::vector<glm::mat4> m_transforms = {};
 
   // scene data on device
   std::unique_ptr<cwl::CUDABuffer<float3>> m_d_vertices = nullptr;
