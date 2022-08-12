@@ -3,6 +3,7 @@
 #include <optix.h>
 
 #include "fredholm/arhosek.h"
+#include "sutil/vec_math.h"
 
 namespace fredholm
 {
@@ -157,6 +158,28 @@ struct RenderLayer {
   float4* texcoord;
   float4* albedo;
 };
+
+struct Matrix3x4 {
+  // column major
+  float4 m[3];
+};
+
+__forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
+                                                          const float4& c1,
+                                                          const float4& c2)
+{
+  Matrix3x4 m;
+  m.m[0] = c0;
+  m.m[1] = c1;
+  m.m[2] = c2;
+  return m;
+}
+
+__forceinline__ __host__ __device__ float4 operator*(const Matrix3x4& m,
+                                                     const float4& v)
+{
+  return make_float4(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v), v.w);
+}
 
 struct LaunchParams {
   RenderLayer render_layer;
