@@ -313,10 +313,7 @@ class Renderer
 
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
-      hit_record.data.vertices = m_d_vertices->get_device_ptr();
       hit_record.data.indices = m_d_indices->get_device_ptr() + submesh_offset;
-      hit_record.data.normals = m_d_normals->get_device_ptr();
-      hit_record.data.texcoords = m_d_texcoords->get_device_ptr();
       hit_record.data.material_ids =
           m_d_material_ids->get_device_ptr() + submesh_offset;
       OPTIX_CHECK(optixSbtRecordPackHeader(m_radiance_hit_group, &hit_record));
@@ -648,6 +645,10 @@ class Renderer
 
     params.object_to_world = m_d_object_to_world->get_device_ptr();
     params.world_to_object = m_d_world_to_object->get_device_ptr();
+
+    params.vertices = m_d_vertices->get_device_ptr();
+    params.normals = m_d_normals->get_device_ptr();
+    params.texcoords = m_d_texcoords->get_device_ptr();
 
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_headers->get_device_ptr();

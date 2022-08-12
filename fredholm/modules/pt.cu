@@ -136,10 +136,9 @@ static __forceinline__ __device__ float3 get_emission(const Material& material,
 }
 
 static __forceinline__ __device__ void fill_surface_info(
-    const float3* vertices, const uint3* indices, const float3* normals,
-    const float2* texcoords, const float3& ray_origin,
-    const float3& ray_direction, float ray_tmax, const float2& barycentric,
-    uint prim_idx, uint instance_idx, SurfaceInfo& info)
+    const float3& ray_origin, const float3& ray_direction, float ray_tmax,
+    const float2& barycentric, uint3* indices, uint prim_idx, uint instance_idx,
+    SurfaceInfo& info)
 {
   info.t = ray_tmax;
   info.barycentric = barycentric;
@@ -148,23 +147,23 @@ static __forceinline__ __device__ void fill_surface_info(
   const Matrix3x4& world_to_object = params.world_to_object[instance_idx];
 
   const uint3 idx = indices[prim_idx];
-  const float3 v0 = transform_position(object_to_world, vertices[idx.x]);
-  const float3 v1 = transform_position(object_to_world, vertices[idx.y]);
-  const float3 v2 = transform_position(object_to_world, vertices[idx.z]);
+  const float3 v0 = transform_position(object_to_world, params.vertices[idx.x]);
+  const float3 v1 = transform_position(object_to_world, params.vertices[idx.y]);
+  const float3 v2 = transform_position(object_to_world, params.vertices[idx.z]);
   // surface based robust hit position, Ray Tracing Gems Chapter 6
   info.x = (1.0f - info.barycentric.x - info.barycentric.y) * v0 +
            info.barycentric.x * v1 + info.barycentric.y * v2;
   info.n_g = normalize(cross(v1 - v0, v2 - v0));
 
-  const float3 n0 = transform_normal(world_to_object, normals[idx.x]);
-  const float3 n1 = transform_normal(world_to_object, normals[idx.y]);
-  const float3 n2 = transform_normal(world_to_object, normals[idx.z]);
+  const float3 n0 = transform_normal(world_to_object, params.normals[idx.x]);
+  const float3 n1 = transform_normal(world_to_object, params.normals[idx.y]);
+  const float3 n2 = transform_normal(world_to_object, params.normals[idx.z]);
   info.n_s = normalize((1.0f - info.barycentric.x - info.barycentric.y) * n0 +
                        info.barycentric.x * n1 + info.barycentric.y * n2);
 
-  const float2 tex0 = texcoords[idx.x];
-  const float2 tex1 = texcoords[idx.y];
-  const float2 tex2 = texcoords[idx.z];
+  const float2 tex0 = params.texcoords[idx.x];
+  const float2 tex1 = params.texcoords[idx.y];
+  const float2 tex2 = params.texcoords[idx.z];
   info.texcoord = (1.0f - info.barycentric.x - info.barycentric.y) * tex0 +
                   info.barycentric.x * tex1 + info.barycentric.y * tex2;
 
@@ -277,11 +276,8 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   shading_params.thin_walled = material.thin_walled;
 }
 
-// TODO: use global vertices, normals, texcoords
 static __forceinline__ __device__ float3 sample_position_on_light(
-    const float u, const float2& v, const float3* vertices,
-    const uint3* indices, const float3* normals, const float2* texcoords,
-    float3& le, float3& n, float& pdf)
+    const float u, const float2& v, float3& le, float3& n, float& pdf)
 {
   // sample light
   const uint light_idx =
@@ -295,17 +291,17 @@ static __forceinline__ __device__ float3 sample_position_on_light(
   const Matrix3x4& world_to_object = params.world_to_object[light.instance_idx];
 
   const uint3& idx = light.indices;
-  const float3 v0 = transform_position(object_to_world, vertices[idx.x]);
-  const float3 v1 = transform_position(object_to_world, vertices[idx.y]);
-  const float3 v2 = transform_position(object_to_world, vertices[idx.z]);
+  const float3 v0 = transform_position(object_to_world, params.vertices[idx.x]);
+  const float3 v1 = transform_position(object_to_world, params.vertices[idx.y]);
+  const float3 v2 = transform_position(object_to_world, params.vertices[idx.z]);
 
-  const float3 n0 = transform_normal(world_to_object, normals[idx.x]);
-  const float3 n1 = transform_normal(world_to_object, normals[idx.y]);
-  const float3 n2 = transform_normal(world_to_object, normals[idx.z]);
+  const float3 n0 = transform_normal(world_to_object, params.normals[idx.x]);
+  const float3 n1 = transform_normal(world_to_object, params.normals[idx.y]);
+  const float3 n2 = transform_normal(world_to_object, params.normals[idx.z]);
 
-  const float2 tex0 = texcoords[idx.x];
-  const float2 tex1 = texcoords[idx.y];
-  const float2 tex2 = texcoords[idx.z];
+  const float2 tex0 = params.texcoords[idx.x];
+  const float2 tex1 = params.texcoords[idx.y];
+  const float2 tex2 = params.texcoords[idx.z];
 
   const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
                    barycentric.x * v1 + barycentric.y * v2;
@@ -551,9 +547,9 @@ extern "C" __global__ void __anyhit__radiance()
 
   // calc texcoord
   const uint3 idx = sbt->indices[prim_idx];
-  const float2 tex0 = sbt->texcoords[idx.x];
-  const float2 tex1 = sbt->texcoords[idx.y];
-  const float2 tex2 = sbt->texcoords[idx.z];
+  const float2 tex0 = params.texcoords[idx.x];
+  const float2 tex1 = params.texcoords[idx.y];
+  const float2 tex2 = params.texcoords[idx.z];
   const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                           barycentric.x * tex1 + barycentric.y * tex2;
 
@@ -596,9 +592,9 @@ extern "C" __global__ void __anyhit__shadow()
 
   // calc texcoord
   const uint3 idx = sbt->indices[prim_idx];
-  const float2 tex0 = sbt->texcoords[idx.x];
-  const float2 tex1 = sbt->texcoords[idx.y];
-  const float2 tex2 = sbt->texcoords[idx.z];
+  const float2 tex0 = params.texcoords[idx.x];
+  const float2 tex1 = params.texcoords[idx.y];
+  const float2 tex2 = params.texcoords[idx.z];
   const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                           barycentric.x * tex1 + barycentric.y * tex2;
 
@@ -641,9 +637,9 @@ extern "C" __global__ void __anyhit__light()
 
   // calc texcoord
   const uint3 idx = sbt->indices[prim_idx];
-  const float2 tex0 = sbt->texcoords[idx.x];
-  const float2 tex1 = sbt->texcoords[idx.y];
-  const float2 tex2 = sbt->texcoords[idx.z];
+  const float2 tex0 = params.texcoords[idx.x];
+  const float2 tex1 = params.texcoords[idx.y];
+  const float2 tex2 = params.texcoords[idx.z];
   const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                           barycentric.x * tex1 + barycentric.y * tex2;
 
@@ -690,9 +686,8 @@ extern "C" __global__ void __closesthit__radiance()
   const float2 barycentric = optixGetTriangleBarycentrics();
 
   SurfaceInfo surf_info;
-  fill_surface_info(sbt->vertices, sbt->indices, sbt->normals, sbt->texcoords,
-                    ray_origin, ray_direction, ray_tmax, barycentric, prim_idx,
-                    instance_idx, surf_info);
+  fill_surface_info(ray_origin, ray_direction, ray_tmax, barycentric,
+                    sbt->indices, prim_idx, instance_idx, surf_info);
 
   ShadingParams shading_params;
   fill_shading_params(material, surf_info, params.textures, shading_params);
@@ -855,10 +850,9 @@ extern "C" __global__ void __closesthit__radiance()
     if (params.n_lights > 0) {
       float3 le, n;
       float pdf_area;
-      const float3 p = sample_position_on_light(
-          sample_1d(payload->sampler), sample_2d(payload->sampler),
-          sbt->vertices, sbt->indices, sbt->normals, sbt->texcoords, le, n,
-          pdf_area);
+      const float3 p = sample_position_on_light(sample_1d(payload->sampler),
+                                                sample_2d(payload->sampler), le,
+                                                n, pdf_area);
 
       const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
       const float r = length(p - shadow_ray_origin);
@@ -959,17 +953,17 @@ extern "C" __global__ void __closesthit__light()
   const Material& material = params.materials[material_id];
 
   const uint3 idx = sbt->indices[prim_idx];
-  const float3 v0 = transform_position(object_to_world, sbt->vertices[idx.x]);
-  const float3 v1 = transform_position(object_to_world, sbt->vertices[idx.y]);
-  const float3 v2 = transform_position(object_to_world, sbt->vertices[idx.z]);
+  const float3 v0 = transform_position(object_to_world, params.vertices[idx.x]);
+  const float3 v1 = transform_position(object_to_world, params.vertices[idx.y]);
+  const float3 v2 = transform_position(object_to_world, params.vertices[idx.z]);
 
-  const float3 n0 = transform_normal(world_to_object, sbt->normals[idx.x]);
-  const float3 n1 = transform_normal(world_to_object, sbt->normals[idx.y]);
-  const float3 n2 = transform_normal(world_to_object, sbt->normals[idx.z]);
+  const float3 n0 = transform_normal(world_to_object, params.normals[idx.x]);
+  const float3 n1 = transform_normal(world_to_object, params.normals[idx.y]);
+  const float3 n2 = transform_normal(world_to_object, params.normals[idx.z]);
 
-  const float2 tex0 = sbt->texcoords[idx.x];
-  const float2 tex1 = sbt->texcoords[idx.y];
-  const float2 tex2 = sbt->texcoords[idx.z];
+  const float2 tex0 = params.texcoords[idx.x];
+  const float2 tex1 = params.texcoords[idx.y];
+  const float2 tex2 = params.texcoords[idx.z];
 
   const float2 barycentric = optixGetTriangleBarycentrics();
   const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +

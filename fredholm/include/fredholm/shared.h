@@ -216,6 +216,10 @@ struct LaunchParams {
   Matrix3x4* object_to_world;
   Matrix3x4* world_to_object;
 
+  float3* vertices;
+  float3* normals;
+  float2* texcoords;
+
   Material* materials;
   TextureHeader* textures;
 
@@ -240,10 +244,7 @@ struct MissSbtRecordData {
 };
 
 struct HitGroupSbtRecordData {
-  float3* vertices;
   uint3* indices;
-  float3* normals;
-  float2* texcoords;
   uint* material_ids;
 };
 
