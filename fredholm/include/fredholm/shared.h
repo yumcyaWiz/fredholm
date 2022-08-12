@@ -88,6 +88,7 @@ struct Material {
 
   float emission = 0;
   float3 emission_color = make_float3(0, 0, 0);
+  int emission_texture_id = -1;
 
   int heightmap_texture_id = -1;
   int normalmap_texture_id = -1;
@@ -100,8 +101,8 @@ struct TextureHeader {
 };
 
 struct AreaLight {
-  float3 le;          // emission
-  uint3 indices;      // indices of vertex array
+  Material material;  // TODO: use global material array
+  uint3 indices;
   uint instance_idx;  // instance id
 };
 

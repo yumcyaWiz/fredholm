@@ -392,15 +392,14 @@ class Renderer
     m_d_texture_headers =
         std::make_unique<cwl::CUDABuffer<TextureHeader>>(texture_headers);
 
-    // TODO: handle emission texture
     std::vector<AreaLight> lights;
     for (int face_idx = 0; face_idx < scene.m_material_ids.size(); ++face_idx) {
       const uint material_id = scene.m_material_ids[face_idx];
       const Material& m = scene.m_materials[material_id];
       if (m.emission_color.x > 0 || m.emission_color.y > 0 ||
-          m.emission_color.z > 0) {
+          m.emission_color.z > 0 || m.emission_texture_id != -1) {
         AreaLight light;
-        light.le = m.emission_color;
+        light.material = scene.m_materials[scene.m_material_ids[face_idx]];
         light.indices = scene.m_indices[face_idx];
         light.instance_idx = scene.m_instance_ids[face_idx];
         lights.push_back(light);

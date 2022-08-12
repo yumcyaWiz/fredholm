@@ -122,7 +122,17 @@ static __forceinline__ __device__ void trace_light(
 static __forceinline__ __device__ bool has_emission(const Material& material)
 {
   return (material.emission_color.x > 0 || material.emission_color.y > 0 ||
-          material.emission_color.z > 0);
+          material.emission_color.z > 0 || material.emission_texture_id != -1);
+}
+
+static __forceinline__ __device__ float3 get_emission(const Material& material,
+                                                      const float2& texcoord)
+{
+  return material.emission_texture_id >= 0
+             ? make_float3(tex2D<float4>(
+                   params.textures[material.emission_texture_id].texture_object,
+                   texcoord.x, texcoord.y))
+             : material.emission_color;
 }
 
 static __forceinline__ __device__ void fill_surface_info(
@@ -267,10 +277,11 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
   shading_params.thin_walled = material.thin_walled;
 }
 
-static __forceinline__ __device__ float3
-sample_position_on_light(const float u, const float2& v, const float3* vertices,
-                         const uint3* indices, const float3* normals,
-                         float3& le, float3& n, float& pdf)
+// TODO: use global vertices, normals, texcoords
+static __forceinline__ __device__ float3 sample_position_on_light(
+    const float u, const float2& v, const float3* vertices,
+    const uint3* indices, const float3* normals, const float2* texcoords,
+    float3& le, float3& n, float& pdf)
 {
   // sample light
   const uint light_idx =
@@ -287,17 +298,25 @@ sample_position_on_light(const float u, const float2& v, const float3* vertices,
   const float3 v0 = transform_position(object_to_world, vertices[idx.x]);
   const float3 v1 = transform_position(object_to_world, vertices[idx.y]);
   const float3 v2 = transform_position(object_to_world, vertices[idx.z]);
+
   const float3 n0 = transform_normal(world_to_object, normals[idx.x]);
   const float3 n1 = transform_normal(world_to_object, normals[idx.y]);
   const float3 n2 = transform_normal(world_to_object, normals[idx.z]);
+
+  const float2 tex0 = texcoords[idx.x];
+  const float2 tex1 = texcoords[idx.y];
+  const float2 tex2 = texcoords[idx.z];
 
   const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
                    barycentric.x * v1 + barycentric.y * v2;
   n = (1.0f - barycentric.x - barycentric.y) * n0 + barycentric.x * n1 +
       barycentric.y * n2;
+  const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                          barycentric.x * tex1 + barycentric.y * tex2;
+
   const float area = 0.5f * length(cross(v1 - v0, v2 - v0));
 
-  le = light.le;
+  le = get_emission(light.material, texcoord);
   pdf = 1.0f / (params.n_lights * area);
 
   return p;
@@ -728,7 +747,8 @@ extern "C" __global__ void __closesthit__radiance()
 
     // first hit light case
     if (has_emission(material)) {
-      payload->radiance += payload->throughput * material.emission_color;
+      payload->radiance +=
+          payload->throughput * get_emission(material, surf_info.texcoord);
       payload->done = true;
       return;
     }
@@ -837,7 +857,8 @@ extern "C" __global__ void __closesthit__radiance()
       float pdf_area;
       const float3 p = sample_position_on_light(
           sample_1d(payload->sampler), sample_2d(payload->sampler),
-          sbt->vertices, sbt->indices, sbt->normals, le, n, pdf_area);
+          sbt->vertices, sbt->indices, sbt->normals, sbt->texcoords, le, n,
+          pdf_area);
 
       const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
       const float r = length(p - shadow_ray_origin);
@@ -941,19 +962,26 @@ extern "C" __global__ void __closesthit__light()
   const float3 v0 = transform_position(object_to_world, sbt->vertices[idx.x]);
   const float3 v1 = transform_position(object_to_world, sbt->vertices[idx.y]);
   const float3 v2 = transform_position(object_to_world, sbt->vertices[idx.z]);
+
   const float3 n0 = transform_normal(world_to_object, sbt->normals[idx.x]);
   const float3 n1 = transform_normal(world_to_object, sbt->normals[idx.y]);
   const float3 n2 = transform_normal(world_to_object, sbt->normals[idx.z]);
+
+  const float2 tex0 = sbt->texcoords[idx.x];
+  const float2 tex1 = sbt->texcoords[idx.y];
+  const float2 tex2 = sbt->texcoords[idx.z];
 
   const float2 barycentric = optixGetTriangleBarycentrics();
   const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
                    barycentric.x * v1 + barycentric.y * v2;
   const float3 n = (1.0f - barycentric.x - barycentric.y) * n0 +
                    barycentric.x * n1 + barycentric.y * n2;
+  const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                          barycentric.x * tex1 + barycentric.y * tex2;
 
   if (has_emission(material) && dot(-payload->direction, n) > 0.0f) {
     payload->hit = true;
-    payload->le = material.emission_color;
+    payload->le = get_emission(material, texcoord);
     payload->p = p;
     payload->n = n;
     payload->area = 0.5f * length(cross(v1 - v0, v2 - v0));

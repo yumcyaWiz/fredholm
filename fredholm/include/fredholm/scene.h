@@ -633,6 +633,19 @@ struct Scene {
         }
       }
 
+      // emission
+      if (material.emissiveFactor.size() == 3) {
+        m_materials[i].emission = 1.0f;
+        m_materials[i].emission_color =
+            make_float3(material.emissiveFactor[0], material.emissiveFactor[1],
+                        material.emissiveFactor[2]);
+      }
+
+      // emission texture
+      if (material.emissiveTexture.index != -1) {
+        m_materials[i].emission_texture_id = material.emissiveTexture.index;
+      }
+
       // normal texture
       if (material.normalTexture.index != -1) {
         m_materials[i].normalmap_texture_id = material.normalTexture.index;
