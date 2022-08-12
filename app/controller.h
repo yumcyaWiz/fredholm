@@ -55,6 +55,7 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/coat_white_furnace_test/spheres.obj",
     "../resources/metal_rough_spheres/MetalRoughSpheres.gltf",
     "../resources/clear_coat_test/ClearCoatTest.gltf",
+    "../resources/emission_texture_test/emission_texture_test.gltf",
     "../resources/instance_test/instance_test.gltf",
     "../resources/box/Box.gltf",
     "../resources/cube/Cube.gltf",
