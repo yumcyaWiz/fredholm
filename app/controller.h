@@ -55,7 +55,11 @@ static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/coat_white_furnace_test/spheres.obj",
     "../resources/metal_rough_spheres/MetalRoughSpheres.gltf",
     "../resources/clear_coat_test/ClearCoatTest.gltf",
-    "../resources/gltf_test/gltf_test.gltf"};
+    "../resources/instance_test/instance_test.gltf",
+    "../resources/box/Box.gltf",
+    "../resources/cube/Cube.gltf",
+    "../resources/gltf_test/gltf_test.gltf",
+    "../resources/gltf_test2/gltf_test2.gltf"};
 
 static std::vector<std::filesystem::path> ibl_filepaths = {
     "../resources/ibl/PaperMill_Ruins_E/PaperMill_E_3k.hdr"};
