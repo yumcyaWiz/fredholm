@@ -181,6 +181,30 @@ __forceinline__ __host__ __device__ float4 operator*(const Matrix3x4& m,
   return make_float4(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v), v.w);
 }
 
+__forceinline__ __host__ __device__ float3
+transform_position(const Matrix3x4& m, const float3& p)
+{
+  const float4 v = make_float4(p.x, p.y, p.z, 1.0f);
+  return make_float3(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v));
+}
+
+__forceinline__ __host__ __device__ float3
+transform_direction(const Matrix3x4& m, const float3& v)
+{
+  const float4 t = make_float4(v.x, v.y, v.z, 0.0f);
+  return make_float3(dot(m.m[0], t), dot(m.m[1], t), dot(m.m[2], t));
+}
+
+__forceinline__ __host__ __device__ float3 transform_normal(const Matrix3x4& m,
+                                                            const float3& n)
+{
+  const float4 c0 = make_float4(m.m[0].x, m.m[1].x, m.m[2].x, 0.0f);
+  const float4 c1 = make_float4(m.m[0].y, m.m[1].y, m.m[2].y, 0.0f);
+  const float4 c2 = make_float4(m.m[0].z, m.m[1].z, m.m[2].z, 0.0f);
+  const float4 t = make_float4(n.x, n.y, n.z, 0.0f);
+  return make_float3(dot(c0, t), dot(c1, t), dot(c2, t));
+}
+
 struct LaunchParams {
   RenderLayer render_layer;
   uint* sample_count;
@@ -192,6 +216,9 @@ struct LaunchParams {
   uint max_depth;
 
   CameraParams camera;
+
+  Matrix3x4* m_object_to_world;
+  Matrix3x4* m_world_to_object;
 
   Material* materials;
   TextureHeader* textures;
