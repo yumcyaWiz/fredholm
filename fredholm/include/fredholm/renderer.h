@@ -412,13 +412,13 @@ class Renderer
       const auto& m = m_transforms[i];
       const auto m_inv = glm::inverse(m);
       object_to_world[i] =
-          make_mat3x4(make_float4(m[0][0], m[0][1], m[0][2], m[0][3]),
-                      make_float4(m[1][0], m[1][1], m[1][2], m[1][3]),
-                      make_float4(m[2][0], m[2][1], m[2][2], m[2][3]));
+          make_mat3x4(make_float4(m[0][0], m[1][0], m[2][0], m[3][0]),
+                      make_float4(m[0][1], m[1][1], m[2][1], m[3][1]),
+                      make_float4(m[0][2], m[1][2], m[2][2], m[3][2]));
       world_to_object[i] = make_mat3x4(
-          make_float4(m_inv[0][0], m_inv[0][1], m_inv[0][2], m_inv[0][3]),
-          make_float4(m_inv[1][0], m_inv[1][1], m_inv[1][2], m_inv[1][3]),
-          make_float4(m_inv[2][0], m_inv[2][1], m_inv[2][2], m_inv[2][3]));
+          make_float4(m_inv[0][0], m_inv[1][0], m_inv[2][0], m_inv[3][0]),
+          make_float4(m_inv[0][1], m_inv[1][1], m_inv[2][1], m_inv[3][1]),
+          make_float4(m_inv[0][2], m_inv[1][2], m_inv[2][2], m_inv[3][2]));
     }
     m_d_object_to_world =
         std::make_unique<cwl::CUDABuffer<Matrix3x4>>(object_to_world);

@@ -673,7 +673,7 @@ struct Scene {
     spdlog::info("[tinygltf] loading node: {}", node.name);
 
     // load transform
-    glm::vec3 translation = glm::vec3(1, 0, 0);
+    glm::vec3 translation = glm::vec3(0, 0, 0);
     if (node.translation.size() == 3) {
       translation.x = node.translation[0];
       translation.y = node.translation[1];
