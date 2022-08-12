@@ -280,13 +280,16 @@ sample_position_on_light(const float u, const float2& v, const float3* vertices,
   // sample point on the light
   const float2 barycentric = sample_triangle(v);
 
-  const uint3 idx = light.indices;
-  const float3 v0 = vertices[idx.x];
-  const float3 v1 = vertices[idx.y];
-  const float3 v2 = vertices[idx.z];
-  const float3 n0 = normals[idx.x];
-  const float3 n1 = normals[idx.y];
-  const float3 n2 = normals[idx.z];
+  const Matrix3x4& object_to_world = params.object_to_world[light.instance_idx];
+  const Matrix3x4& world_to_object = params.world_to_object[light.instance_idx];
+
+  const uint3& idx = light.indices;
+  const float3 v0 = transform_position(object_to_world, vertices[idx.x]);
+  const float3 v1 = transform_position(object_to_world, vertices[idx.y]);
+  const float3 v2 = transform_position(object_to_world, vertices[idx.z]);
+  const float3 n0 = transform_normal(world_to_object, normals[idx.x]);
+  const float3 n1 = transform_normal(world_to_object, normals[idx.y]);
+  const float3 n2 = transform_normal(world_to_object, normals[idx.z]);
 
   const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
                    barycentric.x * v1 + barycentric.y * v2;

@@ -392,6 +392,7 @@ class Renderer
     m_d_texture_headers =
         std::make_unique<cwl::CUDABuffer<TextureHeader>>(texture_headers);
 
+    // TODO: handle emission texture
     std::vector<AreaLight> lights;
     for (int face_idx = 0; face_idx < scene.m_material_ids.size(); ++face_idx) {
       const uint material_id = scene.m_material_ids[face_idx];
@@ -401,6 +402,7 @@ class Renderer
         AreaLight light;
         light.le = m.emission_color;
         light.indices = scene.m_indices[face_idx];
+        light.instance_idx = scene.m_instance_ids[face_idx];
         lights.push_back(light);
       }
     }

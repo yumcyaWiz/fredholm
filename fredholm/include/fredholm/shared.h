@@ -100,8 +100,9 @@ struct TextureHeader {
 };
 
 struct AreaLight {
-  float3 le;      // emission
-  uint3 indices;  // indices of vertex array
+  float3 le;          // emission
+  uint3 indices;      // indices of vertex array
+  uint instance_idx;  // instance id
 };
 
 struct DirectionalLight {

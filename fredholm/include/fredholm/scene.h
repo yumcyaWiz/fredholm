@@ -155,6 +155,9 @@ struct Scene {
   // column major
   std::vector<glm::mat4> m_transforms = {};
 
+  // per-face instance id
+  std::vector<uint> m_instance_ids = {};
+
   Scene() {}
 
   bool is_valid() const
@@ -179,6 +182,8 @@ struct Scene {
     m_textures.clear();
 
     m_transforms.clear();
+
+    m_instance_ids.clear();
   }
 
   void load_model(const std::filesystem::path& filepath)
@@ -513,6 +518,12 @@ struct Scene {
 
       // fill transforms
       m_transforms.push_back(glm::identity<glm::mat4>());
+
+      // fill instance ids
+      // NOTE: there is no instance when loading obj
+      for (int f = 0; f < indices.size() / 3; ++f) {
+        m_instance_ids.push_back(0);
+      }
     }
 
     // fill submesh vertices, normals, texcoords
@@ -804,6 +815,11 @@ struct Scene {
         // material id
         for (int i = 0; i < indices_count / 3; ++i) {
           m_material_ids.push_back(primitive.material);
+        }
+
+        // instance id
+        for (int i = 0; i < indices_count / 3; ++i) {
+          m_instance_ids.push_back(m_submesh_offsets.size());
         }
 
         indices_offset += n_vertices;
