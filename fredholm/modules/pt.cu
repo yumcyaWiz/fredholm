@@ -235,7 +235,7 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
           ? tex2D<float4>(
                 textures[material.coat_roughness_texture_id].texture_object,
                 surf_info.texcoord.x, surf_info.texcoord.y)
-                .x
+                .y
           : material.coat_roughness,
       0.0f, 1.0f);
 
