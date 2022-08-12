@@ -175,12 +175,6 @@ __forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
   return m;
 }
 
-__forceinline__ __host__ __device__ float4 operator*(const Matrix3x4& m,
-                                                     const float4& v)
-{
-  return make_float4(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v), v.w);
-}
-
 __forceinline__ __host__ __device__ float3
 transform_position(const Matrix3x4& m, const float3& p)
 {
@@ -217,11 +211,12 @@ struct LaunchParams {
 
   CameraParams camera;
 
-  Matrix3x4* m_object_to_world;
-  Matrix3x4* m_world_to_object;
+  Matrix3x4* object_to_world;
+  Matrix3x4* world_to_object;
 
   Material* materials;
   TextureHeader* textures;
+
   AreaLight* lights;
   uint n_lights;
 

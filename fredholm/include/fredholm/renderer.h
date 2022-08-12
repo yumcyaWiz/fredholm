@@ -68,6 +68,9 @@ class Renderer
     if (m_d_texture_headers) { m_d_texture_headers.reset(); }
     if (m_d_lights) { m_d_lights.reset(); }
 
+    if (m_d_object_to_world) { m_d_object_to_world.reset(); }
+    if (m_d_world_to_object) { m_d_world_to_object.reset(); }
+
     // release GAS
     for (auto& gas_output_buffer : m_gas_output_buffers) {
       if (gas_output_buffer) { gas_output_buffer.reset(); }
@@ -403,6 +406,25 @@ class Renderer
     }
     m_d_lights = std::make_unique<cwl::CUDABuffer<AreaLight>>(lights);
 
+    std::vector<Matrix3x4> object_to_world(m_transforms.size());
+    std::vector<Matrix3x4> world_to_object(m_transforms.size());
+    for (int i = 0; i < m_transforms.size(); ++i) {
+      const auto& m = m_transforms[i];
+      const auto m_inv = glm::inverse(m);
+      object_to_world[i] =
+          make_mat3x4(make_float4(m[0][0], m[0][1], m[0][2], m[0][3]),
+                      make_float4(m[1][0], m[1][1], m[1][2], m[1][3]),
+                      make_float4(m[2][0], m[2][1], m[2][2], m[2][3]));
+      world_to_object[i] = make_mat3x4(
+          make_float4(m_inv[0][0], m_inv[0][1], m_inv[0][2], m_inv[0][3]),
+          make_float4(m_inv[1][0], m_inv[1][1], m_inv[1][2], m_inv[1][3]),
+          make_float4(m_inv[2][0], m_inv[2][1], m_inv[2][2], m_inv[2][3]));
+    }
+    m_d_object_to_world =
+        std::make_unique<cwl::CUDABuffer<Matrix3x4>>(object_to_world);
+    m_d_world_to_object =
+        std::make_unique<cwl::CUDABuffer<Matrix3x4>>(world_to_object);
+
     spdlog::info("[Renderer] number of vertices: {}",
                  m_d_indices->get_size() * 3);
     spdlog::info("[Renderer] number of faces: {}", m_d_indices->get_size());
@@ -410,6 +432,8 @@ class Renderer
                  m_d_materials->get_size());
     spdlog::info("[Renderer] number of textures: {}", m_d_textures.size());
     spdlog::info("[Renderer] number of lights: {}", m_d_lights->get_size());
+    spdlog::info("[Renderer] number of transforms: {}",
+                 m_d_object_to_world->get_size());
   }
 
   // TODO: separate GAS, IAS build(when setting transform, only IAS should be
@@ -621,6 +645,9 @@ class Renderer
     params.camera.F = camera.m_F;
     params.camera.focus = camera.m_focus;
 
+    params.object_to_world = m_d_object_to_world->get_device_ptr();
+    params.world_to_object = m_d_world_to_object->get_device_ptr();
+
     params.materials = m_d_materials->get_device_ptr();
     params.textures = m_d_texture_headers->get_device_ptr();
     params.lights = m_d_lights->get_device_ptr();
@@ -703,6 +730,9 @@ class Renderer
   std::unique_ptr<cwl::CUDABuffer<TextureHeader>> m_d_texture_headers = {};
 
   std::unique_ptr<cwl::CUDABuffer<AreaLight>> m_d_lights = {};
+
+  std::unique_ptr<cwl::CUDABuffer<Matrix3x4>> m_d_object_to_world = {};
+  std::unique_ptr<cwl::CUDABuffer<Matrix3x4>> m_d_world_to_object = {};
 
   // optix handles
   CUstream m_stream = 0;

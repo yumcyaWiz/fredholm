@@ -152,6 +152,7 @@ struct Scene {
   std::vector<Material> m_materials;
   std::vector<Texture> m_textures;
 
+  // column major
   std::vector<glm::mat4> m_transforms = {};
 
   Scene() {}
