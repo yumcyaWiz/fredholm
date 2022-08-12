@@ -101,8 +101,8 @@ struct TextureHeader {
 };
 
 struct AreaLight {
-  Material material;  // TODO: use global material array
   uint3 indices;
+  uint material_id;
   uint instance_idx;  // instance id
 };
 
@@ -166,6 +166,7 @@ struct Matrix3x4 {
   float4 m[3];
 };
 
+// TODO: rename c(column) to r(row)
 __forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
                                                           const float4& c1,
                                                           const float4& c2)

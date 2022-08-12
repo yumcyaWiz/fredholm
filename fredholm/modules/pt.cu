@@ -312,7 +312,7 @@ static __forceinline__ __device__ float3 sample_position_on_light(
 
   const float area = 0.5f * length(cross(v1 - v0, v2 - v0));
 
-  le = get_emission(light.material, texcoord);
+  le = get_emission(params.materials[light.material_id], texcoord);
   pdf = 1.0f / (params.n_lights * area);
 
   return p;
