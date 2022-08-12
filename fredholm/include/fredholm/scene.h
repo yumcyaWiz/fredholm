@@ -673,14 +673,14 @@ struct Scene {
     spdlog::info("[tinygltf] loading node: {}", node.name);
 
     // load transform
-    glm::vec3 translation = glm::vec3(0, 0, 0);
+    glm::vec3 translation = glm::vec3(1, 0, 0);
     if (node.translation.size() == 3) {
       translation.x = node.translation[0];
       translation.y = node.translation[1];
       translation.z = node.translation[2];
     }
 
-    glm::quat rotation = glm::quat(0, 0, 0, 1);
+    glm::quat rotation = glm::quat(1, 0, 0, 0);
     if (node.rotation.size() == 4) {
       rotation.x = node.rotation[0];
       rotation.y = node.rotation[1];
@@ -695,10 +695,11 @@ struct Scene {
       scale.z = node.scale[2];
     }
 
+    // create transform matrix
     glm::mat4 mat = glm::identity<glm::mat4>();
-    mat = glm::translate(mat, translation);
-    mat *= glm::mat4_cast(rotation);
     mat = glm::scale(mat, scale);
+    mat *= glm::mat4_cast(rotation);
+    mat = glm::translate(mat, translation);
 
     if (node.matrix.size() == 16) {
       mat[0][0] = node.matrix[0];
