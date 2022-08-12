@@ -129,23 +129,26 @@ static __forceinline__ __device__ void fill_surface_info(
     const float3* vertices, const uint3* indices, const float3* normals,
     const float2* texcoords, const float3& ray_origin,
     const float3& ray_direction, float ray_tmax, const float2& barycentric,
-    uint prim_idx, SurfaceInfo& info)
+    uint prim_idx, uint instance_idx, SurfaceInfo& info)
 {
   info.t = ray_tmax;
   info.barycentric = barycentric;
 
+  const Matrix3x4& object_to_world = params.object_to_world[instance_idx];
+  const Matrix3x4& world_to_object = params.world_to_object[instance_idx];
+
   const uint3 idx = indices[prim_idx];
-  const float3 v0 = vertices[idx.x];
-  const float3 v1 = vertices[idx.y];
-  const float3 v2 = vertices[idx.z];
+  const float3 v0 = transform_position(object_to_world, vertices[idx.x]);
+  const float3 v1 = transform_position(object_to_world, vertices[idx.y]);
+  const float3 v2 = transform_position(object_to_world, vertices[idx.z]);
   // surface based robust hit position, Ray Tracing Gems Chapter 6
   info.x = (1.0f - info.barycentric.x - info.barycentric.y) * v0 +
            info.barycentric.x * v1 + info.barycentric.y * v2;
   info.n_g = normalize(cross(v1 - v0, v2 - v0));
 
-  const float3 n0 = normals[idx.x];
-  const float3 n1 = normals[idx.y];
-  const float3 n2 = normals[idx.z];
+  const float3 n0 = transform_normal(world_to_object, normals[idx.x]);
+  const float3 n1 = transform_normal(world_to_object, normals[idx.y]);
+  const float3 n2 = transform_normal(world_to_object, normals[idx.z]);
   info.n_s = normalize((1.0f - info.barycentric.x - info.barycentric.y) * n0 +
                        info.barycentric.x * n1 + info.barycentric.y * n2);
 
@@ -653,6 +656,7 @@ extern "C" __global__ void __closesthit__radiance()
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
   const uint prim_idx = optixGetPrimitiveIndex();
+  const uint instance_idx = optixGetInstanceIndex();
 
   // get material info
   const uint material_id = sbt->material_ids[prim_idx];
@@ -666,7 +670,7 @@ extern "C" __global__ void __closesthit__radiance()
   SurfaceInfo surf_info;
   fill_surface_info(sbt->vertices, sbt->indices, sbt->normals, sbt->texcoords,
                     ray_origin, ray_direction, ray_tmax, barycentric, prim_idx,
-                    surf_info);
+                    instance_idx, surf_info);
 
   ShadingParams shading_params;
   fill_shading_params(material, surf_info, params.textures, shading_params);
@@ -921,18 +925,22 @@ extern "C" __global__ void __closesthit__light()
   const HitGroupSbtRecordData* sbt =
       reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
   const uint prim_idx = optixGetPrimitiveIndex();
+  const uint instance_idx = optixGetInstanceIndex();
+
+  const Matrix3x4& object_to_world = params.object_to_world[instance_idx];
+  const Matrix3x4& world_to_object = params.world_to_object[instance_idx];
 
   // get material info
   const uint material_id = sbt->material_ids[prim_idx];
   const Material& material = params.materials[material_id];
 
   const uint3 idx = sbt->indices[prim_idx];
-  const float3 v0 = sbt->vertices[idx.x];
-  const float3 v1 = sbt->vertices[idx.y];
-  const float3 v2 = sbt->vertices[idx.z];
-  const float3 n0 = sbt->normals[idx.x];
-  const float3 n1 = sbt->normals[idx.y];
-  const float3 n2 = sbt->normals[idx.z];
+  const float3 v0 = transform_position(object_to_world, sbt->vertices[idx.x]);
+  const float3 v1 = transform_position(object_to_world, sbt->vertices[idx.y]);
+  const float3 v2 = transform_position(object_to_world, sbt->vertices[idx.z]);
+  const float3 n0 = transform_normal(world_to_object, sbt->normals[idx.x]);
+  const float3 n1 = transform_normal(world_to_object, sbt->normals[idx.y]);
+  const float3 n2 = transform_normal(world_to_object, sbt->normals[idx.z]);
 
   const float2 barycentric = optixGetTriangleBarycentrics();
   const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
