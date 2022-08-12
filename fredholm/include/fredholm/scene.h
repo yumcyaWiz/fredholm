@@ -151,6 +151,8 @@ struct Scene {
   std::vector<Material> m_materials;
   std::vector<Texture> m_textures;
 
+  std::vector<glm::mat3x4> m_transforms = {};
+
   Scene() {}
 
   bool is_valid() const
@@ -640,91 +642,97 @@ struct Scene {
     // load sub meshes
     int indices_offset = 0;
     int prev_indices_size = 0;
-    for (const auto& mesh : model.meshes) {
-      spdlog::info("[tinygltf] loading mesh: {}", mesh.name);
-      spdlog::info("[tinygltf] number of primitives: {}",
-                   mesh.primitives.size());
+    for (const auto& node : model.nodes) {
+      if (node.mesh != -1) {
+        const auto& mesh = model.meshes[node.mesh];
+        spdlog::info("[tinygltf] loading mesh: {}", mesh.name);
+        spdlog::info("[tinygltf] number of primitives: {}",
+                     mesh.primitives.size());
 
-      // load primitives
-      // NOTE: assuming each primitive has position, normal, texcoord
-      for (const auto& primitive : mesh.primitives) {
-        // indices
-        int indices_stride, indices_count;
-        const auto indices_raw =
-            get_buffer(model, primitive.indices, indices_stride, indices_count);
-        if (indices_stride != 2) {
-          throw std::runtime_error("indices stride is not ushort");
-        }
+        // load primitives
+        // NOTE: assuming each primitive has position, normal, texcoord
+        for (const auto& primitive : mesh.primitives) {
+          // indices
+          int indices_stride, indices_count;
+          const auto indices_raw = get_buffer(model, primitive.indices,
+                                              indices_stride, indices_count);
+          if (indices_stride != 2) {
+            throw std::runtime_error("indices stride is not ushort");
+          }
 
-        const auto indices =
-            reinterpret_cast<const unsigned short*>(indices_raw);
-        for (int i = 0; i < indices_count / 3; ++i) {
-          m_indices.push_back(make_uint3(indices[3 * i + 0] + indices_offset,
-                                         indices[3 * i + 1] + indices_offset,
-                                         indices[3 * i + 2] + indices_offset));
-        }
+          const auto indices =
+              reinterpret_cast<const unsigned short*>(indices_raw);
+          for (int i = 0; i < indices_count / 3; ++i) {
+            m_indices.push_back(
+                make_uint3(indices[3 * i + 0] + indices_offset,
+                           indices[3 * i + 1] + indices_offset,
+                           indices[3 * i + 2] + indices_offset));
+          }
 
-        // positions, normals, texcoords
-        int n_vertices = 0;
-        for (const auto& attribute : primitive.attributes) {
-          if (attribute.first == "POSITION") {
-            int positions_stride, positions_count;
-            const auto positions_raw = get_buffer(
-                model, attribute.second, positions_stride, positions_count);
-            if (positions_stride != 12) {
-              throw std::runtime_error("positions stride is not float3");
-            }
+          // positions, normals, texcoords
+          int n_vertices = 0;
+          for (const auto& attribute : primitive.attributes) {
+            if (attribute.first == "POSITION") {
+              int positions_stride, positions_count;
+              const auto positions_raw = get_buffer(
+                  model, attribute.second, positions_stride, positions_count);
+              if (positions_stride != 12) {
+                throw std::runtime_error("positions stride is not float3");
+              }
 
-            const auto positions =
-                reinterpret_cast<const float*>(positions_raw);
+              const auto positions =
+                  reinterpret_cast<const float*>(positions_raw);
 
-            for (int i = 0; i < positions_count; ++i) {
-              m_vertices.push_back(make_float3(positions[3 * i + 0],
-                                               positions[3 * i + 1],
-                                               positions[3 * i + 2]));
-            }
+              for (int i = 0; i < positions_count; ++i) {
+                m_vertices.push_back(make_float3(positions[3 * i + 0],
+                                                 positions[3 * i + 1],
+                                                 positions[3 * i + 2]));
+              }
 
-            n_vertices += positions_count;
-          } else if (attribute.first == "NORMAL") {
-            int normals_stride, normals_count;
-            const auto normals_raw = get_buffer(model, attribute.second,
-                                                normals_stride, normals_count);
-            if (normals_stride != 12) {
-              throw std::runtime_error("normals stride is not float3");
-            }
+              n_vertices += positions_count;
+            } else if (attribute.first == "NORMAL") {
+              int normals_stride, normals_count;
+              const auto normals_raw = get_buffer(
+                  model, attribute.second, normals_stride, normals_count);
+              if (normals_stride != 12) {
+                throw std::runtime_error("normals stride is not float3");
+              }
 
-            const auto normals = reinterpret_cast<const float*>(normals_raw);
-            for (int i = 0; i < normals_count; ++i) {
-              m_normals.push_back(make_float3(
-                  normals[3 * i + 0], normals[3 * i + 1], normals[3 * i + 2]));
-            }
-          } else if (attribute.first == "TEXCOORD_0") {
-            int texcoord_stride, texcoord_count;
-            const auto texcoord_raw = get_buffer(
-                model, attribute.second, texcoord_stride, texcoord_count);
-            if (texcoord_stride != 8) {
-              throw std::runtime_error("texcoord stride is not float2");
-            }
+              const auto normals = reinterpret_cast<const float*>(normals_raw);
+              for (int i = 0; i < normals_count; ++i) {
+                m_normals.push_back(make_float3(normals[3 * i + 0],
+                                                normals[3 * i + 1],
+                                                normals[3 * i + 2]));
+              }
+            } else if (attribute.first == "TEXCOORD_0") {
+              int texcoord_stride, texcoord_count;
+              const auto texcoord_raw = get_buffer(
+                  model, attribute.second, texcoord_stride, texcoord_count);
+              if (texcoord_stride != 8) {
+                throw std::runtime_error("texcoord stride is not float2");
+              }
 
-            const auto texcoord = reinterpret_cast<const float*>(texcoord_raw);
-            for (int i = 0; i < texcoord_count; ++i) {
-              m_texcoords.push_back(
-                  make_float2(texcoord[2 * i + 0], 1.0f - texcoord[2 * i + 1]));
+              const auto texcoord =
+                  reinterpret_cast<const float*>(texcoord_raw);
+              for (int i = 0; i < texcoord_count; ++i) {
+                m_texcoords.push_back(make_float2(texcoord[2 * i + 0],
+                                                  1.0f - texcoord[2 * i + 1]));
+              }
             }
           }
+
+          // material id
+          for (int i = 0; i < indices_count / 3; ++i) {
+            m_material_ids.push_back(primitive.material);
+          }
+
+          indices_offset += n_vertices;
         }
 
         // submesh offset, submesh nfaces
         m_submesh_offsets.push_back(prev_indices_size);
         m_submesh_n_faces.push_back(m_indices.size() - prev_indices_size);
         prev_indices_size = m_indices.size();
-
-        // material id
-        for (int i = 0; i < indices_count / 3; ++i) {
-          m_material_ids.push_back(primitive.material);
-        }
-
-        indices_offset += n_vertices;
       }
     }
 
