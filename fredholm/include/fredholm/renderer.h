@@ -140,7 +140,7 @@ class Renderer
     // TODO: move these outside this function as much as possible
     m_pipeline_compile_options.usesMotionBlur = false;
     m_pipeline_compile_options.traversableGraphFlags =
-        OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_GAS;
+        OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
     m_pipeline_compile_options.numPayloadValues = 3;
     m_pipeline_compile_options.numAttributeValues = 3;
     m_pipeline_compile_options.usesPrimitiveTypeFlags =
@@ -746,7 +746,7 @@ class Renderer
 
   bool m_enable_validation_mode = false;
 
-  uint32_t m_max_traversable_depth = 1;
+  uint32_t m_max_traversable_depth = 2;
   uint32_t m_max_trace_depth = 2;
 
   // scene data on host
