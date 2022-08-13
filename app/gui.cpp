@@ -148,7 +148,8 @@ int main()
                   "Test\0Normal Map Test\0Specular White Furnace "
                   "Test\0Coat White Furnace Test\0Metal Rough Spheres\0Clear "
                   "Coat Test\0Emission Texture Test\0Instance "
-                  "Test\0Animation Test\0Box\0Cube\0Animated Cube\0glTF "
+                  "Test\0Animation Test\0Camera Animation "
+                  "Test\0Box\0Cube\0Animated Cube\0glTF "
                   "Test\0glTF Test2\0\0")) {
             controller.load_scene();
           }
