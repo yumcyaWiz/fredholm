@@ -170,8 +170,13 @@ int main()
                        "bedo\0\0");
 
           if (ImGui::InputFloat("time", &controller.m_imgui_time)) {
-            controller.update_time();
+            controller.set_time();
             controller.clear_render();
+          }
+
+          ImGui::Checkbox("Play animation", &controller.m_imgui_play_animation);
+          if (controller.m_imgui_play_animation) {
+            ImGui::InputFloat("Time step", &controller.m_imgui_timestep);
           }
 
           ImGui::Text("spp: %d", controller.m_imgui_n_samples);

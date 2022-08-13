@@ -77,6 +77,8 @@ class Controller
   int m_imgui_max_depth = 10;
   AOVType m_imgui_aov_type = AOVType::BEAUTY;
   float m_imgui_time = 0.0f;
+  bool m_imgui_play_animation = false;
+  float m_imgui_timestep = 0.01f;
   char m_imgui_filename[256] = "output.png";
 
   float m_imgui_origin[3] = {0, 1, 5};
@@ -265,7 +267,13 @@ class Controller
                                  m_imgui_arhosek_albedo);
   }
 
-  void update_time() { m_renderer->set_time(m_imgui_time); }
+  void set_time() { m_renderer->set_time(m_imgui_time); }
+
+  void advance_time()
+  {
+    m_imgui_time += m_imgui_timestep;
+    m_renderer->set_time(m_imgui_time);
+  }
 
   void update_resolution()
   {
@@ -284,6 +292,11 @@ class Controller
 
   void render()
   {
+    if (m_imgui_play_animation) {
+      advance_time();
+      clear_render();
+    }
+
     if (m_imgui_n_samples < m_imgui_max_samples) {
       fredholm::RenderLayer render_layers;
       render_layers.beauty = m_layer_beauty->get_device_ptr();
