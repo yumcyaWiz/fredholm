@@ -432,9 +432,7 @@ class Renderer
                  m_d_object_to_world->get_size());
   }
 
-  // TODO: separate GAS, IAS build(when setting transform, only IAS should be
-  // updated or built)
-  void build_accel()
+  void build_gas()
   {
     spdlog::info("[Renderer] creating OptiX GAS, OptiX IAS");
 
@@ -496,6 +494,16 @@ class Renderer
           gas_buffer_sizes.outputSizeInBytes, &m_gas_handles[submesh_idx],
           nullptr, 0));
     }
+  }
+
+  void build_ias()
+  {
+    const uint32_t n_submeshes = m_scene.m_submesh_offsets.size();
+
+    // IAS build option
+    OptixAccelBuildOptions options = {};
+    options.buildFlags = OPTIX_BUILD_FLAG_NONE;
+    options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
     // create instances
     std::vector<OptixInstance> instances(n_submeshes);

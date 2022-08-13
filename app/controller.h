@@ -219,7 +219,8 @@ class Controller
     m_scene->load_model(scene_filepaths[m_imgui_scene_id]);
 
     m_renderer->load_scene(*m_scene);
-    m_renderer->build_accel();
+    m_renderer->build_gas();
+    m_renderer->build_ias();
     m_renderer->create_sbt();
   }
 
