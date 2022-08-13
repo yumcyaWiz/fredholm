@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "glm/glm.hpp"
 #include "sutil/vec_math.h"
 
 namespace fredholm
@@ -21,6 +22,8 @@ struct Camera {
   float3 m_forward;
   float3 m_right;
   float3 m_up;
+
+  glm::mat4 m_transform;
 
   float m_fov;
   float m_F;      // F number

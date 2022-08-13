@@ -139,6 +139,7 @@ struct Node {
   int idx;  // tinygltf node index
   std::vector<Node> children;
   glm::mat4 transform;
+  int camera_id;
   int submesh_id;
 };
 
@@ -157,6 +158,8 @@ struct Animation {
 
 // TODO: add transform in each submesh
 struct Scene {
+  glm::mat4 m_camera_transform = {};
+
   // vertex data
   std::vector<float3> m_vertices = {};
   std::vector<uint3> m_indices = {};
@@ -979,6 +982,11 @@ struct Scene {
   void update_transform_node(const Node& node, glm::mat4& transform)
   {
     glm::mat4 m = transform * node.transform;
+
+    // update camera transform
+    if (node.camera_id != -1) { m_camera_transform = m; }
+
+    // update submesh transform
     if (node.submesh_id != -1) { m_transforms[node.submesh_id] = m; }
 
     for (const auto& child_node : node.children) {
