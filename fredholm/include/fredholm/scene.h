@@ -140,8 +140,15 @@ enum class AnimationType {
   SCALE,
 };
 
+struct Node {
+  int idx;
+  std::vector<Node> children;
+  glm::mat4 transform;
+  int submesh_id;
+};
+
 struct Animation {
-  int node_idx;  // index of target node
+  const Node* node;  // target node
   AnimationType type;
 
   std::vector<float> translation_input;       // key frame time
@@ -152,12 +159,6 @@ struct Animation {
 
   std::vector<float> scale_input;       // key frame time
   std::vector<glm::vec3> scale_output;  // key frame scale
-};
-
-struct Node {
-  std::vector<Node> children;
-  glm::mat4 transform;
-  int submesh_id;
 };
 
 // TODO: add transform in each submesh
@@ -697,11 +698,29 @@ struct Scene {
           Texture(filepath.parent_path() / image.uri, TextureType::NONCOLOR);
     }
 
+    // load nodes
+    int indices_offset = 0;
+    int prev_indices_size = 0;
+    for (const auto& node_idx : model.scenes[0].nodes) {
+      m_nodes.push_back(
+          load_gltf_node(model, node_idx, indices_offset, prev_indices_size));
+    }
+
+    // load transforms
+    m_transforms.resize(m_submesh_offsets.size());
+    update_transform();
+
     // load animations
     for (int i = 0; i < model.animations.size(); ++i) {
       Animation anim;
 
       const auto& animation = model.animations[i];
+
+      // find target node
+      anim.node = find_node(animation.channels[0].target_node);
+      if (anim.node == nullptr) {
+        throw std::runtime_error("invalid target node");
+      }
 
       for (const auto& channel : animation.channels) {
         const auto& sampler = animation.samplers[channel.sampler];
@@ -792,18 +811,6 @@ struct Scene {
       m_animations.push_back(anim);
     }
 
-    // load nodes
-    int indices_offset = 0;
-    int prev_indices_size = 0;
-    for (const auto& node_idx : model.scenes[0].nodes) {
-      m_nodes.push_back(
-          load_gltf_node(model, node_idx, indices_offset, prev_indices_size));
-    }
-
-    // load transforms
-    m_transforms.resize(m_submesh_offsets.size());
-    update_transform();
-
     spdlog::info("[Scene] number of sub meshes: {}", m_submesh_offsets.size());
     spdlog::info("[Scene] number of transforms: {}", m_transforms.size());
     spdlog::info("[Scene] number of animations: {}", m_animations.size());
@@ -816,6 +823,7 @@ struct Scene {
     spdlog::info("[tinygltf] loading node: {}", node.name);
 
     Node n;
+    n.idx = node_idx;
 
     // load transform
     glm::vec3 translation = glm::vec3(0, 0, 0);
@@ -994,6 +1002,27 @@ struct Scene {
     for (const auto& child_node : node.children) {
       update_transform_node(child_node, m);
     }
+  }
+
+  const Node* find_node(int node_idx) const
+  {
+    for (const auto& node : m_nodes) {
+      const Node* ret = find_node_node(node, node_idx);
+      if (ret) { return ret; }
+    }
+
+    return nullptr;
+  }
+
+  const Node* find_node_node(const Node& node, int node_idx) const
+  {
+    if (node.idx == node_idx) { return &node; }
+
+    for (const auto& child_node : node.children) {
+      find_node_node(child_node, node_idx);
+    }
+
+    return nullptr;
   }
 
   static const unsigned char* get_gltf_buffer(const tinygltf::Model& model,
