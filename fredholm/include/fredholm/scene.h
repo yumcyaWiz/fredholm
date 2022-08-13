@@ -824,9 +824,9 @@ struct Scene {
 
     // create transform matrix
     glm::mat4 transform = glm::identity<glm::mat4>();
-    transform = glm::scale(transform, scale);
-    transform *= glm::mat4_cast(rotation);
     transform = glm::translate(transform, translation);
+    transform *= glm::mat4_cast(rotation);
+    transform = glm::scale(transform, scale);
 
     if (node.matrix.size() == 16) {
       transform[0][0] = node.matrix[0];
