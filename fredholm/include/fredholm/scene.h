@@ -134,6 +134,14 @@ struct FloatTexture {
   }
 };
 
+struct Animation {
+  int node_idx;                        // index of target node
+  std::vector<float> time;             // key frame time
+  std::vector<glm::vec3> translation;  // key frame translation
+  std::vector<glm::vec4> rotation;     // key frame rotation
+  std::vector<glm::vec3> scale;        // key frame scale
+};
+
 // TODO: add transform in each submesh
 struct Scene {
   // offset of each sub-mesh in index buffer
@@ -151,6 +159,8 @@ struct Scene {
 
   std::vector<Material> m_materials;
   std::vector<Texture> m_textures;
+
+  std::vector<Animation> m_animations = {};
 
   // column major
   std::vector<glm::mat4> m_transforms = {};
@@ -682,16 +692,6 @@ struct Scene {
                       glm::mat4& transform, int& indices_offset,
                       int& prev_indices_size)
   {
-    const auto get_buffer = [](const tinygltf::Model& model, int accessor_id,
-                               int& stride, int& count) {
-      const auto& accessor = model.accessors[accessor_id];
-      const auto& bufferview = model.bufferViews[accessor.bufferView];
-      const auto& buffer = model.buffers[bufferview.buffer];
-      stride = accessor.ByteStride(bufferview);
-      count = accessor.count;
-      return buffer.data.data() + bufferview.byteOffset + accessor.byteOffset;
-    };
-
     const tinygltf::Node& node = model.nodes[node_idx];
 
     spdlog::info("[tinygltf] loading node: {}", node.name);
@@ -761,8 +761,8 @@ struct Scene {
       for (const auto& primitive : mesh.primitives) {
         // indices
         int indices_stride, indices_count;
-        const auto indices_raw =
-            get_buffer(model, primitive.indices, indices_stride, indices_count);
+        const auto indices_raw = get_gltf_buffer(model, primitive.indices,
+                                                 indices_stride, indices_count);
         if (indices_stride != 2) {
           throw std::runtime_error("indices stride is not ushort");
         }
@@ -780,7 +780,7 @@ struct Scene {
         for (const auto& attribute : primitive.attributes) {
           if (attribute.first == "POSITION") {
             int positions_stride, positions_count;
-            const auto positions_raw = get_buffer(
+            const auto positions_raw = get_gltf_buffer(
                 model, attribute.second, positions_stride, positions_count);
             if (positions_stride != 12) {
               throw std::runtime_error("positions stride is not float3");
@@ -798,8 +798,8 @@ struct Scene {
             n_vertices += positions_count;
           } else if (attribute.first == "NORMAL") {
             int normals_stride, normals_count;
-            const auto normals_raw = get_buffer(model, attribute.second,
-                                                normals_stride, normals_count);
+            const auto normals_raw = get_gltf_buffer(
+                model, attribute.second, normals_stride, normals_count);
             if (normals_stride != 12) {
               throw std::runtime_error("normals stride is not float3");
             }
@@ -811,7 +811,7 @@ struct Scene {
             }
           } else if (attribute.first == "TEXCOORD_0") {
             int texcoord_stride, texcoord_count;
-            const auto texcoord_raw = get_buffer(
+            const auto texcoord_raw = get_gltf_buffer(
                 model, attribute.second, texcoord_stride, texcoord_count);
             if (texcoord_stride != 8) {
               throw std::runtime_error("texcoord stride is not float2");
@@ -851,6 +851,18 @@ struct Scene {
     for (const auto& children : node.children) {
       load_gltf_node(model, children, mat, indices_offset, prev_indices_size);
     }
+  }
+
+  static const unsigned char* get_gltf_buffer(const tinygltf::Model& model,
+                                              int accessor_id, int& stride,
+                                              int& count)
+  {
+    const auto& accessor = model.accessors[accessor_id];
+    const auto& bufferview = model.bufferViews[accessor.bufferView];
+    const auto& buffer = model.buffers[bufferview.buffer];
+    stride = accessor.ByteStride(bufferview);
+    count = accessor.count;
+    return buffer.data.data() + bufferview.byteOffset + accessor.byteOffset;
   }
 };
 
