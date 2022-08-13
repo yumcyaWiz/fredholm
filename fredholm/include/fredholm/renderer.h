@@ -670,10 +670,15 @@ class Renderer
     params.n_samples = n_samples;
     params.max_depth = max_depth;
 
-    params.camera.origin = camera.m_origin;
-    params.camera.forward = camera.m_forward;
-    params.camera.right = camera.m_right;
-    params.camera.up = camera.m_up;
+    params.camera.transform = make_mat3x4(
+        make_float4(camera.m_transform[0][0], camera.m_transform[1][0],
+                    camera.m_transform[2][0], camera.m_transform[3][0]),
+        make_float4(camera.m_transform[0][1], camera.m_transform[1][1],
+                    camera.m_transform[2][1], camera.m_transform[3][1]),
+        make_float4(camera.m_transform[0][2], camera.m_transform[1][2],
+                    camera.m_transform[2][2], camera.m_transform[3][2]));
+    params.camera.forward =
+        make_float3(camera.m_forward.x, camera.m_forward.y, camera.m_forward.z);
     params.camera.fov = camera.m_fov;
     params.camera.F = camera.m_F;
     params.camera.focus = camera.m_focus;

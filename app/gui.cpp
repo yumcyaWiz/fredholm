@@ -192,10 +192,6 @@ int main()
             controller.update_camera();
             controller.clear_render();
           }
-          if (ImGui::InputFloat3("Forward", controller.m_imgui_forward)) {
-            controller.update_camera();
-            controller.clear_render();
-          }
           if (ImGui::InputFloat("FOV", &controller.m_imgui_fov)) {
             controller.update_camera();
             controller.clear_render();

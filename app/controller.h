@@ -82,7 +82,6 @@ class Controller
   char m_imgui_filename[256] = "output.png";
 
   float m_imgui_origin[3] = {0, 1, 5};
-  float m_imgui_forward[3] = {0, 0, -1};
   float m_imgui_fov = 90.0f;
   float m_imgui_F = 100.0f;
   float m_imgui_focus = 10000.0f;
@@ -131,10 +130,7 @@ class Controller
   {
     const float3 origin =
         make_float3(m_imgui_origin[0], m_imgui_origin[1], m_imgui_origin[2]);
-    const float3 forward =
-        make_float3(m_imgui_forward[0], m_imgui_forward[1], m_imgui_forward[2]);
-    m_camera = std::make_unique<fredholm::Camera>(origin, forward,
-                                                  deg2rad(m_imgui_fov));
+    m_camera = std::make_unique<fredholm::Camera>(origin, deg2rad(m_imgui_fov));
     m_camera->m_fov = deg2rad(m_imgui_fov);
     m_camera->m_F = m_imgui_F;
     m_camera->m_focus = m_imgui_focus;
@@ -146,8 +142,6 @@ class Controller
   {
     m_camera->set_origin(
         make_float3(m_imgui_origin[0], m_imgui_origin[1], m_imgui_origin[2]));
-    m_camera->set_forward(make_float3(m_imgui_forward[0], m_imgui_forward[1],
-                                      m_imgui_forward[2]));
     m_camera->m_fov = deg2rad(m_imgui_fov);
     m_camera->m_F = m_imgui_F;
     m_camera->m_focus = m_imgui_focus;
@@ -158,17 +152,18 @@ class Controller
   void move_camera(const fredholm::CameraMovement& direction, float dt)
   {
     m_camera->move(direction, dt);
-    m_imgui_origin[0] = m_camera->m_origin.x;
-    m_imgui_origin[1] = m_camera->m_origin.y;
-    m_imgui_origin[2] = m_camera->m_origin.z;
+    const float3 origin = m_camera->get_origin();
+    m_imgui_origin[0] = origin.x;
+    m_imgui_origin[1] = origin.y;
+    m_imgui_origin[2] = origin.z;
   }
 
   void rotate_camera(float dphi, float dtheta)
   {
     m_camera->lookAround(dphi, dtheta);
-    m_imgui_forward[0] = m_camera->m_forward.x;
-    m_imgui_forward[1] = m_camera->m_forward.y;
-    m_imgui_forward[2] = m_camera->m_forward.z;
+    // m_imgui_forward[0] = m_camera->m_forward.x;
+    // m_imgui_forward[1] = m_camera->m_forward.y;
+    // m_imgui_forward[2] = m_camera->m_forward.z;
   }
 
   void init_renderer()

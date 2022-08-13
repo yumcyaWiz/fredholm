@@ -8,6 +8,47 @@
 namespace fredholm
 {
 
+struct Matrix3x4 {
+  // column major
+  float4 m[3];
+};
+
+// TODO: rename c(column) to r(row)
+__forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
+                                                          const float4& c1,
+                                                          const float4& c2)
+{
+  Matrix3x4 m;
+  m.m[0] = c0;
+  m.m[1] = c1;
+  m.m[2] = c2;
+  return m;
+}
+
+__forceinline__ __host__ __device__ float3
+transform_position(const Matrix3x4& m, const float3& p)
+{
+  const float4 v = make_float4(p.x, p.y, p.z, 1.0f);
+  return make_float3(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v));
+}
+
+__forceinline__ __host__ __device__ float3
+transform_direction(const Matrix3x4& m, const float3& v)
+{
+  const float4 t = make_float4(v.x, v.y, v.z, 0.0f);
+  return make_float3(dot(m.m[0], t), dot(m.m[1], t), dot(m.m[2], t));
+}
+
+__forceinline__ __host__ __device__ float3 transform_normal(const Matrix3x4& m,
+                                                            const float3& n)
+{
+  const float4 c0 = make_float4(m.m[0].x, m.m[1].x, m.m[2].x, 0.0f);
+  const float4 c1 = make_float4(m.m[0].y, m.m[1].y, m.m[2].y, 0.0f);
+  const float4 c2 = make_float4(m.m[0].z, m.m[1].z, m.m[2].z, 0.0f);
+  const float4 t = make_float4(n.x, n.y, n.z, 0.0f);
+  return make_float3(dot(c0, t), dot(c1, t), dot(c2, t));
+}
+
 enum class RayType : unsigned int {
   RAY_TYPE_RADIANCE = 0,
   RAY_TYPE_SHADOW = 1,
@@ -16,10 +57,8 @@ enum class RayType : unsigned int {
 };
 
 struct CameraParams {
-  float3 origin;
+  Matrix3x4 transform;
   float3 forward;
-  float3 right;
-  float3 up;
   float fov;
   float F;      // F number
   float focus;  // focus distance
@@ -160,47 +199,6 @@ struct RenderLayer {
   float4* texcoord;
   float4* albedo;
 };
-
-struct Matrix3x4 {
-  // column major
-  float4 m[3];
-};
-
-// TODO: rename c(column) to r(row)
-__forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
-                                                          const float4& c1,
-                                                          const float4& c2)
-{
-  Matrix3x4 m;
-  m.m[0] = c0;
-  m.m[1] = c1;
-  m.m[2] = c2;
-  return m;
-}
-
-__forceinline__ __host__ __device__ float3
-transform_position(const Matrix3x4& m, const float3& p)
-{
-  const float4 v = make_float4(p.x, p.y, p.z, 1.0f);
-  return make_float3(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v));
-}
-
-__forceinline__ __host__ __device__ float3
-transform_direction(const Matrix3x4& m, const float3& v)
-{
-  const float4 t = make_float4(v.x, v.y, v.z, 0.0f);
-  return make_float3(dot(m.m[0], t), dot(m.m[1], t), dot(m.m[2], t));
-}
-
-__forceinline__ __host__ __device__ float3 transform_normal(const Matrix3x4& m,
-                                                            const float3& n)
-{
-  const float4 c0 = make_float4(m.m[0].x, m.m[1].x, m.m[2].x, 0.0f);
-  const float4 c1 = make_float4(m.m[0].y, m.m[1].y, m.m[2].y, 0.0f);
-  const float4 c2 = make_float4(m.m[0].z, m.m[1].z, m.m[2].z, 0.0f);
-  const float4 t = make_float4(n.x, n.y, n.z, 0.0f);
-  return make_float3(dot(c0, t), dot(c1, t), dot(c2, t));
-}
 
 struct LaunchParams {
   RenderLayer render_layer;
