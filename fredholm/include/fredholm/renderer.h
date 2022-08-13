@@ -306,10 +306,10 @@ class Renderer
     m_miss_records.push_back(miss_record);
 
     // fill hitgroup record
-    for (size_t submesh_idx = 0; submesh_idx < m_submesh_offsets.size();
+    for (size_t submesh_idx = 0; submesh_idx < m_scene.m_submesh_offsets.size();
          ++submesh_idx) {
-      const uint submesh_offset = m_submesh_offsets[submesh_idx];
-      const uint n_faces = m_submesh_n_faces[submesh_idx];
+      const uint submesh_offset = m_scene.m_submesh_offsets[submesh_idx];
+      const uint n_faces = m_scene.m_submesh_n_faces[submesh_idx];
 
       // radiance hitgroup record
       HitGroupSbtRecord hit_record = {};
@@ -359,9 +359,7 @@ class Renderer
 
     if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
-    m_submesh_offsets = scene.m_submesh_offsets;
-    m_submesh_n_faces = scene.m_submesh_n_faces;
-    m_transforms = scene.m_transforms;
+    m_scene = scene;
 
     m_d_vertices = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_vertices);
     m_d_indices = std::make_unique<cwl::CUDABuffer<uint3>>(scene.m_indices);
@@ -404,10 +402,10 @@ class Renderer
     }
     m_d_lights = std::make_unique<cwl::CUDABuffer<AreaLight>>(lights);
 
-    std::vector<Matrix3x4> object_to_world(m_transforms.size());
-    std::vector<Matrix3x4> world_to_object(m_transforms.size());
-    for (int i = 0; i < m_transforms.size(); ++i) {
-      const auto& m = m_transforms[i];
+    std::vector<Matrix3x4> object_to_world(m_scene.m_transforms.size());
+    std::vector<Matrix3x4> world_to_object(m_scene.m_transforms.size());
+    for (int i = 0; i < m_scene.m_transforms.size(); ++i) {
+      const auto& m = m_scene.m_transforms[i];
       const auto m_inv = glm::inverse(m);
       object_to_world[i] =
           make_mat3x4(make_float4(m[0][0], m[1][0], m[2][0], m[3][0]),
@@ -445,7 +443,7 @@ class Renderer
     options.buildFlags = OPTIX_BUILD_FLAG_NONE;
     options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
-    const uint32_t n_submeshes = m_submesh_offsets.size();
+    const uint32_t n_submeshes = m_scene.m_submesh_offsets.size();
 
     // NOTE: need this, since vertexBuffers take a pointer to array of device
     // pointers
@@ -458,8 +456,8 @@ class Renderer
     m_gas_handles.resize(n_submeshes);
     m_gas_output_buffers.resize(n_submeshes);
     for (int submesh_idx = 0; submesh_idx < n_submeshes; ++submesh_idx) {
-      const uint indices_offset = m_submesh_offsets[submesh_idx];
-      const uint n_faces = m_submesh_n_faces[submesh_idx];
+      const uint indices_offset = m_scene.m_submesh_offsets[submesh_idx];
+      const uint n_faces = m_scene.m_submesh_n_faces[submesh_idx];
 
       // GAS input
       OptixBuildInput input = {};
@@ -505,7 +503,7 @@ class Renderer
       OptixInstance instance = {};
 
       // identify matrix
-      const glm::mat4& mat = m_transforms[submesh_idx];
+      const glm::mat4& mat = m_scene.m_transforms[submesh_idx];
       float transform[] = {mat[0][0], mat[1][0], mat[2][0], mat[3][0],
                            mat[0][1], mat[1][1], mat[2][1], mat[3][1],
                            mat[0][2], mat[1][2], mat[2][2], mat[3][2]};
@@ -715,9 +713,8 @@ class Renderer
   uint32_t m_max_trace_depth = 2;
 
   // scene data on host
-  std::vector<uint> m_submesh_offsets = {};
-  std::vector<uint> m_submesh_n_faces = {};
-  std::vector<glm::mat4> m_transforms = {};
+  // TODO: have pointer to scene instead?
+  Scene m_scene = {};
 
   // scene data on device
   std::unique_ptr<cwl::CUDABuffer<float3>> m_d_vertices = nullptr;
