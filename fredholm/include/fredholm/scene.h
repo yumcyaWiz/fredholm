@@ -143,7 +143,7 @@ struct Node {
 };
 
 struct Animation {
-  const Node* node;  // target node
+  Node* node;  // target node
 
   std::vector<float> translation_input;       // key frame time
   std::vector<glm::vec3> translation_output;  // key frame translation
@@ -1003,24 +1003,34 @@ struct Scene {
       }
 
       // compute transform matrix
+      glm::mat4 transform = glm::identity<glm::mat4>();
+      transform = glm::translate(transform, translation);
+      transform *= glm::mat4_cast(rotation);
+      transform = glm::scale(transform, scale);
+
+      // update node
+      animation.node->transform = transform;
     }
+
+    // TODO: update only affected nodes
+    update_transform();
   }
 
-  const Node* find_node(int node_idx) const
+  Node* find_node(int node_idx)
   {
-    for (const auto& node : m_nodes) {
-      const Node* ret = find_node_node(node, node_idx);
+    for (auto& node : m_nodes) {
+      Node* ret = find_node_node(node, node_idx);
       if (ret) { return ret; }
     }
 
     return nullptr;
   }
 
-  const Node* find_node_node(const Node& node, int node_idx) const
+  Node* find_node_node(Node& node, int node_idx)
   {
     if (node.idx == node_idx) { return &node; }
 
-    for (const auto& child_node : node.children) {
+    for (auto& child_node : node.children) {
       find_node_node(child_node, node_idx);
     }
 
