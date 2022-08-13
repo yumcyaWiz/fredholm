@@ -157,11 +157,6 @@ struct Animation {
 
 // TODO: add transform in each submesh
 struct Scene {
-  // offset of each sub-mesh in index buffer
-  std::vector<uint> m_submesh_offsets = {};
-  // number of faces in each sub-mesh
-  std::vector<uint> m_submesh_n_faces = {};
-
   // vertex data
   std::vector<float3> m_vertices = {};
   std::vector<uint3> m_indices = {};
@@ -175,6 +170,11 @@ struct Scene {
   std::vector<Material> m_materials;
 
   std::vector<Texture> m_textures;
+
+  // offset of each sub-mesh in index buffer
+  std::vector<uint> m_submesh_offsets = {};
+  // number of faces in each sub-mesh
+  std::vector<uint> m_submesh_n_faces = {};
 
   // per-face instance id
   std::vector<uint> m_instance_ids = {};
@@ -196,9 +196,6 @@ struct Scene {
 
   void clear()
   {
-    m_submesh_offsets.clear();
-    m_submesh_n_faces.clear();
-
     m_vertices.clear();
     m_indices.clear();
     m_texcoords.clear();
@@ -209,9 +206,16 @@ struct Scene {
     m_materials.clear();
     m_textures.clear();
 
-    m_transforms.clear();
+    m_submesh_offsets.clear();
+    m_submesh_n_faces.clear();
 
     m_instance_ids.clear();
+
+    m_transforms.clear();
+
+    m_nodes.clear();
+
+    m_animations.clear();
   }
 
   void load_model(const std::filesystem::path& filepath)
