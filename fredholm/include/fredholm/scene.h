@@ -134,12 +134,24 @@ struct FloatTexture {
   }
 };
 
+enum class AnimationType {
+  TRANSLATION,
+  ROTATION,
+  SCALE,
+};
+
 struct Animation {
-  int node_idx;                        // index of target node
-  std::vector<float> time;             // key frame time
-  std::vector<glm::vec3> translation;  // key frame translation
-  std::vector<glm::vec4> rotation;     // key frame rotation
-  std::vector<glm::vec3> scale;        // key frame scale
+  int node_idx;  // index of target node
+  AnimationType type;
+
+  std::vector<float> translation_input;       // key frame time
+  std::vector<glm::vec3> translation_output;  // key frame translation
+
+  std::vector<float> rotation_input;       // key frame time
+  std::vector<glm::quat> rotation_output;  // key frame rotation
+
+  std::vector<float> scale_input;       // key frame time
+  std::vector<glm::vec3> scale_output;  // key frame scale
 };
 
 struct Node {
@@ -175,8 +187,8 @@ struct Scene {
   // per-instance transform
   std::vector<glm::mat4> m_transforms = {};
 
-  // glTF specific data
   std::vector<Node> m_nodes = {};  // root nodes
+
   std::vector<Animation> m_animations = {};
 
   Scene() {}
@@ -685,6 +697,101 @@ struct Scene {
           Texture(filepath.parent_path() / image.uri, TextureType::NONCOLOR);
     }
 
+    // load animations
+    for (int i = 0; i < model.animations.size(); ++i) {
+      Animation anim;
+
+      const auto& animation = model.animations[i];
+
+      for (const auto& channel : animation.channels) {
+        const auto& sampler = animation.samplers[channel.sampler];
+
+        if (channel.target_path == "translation") {
+          anim.type = AnimationType::TRANSLATION;
+        } else if (channel.target_path == "rotation") {
+          anim.type = AnimationType::ROTATION;
+        } else if (channel.target_path == "scale") {
+          anim.type = AnimationType::SCALE;
+        } else {
+          throw std::runtime_error("unsupported animation target path");
+        }
+
+        // load input
+        int input_stride, input_count;
+        const auto input_raw =
+            get_gltf_buffer(model, sampler.input, input_stride, input_count);
+        if (input_stride != 4) {
+          throw std::runtime_error("unsupported animation input");
+        }
+
+        const auto input = reinterpret_cast<const float*>(input_raw);
+        for (int input_idx = 0; input_idx < input_count; ++input_idx) {
+          switch (anim.type) {
+            case AnimationType::TRANSLATION: {
+              anim.translation_input.push_back(input[input_idx]);
+            } break;
+            case AnimationType::ROTATION: {
+              anim.rotation_input.push_back(input[input_idx]);
+            } break;
+            case AnimationType::SCALE: {
+              anim.scale_input.push_back(input[input_idx]);
+            } break;
+          }
+        }
+
+        // load output
+        int output_stride, output_count;
+        const auto output_raw =
+            get_gltf_buffer(model, sampler.output, output_stride, output_count);
+
+        if (input_count != output_count) {
+          throw std::runtime_error(
+              "animation input size is not equal to output size");
+        }
+
+        switch (anim.type) {
+          case AnimationType::TRANSLATION: {
+            if (output_stride != 12) {
+              throw std::runtime_error("invalid output stride");
+            }
+
+            const auto output = reinterpret_cast<const float*>(output_raw);
+            for (int output_idx = 0; output_idx < output_count; output_idx++) {
+              anim.translation_output.push_back(glm::vec3(
+                  output[3 * output_idx + 0], output[3 * output_idx + 1],
+                  output[3 * output_idx + 2]));
+            }
+          } break;
+          case AnimationType::ROTATION: {
+            if (output_stride != 16) {
+              throw std::runtime_error("invalid output stride");
+            }
+
+            const auto output = reinterpret_cast<const float*>(output_raw);
+            for (int output_idx = 0; output_idx < output_count; output_idx++) {
+              anim.rotation_output.push_back(glm::quat(
+                  output[4 * output_idx + 3], output[4 * output_idx + 0],
+                  output[4 * output_idx + 1], output[4 * output_idx + 2]));
+            }
+          } break;
+          case AnimationType::SCALE: {
+            if (output_stride != 12) {
+              throw std::runtime_error("invalid output stride");
+            }
+
+            const auto output = reinterpret_cast<const float*>(output_raw);
+            for (int output_idx = 0; output_idx < output_count; output_idx++) {
+              anim.scale_output.push_back(glm::vec3(
+                  output[3 * output_idx + 0], output[3 * output_idx + 1],
+                  output[3 * output_idx + 2]));
+            }
+          } break;
+        }
+      }
+
+      m_animations.push_back(anim);
+    }
+
     // load nodes
     int indices_offset = 0;
     int prev_indices_size = 0;
@@ -697,9 +804,9 @@ struct Scene {
     m_transforms.resize(m_submesh_offsets.size());
     update_transform();
 
-    spdlog::info("[tinygltf] number of sub meshes: {}",
-                 m_submesh_offsets.size());
-    spdlog::info("[tinygltf] number of transforms: {}", m_transforms.size());
+    spdlog::info("[Scene] number of sub meshes: {}", m_submesh_offsets.size());
+    spdlog::info("[Scene] number of transforms: {}", m_transforms.size());
+    spdlog::info("[Scene] number of animations: {}", m_animations.size());
   }
 
   Node load_gltf_node(const tinygltf::Model& model, int node_idx,
@@ -881,7 +988,7 @@ struct Scene {
 
   void update_transform_node(const Node& node, glm::mat4& transform)
   {
-    const glm::mat4 m = transform * node.transform;
+    glm::mat4 m = transform * node.transform;
     if (node.submesh_id != -1) { m_transforms[node.submesh_id] = m; }
 
     for (const auto& child_node : node.children) {
