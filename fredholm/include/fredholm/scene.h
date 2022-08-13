@@ -1061,12 +1061,13 @@ struct Scene {
   static T animation_interpolate(const std::vector<float>& input,
                                  const std::vector<T>& output, float time)
   {
+    const float t = std::fmod(time, input[input.size() - 1]);
     const int idx1 =
-        std::lower_bound(input.begin(), input.end(), time) - input.begin();
+        std::lower_bound(input.begin(), input.end(), t) - input.begin();
     const int idx0 = std::max(idx1 - 1, 0);
 
     // linear interpolation
-    const float h = time - input[idx0];
+    const float h = t - input[idx0];
     const T output0 = output[idx0];
     const T output1 = output[idx1];
     return (1.0f - h) * output0 + h * output1;
