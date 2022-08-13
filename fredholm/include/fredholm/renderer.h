@@ -353,27 +353,27 @@ class Renderer
     m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
 
-  void load_scene(const Scene& scene)
+  void load_scene(std::filesystem::path& filepath)
   {
     spdlog::info("[Renderer] loading scene");
 
-    if (!scene.is_valid()) { throw std::runtime_error("invalid scene"); }
+    m_scene.load_model(filepath);
+    if (!m_scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
-    m_scene = scene;
-
-    m_d_vertices = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_vertices);
-    m_d_indices = std::make_unique<cwl::CUDABuffer<uint3>>(scene.m_indices);
-    m_d_normals = std::make_unique<cwl::CUDABuffer<float3>>(scene.m_normals);
+    m_d_vertices =
+        std::make_unique<cwl::CUDABuffer<float3>>(m_scene.m_vertices);
+    m_d_indices = std::make_unique<cwl::CUDABuffer<uint3>>(m_scene.m_indices);
+    m_d_normals = std::make_unique<cwl::CUDABuffer<float3>>(m_scene.m_normals);
     m_d_texcoords =
-        std::make_unique<cwl::CUDABuffer<float2>>(scene.m_texcoords);
+        std::make_unique<cwl::CUDABuffer<float2>>(m_scene.m_texcoords);
     m_d_material_ids =
-        std::make_unique<cwl::CUDABuffer<uint>>(scene.m_material_ids);
+        std::make_unique<cwl::CUDABuffer<uint>>(m_scene.m_material_ids);
     m_d_materials =
-        std::make_unique<cwl::CUDABuffer<Material>>(scene.m_materials);
+        std::make_unique<cwl::CUDABuffer<Material>>(m_scene.m_materials);
 
-    m_d_textures.resize(scene.m_textures.size());
-    for (int i = 0; i < scene.m_textures.size(); ++i) {
-      const auto& tex = scene.m_textures[i];
+    m_d_textures.resize(m_scene.m_textures.size());
+    for (int i = 0; i < m_scene.m_textures.size(); ++i) {
+      const auto& tex = m_scene.m_textures[i];
       m_d_textures[i] = std::make_unique<cwl::CUDATexture<uchar4>>(
           tex.m_width, tex.m_height, tex.m_data.data(),
           tex.m_texture_type == TextureType::COLOR);
@@ -388,15 +388,16 @@ class Renderer
         std::make_unique<cwl::CUDABuffer<TextureHeader>>(texture_headers);
 
     std::vector<AreaLight> lights;
-    for (int face_idx = 0; face_idx < scene.m_material_ids.size(); ++face_idx) {
-      const uint material_id = scene.m_material_ids[face_idx];
-      const Material& m = scene.m_materials[material_id];
+    for (int face_idx = 0; face_idx < m_scene.m_material_ids.size();
+         ++face_idx) {
+      const uint material_id = m_scene.m_material_ids[face_idx];
+      const Material& m = m_scene.m_materials[material_id];
       if (m.emission_color.x > 0 || m.emission_color.y > 0 ||
           m.emission_color.z > 0 || m.emission_texture_id != -1) {
         AreaLight light;
-        light.indices = scene.m_indices[face_idx];
-        light.material_id = scene.m_material_ids[face_idx];
-        light.instance_idx = scene.m_instance_ids[face_idx];
+        light.indices = m_scene.m_indices[face_idx];
+        light.material_id = m_scene.m_material_ids[face_idx];
+        light.instance_idx = m_scene.m_instance_ids[face_idx];
         lights.push_back(light);
       }
     }
@@ -721,8 +722,7 @@ class Renderer
   uint32_t m_max_trace_depth = 2;
 
   // scene data on host
-  // TODO: have pointer to scene instead?
-  Scene m_scene = {};
+  Scene m_scene;
 
   // scene data on device
   std::unique_ptr<cwl::CUDABuffer<float3>> m_d_vertices = nullptr;

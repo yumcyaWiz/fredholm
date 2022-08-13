@@ -99,7 +99,6 @@ class Controller
   float m_imgui_iso = 400.0f;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
-  std::unique_ptr<fredholm::Scene> m_scene = nullptr;
 
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_beauty = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_position = nullptr;
@@ -116,7 +115,6 @@ class Controller
   Controller()
   {
     m_camera = std::make_unique<fredholm::Camera>();
-    m_scene = std::make_unique<fredholm::Scene>();
 
     // init CUDA
     CUDA_CHECK(cudaFree(0));
@@ -216,9 +214,7 @@ class Controller
 
   void load_scene()
   {
-    m_scene->load_model(scene_filepaths[m_imgui_scene_id]);
-
-    m_renderer->load_scene(*m_scene);
+    m_renderer->load_scene(scene_filepaths[m_imgui_scene_id]);
     m_renderer->build_gas();
     m_renderer->build_ias();
     m_renderer->create_sbt();
