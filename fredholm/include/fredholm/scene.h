@@ -1,6 +1,7 @@
 #pragma once
 #include <unistd.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -979,7 +980,30 @@ struct Scene {
 
   void update_animation(float time)
   {
-    for (const auto& animation : m_animations) {}
+    for (const auto& animation : m_animations) {
+      // translation
+      glm::vec3 translation = glm::vec3(0, 0, 0);
+      if (animation.translation_input.size() > 0) {
+        translation = animation_interpolate(animation.translation_input,
+                                            animation.translation_output, time);
+      }
+
+      // rotation
+      glm::quat rotation = glm::quat(1, 0, 0, 0);
+      if (animation.rotation_input.size() > 0) {
+        rotation = animation_interpolate(animation.rotation_input,
+                                         animation.rotation_output, time);
+      }
+
+      // scale
+      glm::vec3 scale = glm::vec3(1, 1, 1);
+      if (animation.scale_input.size() > 0) {
+        scale = animation_interpolate(animation.scale_input,
+                                      animation.scale_output, time);
+      }
+
+      // compute transform matrix
+    }
   }
 
   const Node* find_node(int node_idx) const
@@ -1013,6 +1037,21 @@ struct Scene {
     stride = accessor.ByteStride(bufferview);
     count = accessor.count;
     return buffer.data.data() + bufferview.byteOffset + accessor.byteOffset;
+  }
+
+  template <typename T>
+  static T animation_interpolate(const std::vector<float>& input,
+                                 const std::vector<T>& output, float time)
+  {
+    const int idx1 =
+        std::lower_bound(input.begin(), input.end(), time) - input.begin();
+    const int idx0 = std::max(idx1 - 1, 0);
+
+    // linear interpolation
+    const float h = time - input[idx0];
+    const T output0 = output[idx0];
+    const T output1 = output[idx1];
+    return (1.0f - h) * output0 + h * output1;
   }
 };
 
