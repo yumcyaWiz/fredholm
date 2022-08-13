@@ -612,6 +612,10 @@ struct Scene {
     spdlog::info("[tinygltf] number of lights: {}", model.lights.size());
 
     // load materials
+    if (model.materials.size() == 0) {
+      throw std::runtime_error("there is no material");
+    }
+
     m_materials.resize(model.materials.size());
     for (int i = 0; i < model.materials.size(); ++i) {
       const auto& material = model.materials[i];
