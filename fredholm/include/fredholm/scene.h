@@ -992,22 +992,22 @@ struct Scene {
       // translation
       glm::vec3 translation = glm::vec3(0, 0, 0);
       if (animation.translation_input.size() > 0) {
-        translation = animation_interpolate(animation.translation_input,
-                                            animation.translation_output, time);
+        translation = animation_linear_interpolate(
+            animation.translation_input, animation.translation_output, time);
       }
 
       // rotation
       glm::quat rotation = glm::quat(1, 0, 0, 0);
       if (animation.rotation_input.size() > 0) {
-        rotation = animation_interpolate(animation.rotation_input,
-                                         animation.rotation_output, time);
+        rotation = animation_linear_interpolate(
+            animation.rotation_input, animation.rotation_output, time);
       }
 
       // scale
       glm::vec3 scale = glm::vec3(1, 1, 1);
       if (animation.scale_input.size() > 0) {
-        scale = animation_interpolate(animation.scale_input,
-                                      animation.scale_output, time);
+        scale = animation_linear_interpolate(animation.scale_input,
+                                             animation.scale_output, time);
       }
 
       // compute transform matrix
@@ -1058,8 +1058,9 @@ struct Scene {
   }
 
   template <typename T>
-  static T animation_interpolate(const std::vector<float>& input,
-                                 const std::vector<T>& output, float time)
+  static T animation_linear_interpolate(const std::vector<float>& input,
+                                        const std::vector<T>& output,
+                                        float time)
   {
     const float t = std::fmod(time, input[input.size() - 1]);
     const int idx1 =
@@ -1070,7 +1071,7 @@ struct Scene {
     const float h = t - input[idx0];
     const T output0 = output[idx0];
     const T output1 = output[idx1];
-    return (1.0f - h) * output0 + h * output1;
+    return glm::mix(output0, output1, h);
   }
 };
 
