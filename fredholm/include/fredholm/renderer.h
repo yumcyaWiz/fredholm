@@ -613,6 +613,34 @@ class Renderer
     if (m_d_arhosek) { m_d_arhosek.reset(); }
   }
 
+  void set_time(float time)
+  {
+    m_scene.update_animation(time);
+
+    // rebuild IAS
+    build_ias();
+
+    // update device transform matrix
+    std::vector<Matrix3x4> object_to_world(m_scene.m_transforms.size());
+    std::vector<Matrix3x4> world_to_object(m_scene.m_transforms.size());
+    for (int i = 0; i < m_scene.m_transforms.size(); ++i) {
+      const auto& m = m_scene.m_transforms[i];
+      const auto m_inv = glm::inverse(m);
+      object_to_world[i] =
+          make_mat3x4(make_float4(m[0][0], m[1][0], m[2][0], m[3][0]),
+                      make_float4(m[0][1], m[1][1], m[2][1], m[3][1]),
+                      make_float4(m[0][2], m[1][2], m[2][2], m[3][2]));
+      world_to_object[i] = make_mat3x4(
+          make_float4(m_inv[0][0], m_inv[1][0], m_inv[2][0], m_inv[3][0]),
+          make_float4(m_inv[0][1], m_inv[1][1], m_inv[2][1], m_inv[3][1]),
+          make_float4(m_inv[0][2], m_inv[1][2], m_inv[2][2], m_inv[3][2]));
+    }
+    m_d_object_to_world =
+        std::make_unique<cwl::CUDABuffer<Matrix3x4>>(object_to_world);
+    m_d_world_to_object =
+        std::make_unique<cwl::CUDABuffer<Matrix3x4>>(world_to_object);
+  }
+
   void set_resolution(uint32_t width, uint32_t height)
   {
     m_width = width;

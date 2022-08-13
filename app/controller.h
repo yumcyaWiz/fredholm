@@ -75,6 +75,7 @@ class Controller
   int m_imgui_max_samples = 100;
   int m_imgui_max_depth = 10;
   AOVType m_imgui_aov_type = AOVType::BEAUTY;
+  float m_imgui_time = 0.0f;
   char m_imgui_filename[256] = "output.png";
 
   float m_imgui_origin[3] = {0, 1, 5};
@@ -262,6 +263,8 @@ class Controller
     m_renderer->load_arhosek_sky(m_imgui_arhosek_turbidity,
                                  m_imgui_arhosek_albedo);
   }
+
+  void update_time() { m_renderer->set_time(m_imgui_time); }
 
   void update_resolution()
   {

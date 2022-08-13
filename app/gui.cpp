@@ -169,6 +169,11 @@ int main()
                        "Beauty\0Denoised\0Position\0Normal\0Depth\0TexCoord\0Al"
                        "bedo\0\0");
 
+          if (ImGui::InputFloat("time", &controller.m_imgui_time)) {
+            controller.update_time();
+            controller.clear_render();
+          }
+
           ImGui::Text("spp: %d", controller.m_imgui_n_samples);
 
           ImGui::InputText("filename", controller.m_imgui_filename, 256);
