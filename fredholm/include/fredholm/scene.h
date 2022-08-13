@@ -142,6 +142,12 @@ struct Animation {
   std::vector<glm::vec3> scale;        // key frame scale
 };
 
+struct Node {
+  std::vector<Node> children;
+  glm::mat4 transform;
+  int submesh_id;
+};
+
 // TODO: add transform in each submesh
 struct Scene {
   // offset of each sub-mesh in index buffer
@@ -149,24 +155,29 @@ struct Scene {
   // number of faces in each sub-mesh
   std::vector<uint> m_submesh_n_faces = {};
 
+  // vertex data
   std::vector<float3> m_vertices = {};
   std::vector<uint3> m_indices = {};
   std::vector<float2> m_texcoords = {};
   std::vector<float3> m_normals = {};
   std::vector<float3> m_tangents = {};
+
   // per-face material id
   std::vector<uint> m_material_ids = {};
 
   std::vector<Material> m_materials;
+
   std::vector<Texture> m_textures;
-
-  std::vector<Animation> m_animations = {};
-
-  // column major
-  std::vector<glm::mat4> m_transforms = {};
 
   // per-face instance id
   std::vector<uint> m_instance_ids = {};
+
+  // per-instance transform
+  std::vector<glm::mat4> m_transforms = {};
+
+  // glTF specific data
+  std::vector<Node> m_nodes = {};  // root nodes
+  std::vector<Animation> m_animations = {};
 
   Scene() {}
 
@@ -678,23 +689,26 @@ struct Scene {
     int indices_offset = 0;
     int prev_indices_size = 0;
     for (const auto& node_idx : model.scenes[0].nodes) {
-      glm::mat4 transform = glm::identity<glm::mat4>();
-      load_gltf_node(model, node_idx, transform, indices_offset,
-                     prev_indices_size);
+      m_nodes.push_back(
+          load_gltf_node(model, node_idx, indices_offset, prev_indices_size));
     }
+
+    // load transforms
+    m_transforms.resize(m_submesh_offsets.size());
+    update_transform();
 
     spdlog::info("[tinygltf] number of sub meshes: {}",
                  m_submesh_offsets.size());
     spdlog::info("[tinygltf] number of transforms: {}", m_transforms.size());
   }
 
-  void load_gltf_node(const tinygltf::Model& model, int node_idx,
-                      glm::mat4& transform, int& indices_offset,
-                      int& prev_indices_size)
+  Node load_gltf_node(const tinygltf::Model& model, int node_idx,
+                      int& indices_offset, int& prev_indices_size)
   {
     const tinygltf::Node& node = model.nodes[node_idx];
-
     spdlog::info("[tinygltf] loading node: {}", node.name);
+
+    Node n;
 
     // load transform
     glm::vec3 translation = glm::vec3(0, 0, 0);
@@ -720,34 +734,34 @@ struct Scene {
     }
 
     // create transform matrix
-    glm::mat4 mat = glm::identity<glm::mat4>();
-    mat = glm::scale(mat, scale);
-    mat *= glm::mat4_cast(rotation);
-    mat = glm::translate(mat, translation);
+    glm::mat4 transform = glm::identity<glm::mat4>();
+    transform = glm::scale(transform, scale);
+    transform *= glm::mat4_cast(rotation);
+    transform = glm::translate(transform, translation);
 
     if (node.matrix.size() == 16) {
-      mat[0][0] = node.matrix[0];
-      mat[0][1] = node.matrix[1];
-      mat[0][2] = node.matrix[2];
-      mat[0][3] = node.matrix[3];
+      transform[0][0] = node.matrix[0];
+      transform[0][1] = node.matrix[1];
+      transform[0][2] = node.matrix[2];
+      transform[0][3] = node.matrix[3];
 
-      mat[1][0] = node.matrix[4];
-      mat[1][1] = node.matrix[5];
-      mat[1][2] = node.matrix[6];
-      mat[1][3] = node.matrix[7];
+      transform[1][0] = node.matrix[4];
+      transform[1][1] = node.matrix[5];
+      transform[1][2] = node.matrix[6];
+      transform[1][3] = node.matrix[7];
 
-      mat[2][0] = node.matrix[8];
-      mat[2][1] = node.matrix[9];
-      mat[2][2] = node.matrix[10];
-      mat[2][3] = node.matrix[11];
+      transform[2][0] = node.matrix[8];
+      transform[2][1] = node.matrix[9];
+      transform[2][2] = node.matrix[10];
+      transform[2][3] = node.matrix[11];
 
-      mat[3][0] = node.matrix[12];
-      mat[3][1] = node.matrix[13];
-      mat[3][2] = node.matrix[14];
-      mat[3][3] = node.matrix[15];
+      transform[3][0] = node.matrix[12];
+      transform[3][1] = node.matrix[13];
+      transform[3][2] = node.matrix[14];
+      transform[3][3] = node.matrix[15];
     }
 
-    mat *= transform;
+    n.transform = transform;
 
     // load mesh
     if (node.mesh != -1) {
@@ -755,6 +769,8 @@ struct Scene {
       spdlog::info("[tinygltf] loading mesh: {}", mesh.name);
       spdlog::info("[tinygltf] number of primitives: {}",
                    mesh.primitives.size());
+
+      n.submesh_id = m_submesh_offsets.size();
 
       // load primitives
       // NOTE: assuming each primitive has position, normal, texcoord
@@ -842,14 +858,34 @@ struct Scene {
       m_submesh_offsets.push_back(prev_indices_size);
       m_submesh_n_faces.push_back(m_indices.size() - prev_indices_size);
       prev_indices_size = m_indices.size();
-
-      // transform
-      m_transforms.push_back(mat);
+    } else {
+      n.submesh_id = -1;
     }
 
-    // load children nodes
-    for (const auto& children : node.children) {
-      load_gltf_node(model, children, mat, indices_offset, prev_indices_size);
+    // load children
+    for (const auto child_idx : node.children) {
+      n.children.push_back(
+          load_gltf_node(model, child_idx, indices_offset, prev_indices_size));
+    }
+
+    return n;
+  }
+
+  void update_transform()
+  {
+    for (const auto& node : m_nodes) {
+      glm::mat4 transform = glm::identity<glm::mat4>();
+      update_transform_node(node, transform);
+    }
+  }
+
+  void update_transform_node(const Node& node, glm::mat4& transform)
+  {
+    const glm::mat4 m = transform * node.transform;
+    if (node.submesh_id != -1) { m_transforms[node.submesh_id] = m; }
+
+    for (const auto& child_node : node.children) {
+      update_transform_node(child_node, m);
     }
   }
 
