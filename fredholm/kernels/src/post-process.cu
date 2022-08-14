@@ -1,4 +1,3 @@
-#pragma once
 #include "sutil/vec_math.h"
 
 static __forceinline__ __device__ float3 linear_to_srgb(const float3& rgb)

@@ -16,6 +16,7 @@ target_link_libraries(gui PRIVATE
     cwl
     optwl
     fredholm
+    kernels
 )
 
 # set cmake source dir macro

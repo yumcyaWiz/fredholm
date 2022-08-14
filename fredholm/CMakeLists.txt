@@ -14,6 +14,9 @@ target_link_libraries(modules PRIVATE
     sutil
 )
 
+# kernels
+add_subdirectory("kernels/")
+
 # fredholm
 add_library(fredholm INTERFACE)
 target_include_directories(fredholm INTERFACE
@@ -27,6 +30,7 @@ target_link_libraries(fredholm INTERFACE
     glm
     stb
     spdlog::spdlog
+    kernels
 )
 
 # set modules source dir macro

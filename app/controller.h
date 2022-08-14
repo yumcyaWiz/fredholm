@@ -15,6 +15,8 @@
 #include "fredholm/renderer.h"
 #include "fredholm/scene.h"
 #include "fredholm/shared.h"
+//
+#include "kernels/post-process.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
