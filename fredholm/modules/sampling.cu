@@ -22,6 +22,8 @@ static __forceinline__ __device__ float sample_1d(SamplerState& state)
 
 static __forceinline__ __device__ float2 sample_2d(SamplerState& state)
 {
+  // return make_float2(fsobol_owen(state.sobol_state),
+  //                    fsobol_owen(state.sobol_state));
   return cmj_2d(state.cmj_state);
 }
 
