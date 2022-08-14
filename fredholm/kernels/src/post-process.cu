@@ -6,7 +6,8 @@ void __host__ post_process_launch(const float4* beauty_in,
                                   float4* denoised_out)
 {
   const dim3 threads_per_block(16, 16);
-  const dim3 blocks(width / threads_per_block.x, height / threads_per_block.y);
+  const dim3 blocks(max(width / threads_per_block.x, 1),
+                    max(height / threads_per_block.y, 1));
   post_process_kernel<<<blocks, threads_per_block>>>(
       beauty_in, denoised_in, width, height, ISO, beauty_out, denoised_out);
 }

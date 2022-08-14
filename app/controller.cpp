@@ -1,6 +1,7 @@
 #include "controller.h"
 
 #include "cwl/buffer.h"
+#include "cwl/util.h"
 #include "kernels/post-process.h"
 #include "stb_image_write.h"
 
@@ -224,10 +225,11 @@ void Controller::post_process()
 {
   // launch post process kernel
   post_process_launch(m_layer_beauty->get_device_ptr(),
-               m_layer_denoised->get_device_ptr(), m_imgui_resolution[0],
-               m_imgui_resolution[1], m_imgui_iso,
-               m_layer_beauty_pp->get_device_ptr(),
-               m_layer_denoised_pp->get_device_ptr());
+                      m_layer_denoised->get_device_ptr(), m_imgui_resolution[0],
+                      m_imgui_resolution[1], m_imgui_iso,
+                      m_layer_beauty_pp->get_device_ptr(),
+                      m_layer_denoised_pp->get_device_ptr());
+  CUDA_SYNC_CHECK();
 }
 
 void Controller::save_image() const
@@ -236,10 +238,10 @@ void Controller::save_image() const
   std::vector<float4> image_f4;
   switch (m_imgui_aov_type) {
     case AOVType::BEAUTY: {
-      m_layer_beauty->copy_from_device_to_host(image_f4);
+      m_layer_beauty_pp->copy_from_device_to_host(image_f4);
     } break;
     case AOVType::DENOISED: {
-      m_layer_denoised->copy_from_device_to_host(image_f4);
+      m_layer_denoised_pp->copy_from_device_to_host(image_f4);
     } break;
     case AOVType::POSITION: {
       m_layer_position->copy_from_device_to_host(image_f4);
@@ -263,17 +265,7 @@ void Controller::save_image() const
   for (int j = 0; j < m_imgui_resolution[1]; ++j) {
     for (int i = 0; i < m_imgui_resolution[0]; ++i) {
       const int idx = i + m_imgui_resolution[0] * j;
-      float4 v = image_f4[idx];
-
-      // gamma correction
-      if (m_imgui_aov_type == AOVType::BEAUTY ||
-          m_imgui_aov_type == AOVType::DENOISED ||
-          m_imgui_aov_type == AOVType::ALBEDO) {
-        v.x = std::pow(v.x, 1.0f / 2.2f);
-        v.y = std::pow(v.y, 1.0f / 2.2f);
-        v.z = std::pow(v.z, 1.0f / 2.2f);
-      }
-
+      const float4 v = image_f4[idx];
       image_c4[idx].x =
           static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
       image_c4[idx].y =

@@ -310,6 +310,9 @@ int main()
         controller.denoise();
       }
 
+      // post process
+      controller.post_process();
+
       // render AOVs
       glClear(GL_COLOR_BUFFER_BIT);
       glViewport(0, 0, controller.m_imgui_resolution[0],
@@ -319,9 +322,10 @@ int main()
                                            controller.m_imgui_resolution[1]));
       fragment_shader.setUniform("aov_type",
                                  static_cast<int>(controller.m_imgui_aov_type));
-      fragment_shader.setUniform("ISO", controller.m_imgui_iso);
-      controller.m_layer_beauty->get_gl_buffer().bindToShaderStorageBuffer(0);
-      controller.m_layer_denoised->get_gl_buffer().bindToShaderStorageBuffer(1);
+      controller.m_layer_beauty_pp->get_gl_buffer().bindToShaderStorageBuffer(
+          0);
+      controller.m_layer_denoised_pp->get_gl_buffer().bindToShaderStorageBuffer(
+          1);
       controller.m_layer_position->get_gl_buffer().bindToShaderStorageBuffer(2);
       controller.m_layer_normal->get_gl_buffer().bindToShaderStorageBuffer(3);
       controller.m_layer_depth->get_gl_buffer().bindToShaderStorageBuffer(4);
