@@ -1,11 +1,11 @@
 #pragma once
-#include <cuda_gl_interop.h>
-
 #include <cstring>
 #include <vector>
 
 #include "cwl/util.h"
 #include "oglw/buffer.h"
+//
+#include <cuda_gl_interop.h>
 
 namespace cwl
 {

@@ -1,8 +1,6 @@
 #pragma once
 #include <optix.h>
-#include <optix_function_table_definition.h>
 #include <optix_stack_size.h>
-#include <optix_stubs.h>
 
 #include <cstdlib>
 #include <filesystem>
@@ -16,6 +14,8 @@
 #include "cwl/buffer.h"
 #include "cwl/texture.h"
 #include "cwl/util.h"
+//
+#include "optwl/optwl.h"
 //
 #include "fredholm/arhosek.h"
 #include "fredholm/camera.h"

@@ -2,21 +2,36 @@
 # add_executable(cui "cui.cpp")
 # target_link_libraries(cui PRIVATE fredholm)
 
-# gui
-add_executable(gui "gui.cpp")
-target_link_libraries(gui PRIVATE
+# controller
+add_library(controller
+    "controller.cpp"
+)
+target_link_libraries(controller PRIVATE
     spdlog::spdlog
     OpenGL::GL
     glad
     oglw
     glfw
-    imgui
-    imgui_glfw_opengl3
     stb_image_write
     cwl
     optwl
     fredholm
     kernels
+)
+
+# gui
+add_executable(gui
+    "gui.cpp"
+)
+target_link_libraries(gui PRIVATE
+    spdlog::spdlog
+    oglw
+    cwl
+    optwl
+    imgui
+    imgui_glfw_opengl3
+    fredholm
+    controller
 )
 
 # set cmake source dir macro

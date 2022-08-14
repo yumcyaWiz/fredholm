@@ -18,12 +18,15 @@ target_link_libraries(modules PRIVATE
 add_subdirectory("kernels/")
 
 # fredholm
-add_library(fredholm INTERFACE)
-target_include_directories(fredholm INTERFACE
+add_library(fredholm
+    "src/renderer.cpp"
+)
+target_include_directories(fredholm PUBLIC
     "include/"
 )
-target_link_libraries(fredholm INTERFACE
+target_link_libraries(fredholm PUBLIC
     cwl
+    optwl
     tinyobjloader
     tinygltf
     sutil
@@ -34,4 +37,4 @@ target_link_libraries(fredholm INTERFACE
 )
 
 # set modules source dir macro
-target_compile_definitions(fredholm INTERFACE MODULES_SOURCE_DIR="${CMAKE_BINARY_DIR}/fredholm/CMakeFiles/modules.dir/modules")
+target_compile_definitions(fredholm PUBLIC MODULES_SOURCE_DIR="${CMAKE_BINARY_DIR}/fredholm/CMakeFiles/modules.dir/modules")
