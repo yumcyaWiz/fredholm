@@ -158,6 +158,7 @@ struct Animation {
 
 // TODO: add transform in each submesh
 struct Scene {
+  bool m_has_camera_transform = false;
   glm::mat4 m_camera_transform = {};
 
   // vertex data
@@ -199,6 +200,9 @@ struct Scene {
 
   void clear()
   {
+    m_has_camera_transform = false;
+    m_camera_transform = {};
+
     m_vertices.clear();
     m_indices.clear();
     m_texcoords.clear();
@@ -984,7 +988,10 @@ struct Scene {
     glm::mat4 m = transform * node.transform;
 
     // update camera transform
-    if (node.camera_id != -1) { m_camera_transform = m; }
+    if (node.camera_id != -1) {
+      m_has_camera_transform = true;
+      m_camera_transform = m;
+    }
 
     // update submesh transform
     if (node.submesh_id != -1) { m_transforms[node.submesh_id] = m; }

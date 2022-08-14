@@ -670,15 +670,21 @@ class Renderer
     params.n_samples = n_samples;
     params.max_depth = max_depth;
 
-    params.camera.transform = make_mat3x4(
-        make_float4(camera.m_transform[0][0], camera.m_transform[1][0],
-                    camera.m_transform[2][0], camera.m_transform[3][0]),
-        make_float4(camera.m_transform[0][1], camera.m_transform[1][1],
-                    camera.m_transform[2][1], camera.m_transform[3][1]),
-        make_float4(camera.m_transform[0][2], camera.m_transform[1][2],
-                    camera.m_transform[2][2], camera.m_transform[3][2]));
-    params.camera.forward =
-        make_float3(camera.m_forward.x, camera.m_forward.y, camera.m_forward.z);
+    if (m_scene.m_has_camera_transform) {
+      const glm::mat4& m = m_scene.m_camera_transform;
+      params.camera.transform =
+          make_mat3x4(make_float4(m[0][0], m[1][0], m[2][0], m[3][0]),
+                      make_float4(m[0][1], m[1][1], m[2][1], m[3][1]),
+                      make_float4(m[0][2], m[1][2], m[2][2], m[3][2]));
+    } else {
+      params.camera.transform = make_mat3x4(
+          make_float4(camera.m_transform[0][0], camera.m_transform[1][0],
+                      camera.m_transform[2][0], camera.m_transform[3][0]),
+          make_float4(camera.m_transform[0][1], camera.m_transform[1][1],
+                      camera.m_transform[2][1], camera.m_transform[3][1]),
+          make_float4(camera.m_transform[0][2], camera.m_transform[1][2],
+                      camera.m_transform[2][2], camera.m_transform[3][2]));
+    }
     params.camera.fov = camera.m_fov;
     params.camera.F = camera.m_F;
     params.camera.focus = camera.m_focus;

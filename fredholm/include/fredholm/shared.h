@@ -58,7 +58,6 @@ enum class RayType : unsigned int {
 
 struct CameraParams {
   Matrix3x4 transform;
-  float3 forward;
   float fov;
   float F;      // F number
   float focus;  // focus distance
