@@ -5,6 +5,6 @@ target_link_libraries(oglw INTERFACE
     OpenGL::GL
     glad
     glm
-    stb
+    stb_image
     spdlog::spdlog
 )

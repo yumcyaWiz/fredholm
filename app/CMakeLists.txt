@@ -12,7 +12,7 @@ target_link_libraries(gui PRIVATE
     glfw
     imgui
     imgui_glfw_opengl3
-    stb
+    stb_image_write
     cwl
     optwl
     fredholm

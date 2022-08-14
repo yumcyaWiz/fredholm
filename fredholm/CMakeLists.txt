@@ -28,7 +28,7 @@ target_link_libraries(fredholm INTERFACE
     tinygltf
     sutil
     glm
-    stb
+    stb_image
     spdlog::spdlog
     kernels
 )

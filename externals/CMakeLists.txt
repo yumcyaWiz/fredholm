@@ -43,8 +43,14 @@ target_include_directories(imgui_glfw_opengl3 SYSTEM PUBLIC imgui/backends)
 SET(SPDLOG_MASTER_PROJECT ON CACHE BOOL "" FORCE)
 add_subdirectory(spdlog)
 
-# stb
-add_library(stb
+# stb_image
+add_library(stb_image
     "stb_image.cpp"
 )
-target_include_directories(stb PUBLIC "stb/")
+target_include_directories(stb_image PUBLIC "stb/")
+
+# stb_image_write
+add_library(stb_image_write
+    "stb_image_write.cpp"
+)
+target_include_directories(stb_image_write PUBLIC "stb/")
