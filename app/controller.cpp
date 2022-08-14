@@ -1,4 +1,5 @@
 #include "controller.h"
+
 #include "cwl/buffer.h"
 #include "kernels/post-process.h"
 #include "stb_image_write.h"
@@ -221,14 +222,12 @@ void Controller::denoise()
 
 void Controller::post_process()
 {
-  const dim3 threads_per_block(16, 16);
-  const dim3 blocks(m_imgui_resolution[0] / threads_per_block.x,
-                    m_imgui_resolution[1] / threads_per_block.y);
-  post_process_kernel<<<blocks, threads_per_block>>>(
-      m_layer_beauty->get_device_ptr(), m_layer_denoised->get_device_ptr(),
-      m_imgui_resolution[0], m_imgui_resolution[1], m_imgui_iso,
-      m_layer_beauty_pp->get_device_ptr(),
-      m_layer_denoised_pp->get_device_ptr());
+  // launch post process kernel
+  post_process_launch(m_layer_beauty->get_device_ptr(),
+               m_layer_denoised->get_device_ptr(), m_imgui_resolution[0],
+               m_imgui_resolution[1], m_imgui_iso,
+               m_layer_beauty_pp->get_device_ptr(),
+               m_layer_denoised_pp->get_device_ptr());
 }
 
 void Controller::save_image() const

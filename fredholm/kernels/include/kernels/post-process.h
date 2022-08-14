@@ -39,6 +39,11 @@ static __forceinline__ __device__ float convert_EV100_to_exposure(float EV100)
   return 1.0f / maxLuminance;
 }
 
+void __host__ post_process_launch(const float4* beauty_in,
+                                  const float4* denoised_in, int width,
+                                  int height, float ISO, float4* beauty_out,
+                                  float4* denoised_out);
+
 __global__ void post_process_kernel(const float4* beauty_in,
                                     const float4* denoised_in, int width,
                                     int height, float ISO, float4* beauty_out,

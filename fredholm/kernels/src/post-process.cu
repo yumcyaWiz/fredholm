@@ -1,5 +1,16 @@
 #include "kernels/post-process.h"
 
+void __host__ post_process_launch(const float4* beauty_in,
+                                  const float4* denoised_in, int width,
+                                  int height, float ISO, float4* beauty_out,
+                                  float4* denoised_out)
+{
+  const dim3 threads_per_block(16, 16);
+  const dim3 blocks(width / threads_per_block.x, height / threads_per_block.y);
+  post_process_kernel<<<blocks, threads_per_block>>>(
+      beauty_in, denoised_in, width, height, ISO, beauty_out, denoised_out);
+}
+
 __global__ void post_process_kernel(const float4* beauty_in,
                                     const float4* denoised_in, int width,
                                     int height, float ISO, float4* beauty_out,

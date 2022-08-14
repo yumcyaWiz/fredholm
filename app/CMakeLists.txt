@@ -4,7 +4,7 @@
 
 # controller
 add_library(controller
-    "controller.cu"
+    "controller.cpp"
 )
 target_link_libraries(controller PRIVATE
     spdlog::spdlog
