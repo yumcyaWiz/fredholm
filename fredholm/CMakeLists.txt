@@ -3,7 +3,6 @@ add_library(modules OBJECT
     "modules/pt.cu"
 )
 set_target_properties(modules PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
     CUDA_PTX_COMPILATION ON
 )
 target_include_directories(modules PRIVATE
@@ -20,6 +19,7 @@ add_subdirectory("kernels/")
 # fredholm
 add_library(fredholm
     "src/renderer.cpp"
+    "src/scene.cpp"
 )
 target_include_directories(fredholm PUBLIC
     "include/"

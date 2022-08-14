@@ -2,8 +2,6 @@
 
 #include <filesystem>
 #include <memory>
-
-#include "stb_image_write.h"
 //
 #include "cwl/buffer.h"
 //
@@ -14,8 +12,6 @@
 #include "fredholm/renderer.h"
 #include "fredholm/scene.h"
 #include "fredholm/shared.h"
-//
-#include "kernels/post-process.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
@@ -113,6 +109,10 @@ class Controller
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_albedo = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
 
+  // post processed layer
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_beauty_pp = nullptr;
+  std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised_pp = nullptr;
+
   std::unique_ptr<optwl::Context> m_context = nullptr;
   std::unique_ptr<fredholm::Renderer> m_renderer = nullptr;
   std::unique_ptr<fredholm::Denoiser> m_denoiser = nullptr;
@@ -152,6 +152,8 @@ class Controller
   void render();
 
   void denoise();
+
+  void post_process();
 
   void save_image() const;
 };
