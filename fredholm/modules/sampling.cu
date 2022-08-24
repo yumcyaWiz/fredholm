@@ -1,5 +1,6 @@
 #pragma once
 
+#include "blue-noise.cu"
 #include "cmj.cu"
 #include "fredholm/shared.h"
 #include "math.cu"

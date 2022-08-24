@@ -861,8 +861,11 @@ extern "C" __global__ void __closesthit__radiance()
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(sample_1d(payload->sampler),
-                                                sample_2d(payload->sampler), le,
-                                                n, pdf_area);
+                                                sample_2d(payload->sampler),
+                                                le, n, pdf_area);
+      // const float3 p = sample_position_on_light(
+      //     sample_1d(payload->sampler),
+      //     blue_noise_2d(payload->sampler.blue_noise_state), le, n, pdf_area);
 
       const float3 shadow_ray_direction = normalize(p - shadow_ray_origin);
       const float r = length(p - shadow_ray_origin);
