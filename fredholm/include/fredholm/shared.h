@@ -81,10 +81,18 @@ struct CMJState {
   unsigned int image_idx = 0;
 };
 
+struct BlueNoiseState {
+  int pixel_i = 0;
+  int pixel_j = 0;
+  int index = 0;
+  int dimension = 0;
+};
+
 struct SamplerState {
   PCGState pcg_state;
   SobolState sobol_state;
   CMJState cmj_state;
+  BlueNoiseState blue_noise_state;
 };
 
 // similar to arnold standard surface

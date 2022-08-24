@@ -376,7 +376,8 @@ static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
 }
 
 static __forceinline__ __device__ void init_sampler_state(
-    unsigned int image_idx, unsigned int n_spp, SamplerState& state)
+    const uint3& idx, unsigned int image_idx, unsigned int n_spp,
+    SamplerState& state)
 {
   state.pcg_state.state =
       xxhash32(image_idx + n_spp * params.width * params.height);
@@ -390,6 +391,11 @@ static __forceinline__ __device__ void init_sampler_state(
   state.cmj_state.depth = 0;
   state.cmj_state.n_spp = n_spp;
   state.cmj_state.scramble = xxhash32(params.seed);
+
+  state.blue_noise_state.pixel_i = idx.x;
+  state.blue_noise_state.pixel_j = idx.y;
+  state.blue_noise_state.index = n_spp;
+  state.blue_noise_state.dimension = 0;
 }
 
 // Ray Tracing Gems Chapter 6
@@ -426,7 +432,7 @@ extern "C" __global__ void __raygen__rg()
   RadiancePayload payload;
   for (int spp = 0; spp < params.n_samples; ++spp) {
     // initialize sampler
-    init_sampler_state(image_idx, n_spp, payload.sampler);
+    init_sampler_state(idx, image_idx, n_spp, payload.sampler);
 
     // generate initial ray from camera
     float2 u = sample_2d(payload.sampler);
