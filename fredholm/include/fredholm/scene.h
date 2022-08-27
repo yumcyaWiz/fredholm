@@ -139,7 +139,7 @@ struct Scene {
 
   void clear();
 
-  void load_model(const std::filesystem::path& filepath);
+  void load_model(const std::filesystem::path& filepath, bool do_clear);
 
   void load_obj(const std::filesystem::path& filepath);
 

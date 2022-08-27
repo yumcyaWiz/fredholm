@@ -100,9 +100,9 @@ void Scene::clear()
   m_animations.clear();
 }
 
-void Scene::load_model(const std::filesystem::path& filepath)
+void Scene::load_model(const std::filesystem::path& filepath, bool do_clear)
 {
-  clear();
+  if (do_clear) { clear(); }
 
   spdlog::info("[Scene] loading {}", filepath.generic_string());
 
@@ -481,10 +481,9 @@ void Scene::load_gltf(const std::filesystem::path& filepath)
 
   // load materials
   if (model.materials.size() == 0) {
-    throw std::runtime_error("there is no material");
+    // throw std::runtime_error("there is no material");
   }
 
-  m_materials.resize(model.materials.size());
   for (int i = 0; i < model.materials.size(); ++i) {
     const auto& material = model.materials[i];
     spdlog::info("[tinygltf] loading material: {}", material.name);
@@ -492,24 +491,24 @@ void Scene::load_gltf(const std::filesystem::path& filepath)
     const auto& pmr = material.pbrMetallicRoughness;
 
     // base color
-    m_materials[i].base_color = make_float3(
-        pmr.baseColorFactor[0], pmr.baseColorFactor[1], pmr.baseColorFactor[2]);
+    Material mat;
+    mat.base_color = make_float3(pmr.baseColorFactor[0], pmr.baseColorFactor[1],
+                                 pmr.baseColorFactor[2]);
 
     // base color(texture)
     if (pmr.baseColorTexture.index != -1) {
-      m_materials[i].base_color_texture_id = pmr.baseColorTexture.index;
+      mat.base_color_texture_id = pmr.baseColorTexture.index;
     }
 
     // specular roughness
-    m_materials[i].specular_roughness = pmr.roughnessFactor;
+    mat.specular_roughness = pmr.roughnessFactor;
 
     // metalness
-    m_materials[i].metalness = pmr.metallicFactor;
+    mat.metalness = pmr.metallicFactor;
 
     // metallic roughness(texture)
     if (pmr.metallicRoughnessTexture.index != -1) {
-      m_materials[i].metallic_roughness_texture_id =
-          pmr.metallicRoughnessTexture.index;
+      mat.metallic_roughness_texture_id = pmr.metallicRoughnessTexture.index;
     }
 
     if (material.extensions.contains("KHR_materials_clearcoat")) {
@@ -517,54 +516,54 @@ void Scene::load_gltf(const std::filesystem::path& filepath)
 
       // coat
       if (p.Has("clearcoatFactor")) {
-        m_materials[i].coat = p.Get("clearcoatFactor").GetNumberAsDouble();
+        mat.coat = p.Get("clearcoatFactor").GetNumberAsDouble();
       }
       // coat(texture)
       if (p.Has("clearcoatTexture")) {
-        m_materials[i].coat_texture_id =
-            p.Get("clearcoatTexture").GetNumberAsInt();
+        mat.coat_texture_id = p.Get("clearcoatTexture").GetNumberAsInt();
       }
       // coat roughness
       if (p.Has("clearcoatRoughnessFactor")) {
-        m_materials[i].coat_roughness =
+        mat.coat_roughness =
             p.Get("clearcoatRoughnessFactor").GetNumberAsDouble();
       }
       // coat roughness(texture)
       if (p.Has("clearcoatRoughnessTexture")) {
-        m_materials[i].coat_roughness_texture_id =
+        mat.coat_roughness_texture_id =
             p.Get("clearcoatRoughnessTexture").GetNumberAsInt();
       }
     }
 
     // emission
     if (material.emissiveFactor.size() == 3) {
-      m_materials[i].emission = 1.0f;
-      m_materials[i].emission_color =
+      mat.emission = 1.0f;
+      mat.emission_color =
           make_float3(material.emissiveFactor[0], material.emissiveFactor[1],
                       material.emissiveFactor[2]);
     }
 
     // emission texture
     if (material.emissiveTexture.index != -1) {
-      m_materials[i].emission_texture_id = material.emissiveTexture.index;
+      mat.emission_texture_id = material.emissiveTexture.index;
     }
 
     // normal texture
     if (material.normalTexture.index != -1) {
-      m_materials[i].normalmap_texture_id = material.normalTexture.index;
+      mat.normalmap_texture_id = material.normalTexture.index;
     }
+
+    m_materials.push_back(mat);
   }
 
   // load textures
-  m_textures.resize(model.textures.size());
   for (int i = 0; i < model.textures.size(); ++i) {
     const auto& texture = model.textures[i];
     spdlog::info("[tinygltf] loading texture: {}", texture.name);
 
     const auto& image = model.images[texture.source];
     // TODO: set sRGB to Linear flag, create Texture Type instead?
-    m_textures[i] =
-        Texture(filepath.parent_path() / image.uri, TextureType::NONCOLOR);
+    m_textures.push_back(
+        Texture(filepath.parent_path() / image.uri, TextureType::NONCOLOR));
   }
 
   // load nodes
