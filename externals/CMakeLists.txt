@@ -57,4 +57,4 @@ target_include_directories(stb_image_write PUBLIC "stb/")
 
 # argparse
 add_library(argparse INTERFACE)
-target_include_directories(argparse INTERFACE "argparse/")
+target_include_directories(argparse INTERFACE "argparse/include")
