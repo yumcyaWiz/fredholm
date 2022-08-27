@@ -114,6 +114,8 @@ void Controller::clear_render_layers()
 void Controller::load_scene()
 {
   m_renderer->load_scene(scene_filepaths[m_imgui_scene_id]);
+  // m_renderer->load_scene("../resources/rtcamp8/rtcamp8.obj");
+  // m_renderer->load_scene("../resources/rtcamp8/rtcamp8_camera.gltf", false);
   m_renderer->build_gas();
   m_renderer->build_ias();
   m_renderer->create_sbt();

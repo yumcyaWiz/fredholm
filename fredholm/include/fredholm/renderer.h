@@ -353,11 +353,11 @@ class Renderer
     m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
 
-  void load_scene(const std::filesystem::path& filepath)
+  void load_scene(const std::filesystem::path& filepath, bool clear = true)
   {
     spdlog::info("[Renderer] loading scene");
 
-    m_scene.load_model(filepath);
+    m_scene.load_model(filepath, clear);
     if (!m_scene.is_valid()) { throw std::runtime_error("invalid scene"); }
 
     m_d_vertices =

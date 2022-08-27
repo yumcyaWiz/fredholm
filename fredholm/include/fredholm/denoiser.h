@@ -6,6 +6,7 @@
 
 #include "cwl/buffer.h"
 #include "cwl/util.h"
+#include "optwl/optwl.h"
 
 namespace fredholm
 {

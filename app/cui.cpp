@@ -1,18 +1,40 @@
+#include <bits/chrono.h>
+
+#include <chrono>
 #include <stdexcept>
+#include <system_error>
 
 #include "argparse/argparse.hpp"
-
+#include "cwl/buffer.h"
 #include "cwl/util.h"
-#include "fredholm/renderer.h"
 #include "fredholm/denoiser.h"
+#include "fredholm/renderer.h"
 #include "kernels/post-process.h"
 #include "optwl/optwl.h"
-#include "cwl/buffer.h"
 #include "stb_image_write.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
-int main(int argc, char *argv[])
+class Timer
+{
+ public:
+  Timer() {}
+
+  void start() { m_start = std::chrono::steady_clock::now(); }
+  void end() { m_end = std::chrono::steady_clock::now(); }
+  float duration() const
+  {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(m_end -
+                                                                 m_start)
+        .count();
+  }
+
+ private:
+  std::chrono::steady_clock::time_point m_start;
+  std::chrono::steady_clock::time_point m_end;
+};
+
+int main(int argc, char* argv[])
 {
   // argparse::ArgumentParser program("fredholm");
 
@@ -33,11 +55,12 @@ int main(int argc, char *argv[])
   const int width = 1920;
   const int height = 1080;
   const int n_spp = 16;
-  const std::string scene_filepath = "../resources/camera_animation_test/camera_animation_test.gltf";
+  const std::string scene_filepath =
+      "../resources/camera_animation_test/camera_animation_test.gltf";
 
   const int max_depth = 5;
-  const float ISO = 100.0f;
-  const float max_time = 5.0f;
+  const float ISO = 70.0f;
+  const float max_time = 9.5f;
   const float fps = 24.0f;
   const float time_step = 1.0f / fps;
 
@@ -53,31 +76,43 @@ int main(int argc, char *argv[])
   renderer.set_resolution(width, height);
 
   // init render layers
-  cwl::CUDABuffer<float4> layer_beauty = cwl::CUDABuffer<float4>(width * height);
-  cwl::CUDABuffer<float4> layer_position = cwl::CUDABuffer<float4>(width * height);
-  cwl::CUDABuffer<float4> layer_normal = cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_beauty =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_position =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_normal =
+      cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float> layer_depth = cwl::CUDABuffer<float>(width * height);
-  cwl::CUDABuffer<float4> layer_texcoord = cwl::CUDABuffer<float4>(width * height);
-  cwl::CUDABuffer<float4> layer_albedo = cwl::CUDABuffer<float4>(width * height);
-  cwl::CUDABuffer<float4> layer_denoised = cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_texcoord =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_albedo =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_denoised =
+      cwl::CUDABuffer<float4>(width * height);
 
-  cwl::CUDABuffer<float4> layer_beauty_pp = cwl::CUDABuffer<float4>(width * height);
-  cwl::CUDABuffer<float4> layer_denoised_pp = cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_beauty_pp =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_denoised_pp =
+      cwl::CUDABuffer<float4>(width * height);
 
   // init denoiser
-  fredholm::Denoiser denoiser = fredholm::Denoiser(context.m_context, width, height, layer_beauty.get_device_ptr(), layer_normal.get_device_ptr(), layer_albedo.get_device_ptr(), layer_denoised.get_device_ptr());
+  fredholm::Denoiser denoiser = fredholm::Denoiser(
+      context.m_context, width, height, layer_beauty.get_device_ptr(),
+      layer_normal.get_device_ptr(), layer_albedo.get_device_ptr(),
+      layer_denoised.get_device_ptr());
 
   // load scene
-  renderer.load_scene(scene_filepath);
+  renderer.load_scene("../resources/rtcamp8/rtcamp8.obj");
+  renderer.load_scene("../resources/rtcamp8/rtcamp8_camera.gltf", false);
   renderer.build_gas();
   renderer.build_ias();
   renderer.create_sbt();
 
   // init camera
   fredholm::Camera camera;
-  camera.m_fov = deg2rad(45.0f);
-  camera.m_F = 10000.0f;
-  camera.m_focus = 6.0f;
+  camera.m_fov = deg2rad(60.0f);
+  camera.m_F = 200.0f;
+  camera.m_focus = 8.0f;
 
   // init render layer
   fredholm::RenderLayer render_layer;
@@ -88,14 +123,25 @@ int main(int argc, char *argv[])
   render_layer.texcoord = layer_texcoord.get_device_ptr();
   render_layer.albedo = layer_albedo.get_device_ptr();
 
+  // set directional light
+  renderer.set_directional_light(make_float3(20, 20, 20),
+                                 make_float3(-0.1f, 1, 0.1f), 1.0f);
+
   // set arhosek sky
-  // renderer.load_arhosek_sky(3.0f, 0.2f);
+  renderer.load_arhosek_sky(3.0f, 0.2f);
+
+  Timer render_timer;
+  Timer denoiser_timer;
+  Timer pp_timer;
+  Timer save_timer;
 
   // render loop
   int render_idx = 0;
   float time = 0.0f;
-  while(true) {
-    if(time > max_time) break;
+  while (true) {
+    printf("rendering frame: %d\n", render_idx);
+
+    if (time > max_time) break;
 
     // clear render layers
     layer_beauty.clear();
@@ -109,36 +155,61 @@ int main(int argc, char *argv[])
     renderer.init_render_states();
 
     // render
+    render_timer.start();
     renderer.set_time(time);
-    renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp, max_depth);
+    renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp,
+                    max_depth);
     CUDA_SYNC_CHECK();
+    render_timer.end();
+
+    printf("rendering time: %f\n", render_timer.duration());
 
     // denoise
+    denoiser_timer.start();
     denoiser.denoise();
     CUDA_SYNC_CHECK();
-    
+    denoiser_timer.end();
+
+    printf("denoised time: %f\n", denoiser_timer.duration());
+
     // post process
-    post_process_launch(layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(), width, height, ISO, layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
+    pp_timer.start();
+    post_process_launch(layer_beauty.get_device_ptr(),
+                        layer_denoised.get_device_ptr(), width, height, ISO,
+                        layer_beauty_pp.get_device_ptr(),
+                        layer_denoised_pp.get_device_ptr());
     CUDA_SYNC_CHECK();
+    pp_timer.end();
+
+    printf("post process time: %f\n", pp_timer.duration());
 
     // save image
+    save_timer.start();
     std::vector<float4> image_f4;
     layer_denoised_pp.copy_from_device_to_host(image_f4);
 
     std::vector<uchar4> image_c4(width * height);
-    for(int j = 0; j < height; ++j) {
-      for(int i = 0; i < width; ++i) {
+    for (int j = 0; j < height; ++j) {
+      for (int i = 0; i < width; ++i) {
         const int idx = i + width * j;
         const float4& v = image_f4[idx];
-        image_c4[idx].x = static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
-        image_c4[idx].y = static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
-        image_c4[idx].z = static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
+        image_c4[idx].x =
+            static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
+        image_c4[idx].y =
+            static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
+        image_c4[idx].z =
+            static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
         image_c4[idx].w = 255;
       }
     }
 
-    const std::string filename = "output/" + std::to_string(render_idx) + ".png";
-    stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(), sizeof(uchar4) * width);
+    const std::string filename =
+        "output/" + std::to_string(render_idx) + ".png";
+    stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(),
+                   sizeof(uchar4) * width);
+    save_timer.end();
+
+    printf("image save time: %f\n", save_timer.duration());
 
     render_idx++;
     time += time_step;
