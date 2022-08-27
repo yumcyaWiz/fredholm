@@ -1,6 +1,11 @@
 # cui
-# add_executable(cui "cui.cpp")
-# target_link_libraries(cui PRIVATE fredholm)
+add_executable(cui
+    "cui.cpp"
+)
+target_link_libraries(cui PRIVATE
+    argparse
+    fredholm
+)
 
 # controller
 add_library(controller

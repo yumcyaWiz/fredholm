@@ -353,7 +353,7 @@ class Renderer
     m_sbt.hitgroupRecordCount = m_hit_group_records.size();
   }
 
-  void load_scene(std::filesystem::path& filepath)
+  void load_scene(const std::filesystem::path& filepath)
   {
     spdlog::info("[Renderer] loading scene");
 
