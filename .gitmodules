@@ -19,3 +19,6 @@
 [submodule "externals/tinygltf"]
 	path = externals/tinygltf
 	url = git@github.com:syoyo/tinygltf.git
+[submodule "externals/argparse"]
+	path = externals/argparse
+	url = git@github.com:p-ranav/argparse.git
