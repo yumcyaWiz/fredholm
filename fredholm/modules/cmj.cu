@@ -2,8 +2,8 @@
 #include "fredholm/shared.h"
 #include "sutil/vec_math.h"
 
-#define CMJ_M 8
-#define CMJ_N 8
+#define CMJ_M 4
+#define CMJ_N 4
 
 using namespace fredholm;
 
