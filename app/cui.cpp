@@ -37,6 +37,9 @@ int main(int argc, char *argv[])
 
   const int max_depth = 5;
   const float ISO = 100.0f;
+  const float max_time = 5.0f;
+  const float fps = 24.0f;
+  const float time_step = 1.0f / fps;
 
   // init CUDA
   CUDA_CHECK(cudaFree(0));
@@ -72,9 +75,9 @@ int main(int argc, char *argv[])
 
   // init camera
   fredholm::Camera camera;
-  camera.m_fov = deg2rad(90.0f);
-  camera.m_F = 100.0f;
-  camera.m_focus = 10000.0f;
+  camera.m_fov = deg2rad(45.0f);
+  camera.m_F = 10000.0f;
+  camera.m_focus = 6.0f;
 
   // init render layer
   fredholm::RenderLayer render_layer;
@@ -86,38 +89,60 @@ int main(int argc, char *argv[])
   render_layer.albedo = layer_albedo.get_device_ptr();
 
   // set arhosek sky
-  renderer.load_arhosek_sky(3.0f, 0.2f);
+  // renderer.load_arhosek_sky(3.0f, 0.2f);
 
-  // render
-  renderer.set_time(0.0f);
-  renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp, max_depth);
-  CUDA_SYNC_CHECK();
+  // render loop
+  int render_idx = 0;
+  float time = 0.0f;
+  while(true) {
+    if(time > max_time) break;
 
-  // denoise
-  denoiser.denoise();
-  CUDA_SYNC_CHECK();
-  
-  // post process
-  post_process_launch(layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(), width, height, ISO, layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
-  CUDA_SYNC_CHECK();
+    // clear render layers
+    layer_beauty.clear();
+    layer_position.clear();
+    layer_normal.clear();
+    layer_depth.clear();
+    layer_texcoord.clear();
+    layer_albedo.clear();
 
-  // save image
-  std::vector<float4> image_f4;
-  layer_denoised_pp.copy_from_device_to_host(image_f4);
+    // clear render states
+    renderer.init_render_states();
 
-  std::vector<uchar4> image_c4(width * height);
-  for(int j = 0; j < height; ++j) {
-    for(int i = 0; i < width; ++i) {
-      const int idx = i + width * j;
-      const float4& v = image_f4[idx];
-      image_c4[idx].x = static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
-      image_c4[idx].y = static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
-      image_c4[idx].z = static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
-      image_c4[idx].w = 255;
+    // render
+    renderer.set_time(time);
+    renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp, max_depth);
+    CUDA_SYNC_CHECK();
+
+    // denoise
+    denoiser.denoise();
+    CUDA_SYNC_CHECK();
+    
+    // post process
+    post_process_launch(layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(), width, height, ISO, layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
+    CUDA_SYNC_CHECK();
+
+    // save image
+    std::vector<float4> image_f4;
+    layer_denoised_pp.copy_from_device_to_host(image_f4);
+
+    std::vector<uchar4> image_c4(width * height);
+    for(int j = 0; j < height; ++j) {
+      for(int i = 0; i < width; ++i) {
+        const int idx = i + width * j;
+        const float4& v = image_f4[idx];
+        image_c4[idx].x = static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
+        image_c4[idx].y = static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
+        image_c4[idx].z = static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
+        image_c4[idx].w = 255;
+      }
     }
-  }
 
-  stbi_write_png("0.png", width, height, 4, image_c4.data(), sizeof(uchar4) * width);
+    const std::string filename = "output/" + std::to_string(render_idx) + ".png";
+    stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(), sizeof(uchar4) * width);
+
+    render_idx++;
+    time += time_step;
+  }
 
   return 0;
 }
