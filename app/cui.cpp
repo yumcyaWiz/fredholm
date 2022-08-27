@@ -8,6 +8,7 @@
 #include "kernels/post-process.h"
 #include "optwl/optwl.h"
 #include "cwl/buffer.h"
+#include "stb_image_write.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
@@ -98,6 +99,25 @@ int main(int argc, char *argv[])
   
   // post process
   post_process_launch(layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(), width, height, ISO, layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
+  CUDA_SYNC_CHECK();
+
+  // save image
+  std::vector<float4> image_f4;
+  layer_denoised_pp.copy_from_device_to_host(image_f4);
+
+  std::vector<uchar4> image_c4(width * height);
+  for(int j = 0; j < height; ++j) {
+    for(int i = 0; i < width; ++i) {
+      const int idx = i + width * j;
+      const float4& v = image_f4[idx];
+      image_c4[idx].x = static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
+      image_c4[idx].y = static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
+      image_c4[idx].z = static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
+      image_c4[idx].w = static_cast<unsigned char>(std::clamp(255.0f * v.w, 0.0f, 255.0f));
+    }
+  }
+
+  stbi_write_png("0.png", width, height, 4, image_c4.data(), sizeof(uchar4) * width);
 
   return 0;
 }
