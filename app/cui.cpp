@@ -14,26 +14,26 @@ inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
 
 int main(int argc, char *argv[])
 {
-  argparse::ArgumentParser program("fredholm");
+  // argparse::ArgumentParser program("fredholm");
 
-  program.add_argument("width").help("width").scan<'i', int>();
-  program.add_argument("height").help("height").scan<'i', int>();
-  program.add_argument("spp").help("number of samples").scan<'i', int>();
-  program.add_argument("scene").help("glTF scene file");
+  // program.add_argument("width").help("width").scan<'i', int>();
+  // program.add_argument("height").help("height").scan<'i', int>();
+  // program.add_argument("spp").help("number of samples").scan<'i', int>();
+  // program.add_argument("scene").help("glTF scene file");
 
-  try {
-    program.parse_args(argc, argv);
-  }
-  catch(const std::runtime_error& err) {
-    std::cerr << err.what() << std::endl;
-    std::cerr << program;
-    std::exit(EXIT_FAILURE);
-  }
+  // try {
+  //   program.parse_args(argc, argv);
+  // }
+  // catch(const std::runtime_error& err) {
+  //   std::cerr << err.what() << std::endl;
+  //   std::cerr << program;
+  //   std::exit(EXIT_FAILURE);
+  // }
 
-  const int width = program.get<int>("width");
-  const int height = program.get<int>("height");
-  const int n_spp = program.get<int>("spp");
-  const std::string scene_filepath = program.get("scene");
+  const int width = 1920;
+  const int height = 1080;
+  const int n_spp = 16;
+  const std::string scene_filepath = "../resources/camera_animation_test/camera_animation_test.gltf";
 
   const int max_depth = 5;
   const float ISO = 100.0f;
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
       image_c4[idx].x = static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
       image_c4[idx].y = static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
       image_c4[idx].z = static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
-      image_c4[idx].w = static_cast<unsigned char>(std::clamp(255.0f * v.w, 0.0f, 255.0f));
+      image_c4[idx].w = 255;
     }
   }
 
