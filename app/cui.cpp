@@ -4,6 +4,8 @@
 
 #include "cwl/util.h"
 #include "fredholm/renderer.h"
+#include "fredholm/denoiser.h"
+#include "kernels/post-process.h"
 #include "optwl/optwl.h"
 #include "cwl/buffer.h"
 
@@ -30,8 +32,10 @@ int main(int argc, char *argv[])
   const int width = program.get<int>("width");
   const int height = program.get<int>("height");
   const int n_spp = program.get<int>("spp");
-  const int max_depth = 5;
   const std::string scene_filepath = program.get("scene");
+
+  const int max_depth = 5;
+  const float ISO = 100.0f;
 
   // init CUDA
   CUDA_CHECK(cudaFree(0));
@@ -51,9 +55,13 @@ int main(int argc, char *argv[])
   cwl::CUDABuffer<float> layer_depth = cwl::CUDABuffer<float>(width * height);
   cwl::CUDABuffer<float4> layer_texcoord = cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> layer_albedo = cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> layer_denoised = cwl::CUDABuffer<float4>(width * height);
 
   cwl::CUDABuffer<float4> layer_beauty_pp = cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> layer_denoised_pp = cwl::CUDABuffer<float4>(width * height);
+
+  // init denoiser
+  fredholm::Denoiser denoiser = fredholm::Denoiser(context.m_context, width, height, layer_beauty.get_device_ptr(), layer_normal.get_device_ptr(), layer_albedo.get_device_ptr(), layer_denoised.get_device_ptr());
 
   // load scene
   renderer.load_scene(scene_filepath);
@@ -76,9 +84,20 @@ int main(int argc, char *argv[])
   render_layer.texcoord = layer_texcoord.get_device_ptr();
   render_layer.albedo = layer_albedo.get_device_ptr();
 
+  // set arhosek sky
+  renderer.load_arhosek_sky(3.0f, 0.2f);
+
   // render
+  renderer.set_time(0.0f);
   renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp, max_depth);
   CUDA_SYNC_CHECK();
+
+  // denoise
+  denoiser.denoise();
+  CUDA_SYNC_CHECK();
+  
+  // post process
+  post_process_launch(layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(), width, height, ISO, layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
 
   return 0;
 }

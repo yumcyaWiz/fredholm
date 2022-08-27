@@ -5,6 +5,7 @@ add_executable(cui
 target_link_libraries(cui PRIVATE
     argparse
     fredholm
+    kernels
 )
 
 # controller
