@@ -48,5 +48,6 @@ static __forceinline__ __device__ void sample_ray_thinlens_camera(
   dir.z *= -1.0f;
   direction = transform_direction(params.transform, dir);
   const float pdf_area = 1.0f / (M_PIf * lens_radius * lens_radius);
-  pdf = length2(p_lens - p_sensor) / abs(sensor_to_lens.z) * pdf_area;
+  // pdf = length2(p_lens - p_sensor) / abs(sensor_to_lens.z) * pdf_area;
+  pdf = 1.0f / (dir.z * dir.z);
 }

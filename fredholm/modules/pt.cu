@@ -450,7 +450,7 @@ extern "C" __global__ void __raygen__rg()
     // payload.throughput =
     //     make_float3(dot(payload.direction, params.camera.forward) /
     //     camera_pdf);
-    payload.throughput = make_float3(1.0f);
+    payload.throughput = make_float3(1.0f / camera_pdf);
     payload.done = false;
     for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth) {
       // russian roulette
@@ -861,8 +861,8 @@ extern "C" __global__ void __closesthit__radiance()
       float3 le, n;
       float pdf_area;
       const float3 p = sample_position_on_light(sample_1d(payload->sampler),
-                                                sample_2d(payload->sampler),
-                                                le, n, pdf_area);
+                                                sample_2d(payload->sampler), le,
+                                                n, pdf_area);
       // const float3 p = sample_position_on_light(
       //     sample_1d(payload->sampler),
       //     blue_noise_2d(payload->sampler.blue_noise_state), le, n, pdf_area);
