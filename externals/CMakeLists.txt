@@ -8,12 +8,6 @@ add_library(tinyobjloader
 )
 target_include_directories(tinyobjloader PUBLIC "tinyobjloader/")
 
-# tinygltf
-add_library(tinygltf
-    "tinygltf.cpp"
-)
-target_include_directories(tinygltf PUBLIC "tinygltf/")
-
 # glm
 add_subdirectory("glm/")
 
@@ -54,6 +48,16 @@ add_library(stb_image_write
     "stb_image_write.cpp"
 )
 target_include_directories(stb_image_write PUBLIC "stb/")
+
+# tinygltf
+add_library(tinygltf
+    "tinygltf.cpp"
+)
+target_include_directories(tinygltf PUBLIC "tinygltf/")
+target_link_libraries(tinygltf PUBLIC
+    stb_image
+    stb_image_write
+)
 
 # argparse
 add_library(argparse INTERFACE)
