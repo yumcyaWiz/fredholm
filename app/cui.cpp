@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 
   const int width = 1920;
   const int height = 1080;
-  const int n_spp = 16;
+  const int n_spp = 64;
   const std::string scene_filepath =
       "../resources/camera_animation_test/camera_animation_test.gltf";
 
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
   // init camera
   fredholm::Camera camera;
   camera.m_fov = deg2rad(60.0f);
-  camera.m_F = 200.0f;
+  camera.m_F = 100.0f;
   camera.m_focus = 8.0f;
 
   // init render layer
@@ -133,6 +133,8 @@ int main(int argc, char* argv[])
   Timer render_timer;
   Timer denoiser_timer;
   Timer pp_timer;
+  Timer transfer_timer;
+  Timer convert_timer;
   Timer save_timer;
 
   // render loop
@@ -184,10 +186,14 @@ int main(int argc, char* argv[])
     printf("post process time: %f\n", pp_timer.duration());
 
     // save image
-    save_timer.start();
     std::vector<float4> image_f4;
+    transfer_timer.start();
     layer_denoised_pp.copy_from_device_to_host(image_f4);
+    transfer_timer.end();
 
+    printf("transfer time: %f\n", transfer_timer.duration());
+
+    convert_timer.start();
     std::vector<uchar4> image_c4(width * height);
     for (int j = 0; j < height; ++j) {
       for (int i = 0; i < width; ++i) {
@@ -202,7 +208,11 @@ int main(int argc, char* argv[])
         image_c4[idx].w = 255;
       }
     }
+    convert_timer.end();
 
+    printf("convert time: %f\n", convert_timer.duration());
+
+    save_timer.start();
     const std::string filename =
         "output/" + std::to_string(render_idx) + ".png";
     stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(),
