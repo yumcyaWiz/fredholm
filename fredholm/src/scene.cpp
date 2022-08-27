@@ -174,24 +174,24 @@ void Scene::load_obj(const std::filesystem::path& filepath)
                        std::stof(tokens[2]));
   };
 
-  m_materials.resize(tinyobj_materials.size());
-  for (int i = 0; i < m_materials.size(); ++i) {
+  for (int i = 0; i < tinyobj_materials.size(); ++i) {
     const auto& m = tinyobj_materials[i];
+
+    Material mat;
 
     // diffuse
     if (m.unknown_parameter.count("diffuse")) {
-      m_materials[i].diffuse = parse_float(m.unknown_parameter.at("diffuse"));
+      mat.diffuse = parse_float(m.unknown_parameter.at("diffuse"));
     }
 
     // diffuse roughness
     if (m.unknown_parameter.count("diffuse_roughness")) {
-      m_materials[i].diffuse_roughness =
+      mat.diffuse_roughness =
           parse_float(m.unknown_parameter.at("diffuse_roughness"));
     }
 
     // base color
-    m_materials[i].base_color =
-        make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+    mat.base_color = make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
 
     // base color(texture)
     if (!m.diffuse_texname.empty()) {
@@ -199,101 +199,94 @@ void Scene::load_obj(const std::filesystem::path& filepath)
                    TextureType::COLOR);
 
       // set texture id on material
-      m_materials[i].base_color_texture_id = unique_textures[m.diffuse_texname];
+      mat.base_color_texture_id = unique_textures[m.diffuse_texname];
     }
 
     // specular color
-    m_materials[i].specular_color =
+    mat.specular_color =
         make_float3(m.specular[0], m.specular[1], m.specular[2]);
 
     // specular color(texture)
     if (!m.specular_texname.empty()) {
       load_texture(filepath.parent_path(), m.specular_texname,
                    TextureType::COLOR);
-      m_materials[i].specular_color_texture_id =
-          unique_textures[m.specular_texname];
+      mat.specular_color_texture_id = unique_textures[m.specular_texname];
     }
 
     // specular roughness
-    if (m.roughness > 0) { m_materials[i].specular_roughness = m.roughness; }
+    if (m.roughness > 0) { mat.specular_roughness = m.roughness; }
 
     // specular roughness(texture)
     if (!m.roughness_texname.empty()) {
       load_texture(filepath.parent_path(), m.roughness_texname,
                    TextureType::NONCOLOR);
-      m_materials[i].specular_roughness_texture_id =
-          unique_textures[m.roughness_texname];
+      mat.specular_roughness_texture_id = unique_textures[m.roughness_texname];
     }
 
     // metalness
-    m_materials[i].metalness = m.metallic;
+    mat.metalness = m.metallic;
 
     // metalness texture
     if (!m.metallic_texname.empty()) {
       load_texture(filepath.parent_path(), m.metallic_texname,
                    TextureType::NONCOLOR);
-      m_materials[i].metalness_texture_id = unique_textures[m.metallic_texname];
+      mat.metalness_texture_id = unique_textures[m.metallic_texname];
     }
 
     // coat
-    if (m.clearcoat_thickness > 0) {
-      m_materials[i].coat = m.clearcoat_thickness;
-    }
+    if (m.clearcoat_thickness > 0) { mat.coat = m.clearcoat_thickness; }
 
     // coat roughness
     if (m.clearcoat_roughness > 0) {
-      m_materials[i].coat_roughness = m.clearcoat_thickness;
+      mat.coat_roughness = m.clearcoat_thickness;
     }
 
     // transmission
-    m_materials[i].transmission = std::max(1.0f - m.dissolve, 0.0f);
+    mat.transmission = std::max(1.0f - m.dissolve, 0.0f);
 
     // transmission color
     if (m.transmittance[0] > 0 || m.transmittance[1] > 0 ||
         m.transmittance[2] > 0) {
-      m_materials[i].transmission_color = make_float3(
+      mat.transmission_color = make_float3(
           m.transmittance[0], m.transmittance[1], m.transmittance[2]);
     }
 
     // sheen
     if (m.unknown_parameter.count("sheen")) {
-      m_materials[i].sheen = parse_float(m.unknown_parameter.at("sheen"));
+      mat.sheen = parse_float(m.unknown_parameter.at("sheen"));
     }
 
     // sheen color
     if (m.unknown_parameter.count("sheen_color")) {
-      m_materials[i].sheen_color =
-          parse_float3(m.unknown_parameter.at("sheen_color"));
+      mat.sheen_color = parse_float3(m.unknown_parameter.at("sheen_color"));
     }
 
     // sheen roughness
     if (m.unknown_parameter.count("sheen_roughness")) {
-      m_materials[i].sheen_roughness =
+      mat.sheen_roughness =
           parse_float(m.unknown_parameter.at("sheen_roughness"));
     }
 
     // subsurface
     if (m.unknown_parameter.count("subsurface")) {
-      m_materials[i].subsurface =
-          parse_float(m.unknown_parameter.at("subsurface"));
+      mat.subsurface = parse_float(m.unknown_parameter.at("subsurface"));
     }
 
     // subsurface color
     if (m.unknown_parameter.count("subsurface_color")) {
-      m_materials[i].subsurface_color =
+      mat.subsurface_color =
           parse_float3(m.unknown_parameter.at("subsurface_color"));
     }
 
     // thin walled
     if (m.unknown_parameter.count("thin_walled")) {
-      m_materials[i].thin_walled =
-          parse_float(m.unknown_parameter.at("thin_walled"));
+      mat.thin_walled = parse_float(m.unknown_parameter.at("thin_walled"));
     }
 
     // emission
     if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0) {
-      m_materials[i].emission = 1.0f;
-      m_materials[i].emission_color =
+      mat.emission = 1.0f;
+      mat.emission_color =
           make_float3(m.emission[0], m.emission[1], m.emission[2]);
     }
 
@@ -301,22 +294,24 @@ void Scene::load_obj(const std::filesystem::path& filepath)
     if (!m.bump_texname.empty()) {
       load_texture(filepath.parent_path(), m.bump_texname,
                    TextureType::NONCOLOR);
-      m_materials[i].heightmap_texture_id = unique_textures[m.bump_texname];
+      mat.heightmap_texture_id = unique_textures[m.bump_texname];
     }
 
     // normal map texture
     if (!m.normal_texname.empty()) {
       load_texture(filepath.parent_path(), m.normal_texname,
                    TextureType::NONCOLOR);
-      m_materials[i].normalmap_texture_id = unique_textures[m.normal_texname];
+      mat.normalmap_texture_id = unique_textures[m.normal_texname];
     }
 
     // alpha texture
     if (!m.alpha_texname.empty()) {
       load_texture(filepath.parent_path(), m.alpha_texname,
                    TextureType::NONCOLOR);
-      m_materials[i].alpha_texture_id = unique_textures[m.alpha_texname];
+      mat.alpha_texture_id = unique_textures[m.alpha_texname];
     }
+
+    m_materials.push_back(mat);
   }
 
   std::vector<Vertex> vertices{};
@@ -752,6 +747,8 @@ Node Scene::load_gltf_node(const tinygltf::Model& model, int node_idx,
       }
 
       const auto indices = reinterpret_cast<const unsigned short*>(indices_raw);
+      // const auto indices = reinterpret_cast<const unsigned
+      // int*>(indices_raw);
       for (int i = 0; i < indices_count / 3; ++i) {
         m_indices.push_back(make_uint3(indices[3 * i + 0] + indices_offset,
                                        indices[3 * i + 1] + indices_offset,
