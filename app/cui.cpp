@@ -11,6 +11,7 @@
 #include "fredholm/renderer.h"
 #include "kernels/post-process.h"
 #include "optwl/optwl.h"
+#include "spdlog/spdlog.h"
 #include "stb_image_write.h"
 
 inline float deg2rad(float deg) { return deg / 180.0f * M_PI; }
@@ -56,6 +57,12 @@ int main()
   const float max_time = 9.5f;
   const float fps = 24.0f;
   const float time_step = 1.0f / fps;
+  const int kill_time = 15;
+
+  // if global timer elapsed greater than kill time, program will exit
+  // immediately
+  Timer global_timer;
+  global_timer.start();
 
   // init CUDA
   CUDA_CHECK(cudaFree(0));
@@ -123,7 +130,6 @@ int main()
   // set arhosek sky
   renderer.load_arhosek_sky(3.0f, 0.2f);
 
-  Timer global_timer;
   Timer render_timer;
   Timer denoiser_timer;
   Timer pp_timer;
@@ -135,16 +141,15 @@ int main()
   std::mutex queue_mutex;
   bool render_finished = false;
 
-  global_timer.start();
-
   std::thread render_thread([&] {
-    int render_idx = 0;
+    int frame_idx = 0;
     float time = 0.0f;
 
     while (true) {
-      printf("rendering frame: %d\n", render_idx);
+      spdlog::info("[Render] rendering frame: {}", frame_idx);
 
-      if (time > max_time) {
+      if (time > max_time ||
+          global_timer.elapsed<std::chrono::seconds>() > kill_time) {
         render_finished = true;
         break;
       }
@@ -168,8 +173,8 @@ int main()
       CUDA_SYNC_CHECK();
       render_timer.end();
 
-      printf("rendering time: %d\n",
-             render_timer.duration<std::chrono::milliseconds>());
+      spdlog::info("[Render] rendering time: {}",
+                   render_timer.duration<std::chrono::milliseconds>());
 
       // denoise
       denoiser_timer.start();
@@ -186,7 +191,8 @@ int main()
       CUDA_SYNC_CHECK();
       pp_timer.end();
 
-      printf("post process time: %d\n", pp_timer.duration<std::chrono::milliseconds>());
+      spdlog::info("[Render] post process time: {}",
+                   pp_timer.duration<std::chrono::milliseconds>());
 
       // copy image from device to host
       std::vector<float4> image_f4;
@@ -194,23 +200,27 @@ int main()
       layer_denoised_pp.copy_from_device_to_host(image_f4);
       transfer_timer.end();
 
-      printf("transfer time: %d\n", transfer_timer.duration<std::chrono::milliseconds>());
+      spdlog::info("[Render] transfer time: {}",
+                   transfer_timer.duration<std::chrono::milliseconds>());
 
       // add image to queue
       {
         std::lock_guard<std::mutex> lock(queue_mutex);
-        queue.push({render_idx, image_f4});
+        queue.push({frame_idx, image_f4});
       }
 
       // go to next frame
-      render_idx++;
+      frame_idx++;
       time += time_step;
     }
   });
 
   std::thread save_thread([&] {
     while (true) {
-      if (render_finished) break;
+      if (render_finished ||
+          global_timer.elapsed<std::chrono::seconds>() > kill_time) {
+        break;
+      }
 
       if (queue.empty()) continue;
 
@@ -242,7 +252,8 @@ int main()
       }
       convert_timer.end();
 
-      printf("convert time: %d\n", convert_timer.duration<std::chrono::milliseconds>());
+      spdlog::info("[Image Write] convert time: {}",
+                   convert_timer.duration<std::chrono::milliseconds>());
 
       save_timer.start();
       const std::string filename =
@@ -251,7 +262,8 @@ int main()
                      sizeof(uchar4) * width);
       save_timer.end();
 
-      printf("image save time: %d\n", save_timer.duration<std::chrono::milliseconds>());
+      spdlog::info("[Image Write] image save time: {}",
+                   save_timer.duration<std::chrono::milliseconds>());
     }
   });
 
