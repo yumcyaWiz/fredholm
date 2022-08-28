@@ -184,10 +184,10 @@ int main()
 
       // post process
       pp_timer.start();
-      post_process_launch(layer_beauty.get_device_ptr(),
-                          layer_denoised.get_device_ptr(), width, height, ISO,
-                          layer_beauty_pp.get_device_ptr(),
-                          layer_denoised_pp.get_device_ptr());
+      tone_mapping_kernel_launch(layer_beauty.get_device_ptr(),
+                                 layer_denoised.get_device_ptr(), width, height,
+                                 ISO, layer_beauty_pp.get_device_ptr(),
+                                 layer_denoised_pp.get_device_ptr());
       CUDA_SYNC_CHECK();
       pp_timer.end();
 

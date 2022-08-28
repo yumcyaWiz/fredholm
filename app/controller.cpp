@@ -226,11 +226,11 @@ void Controller::denoise()
 void Controller::post_process()
 {
   // launch post process kernel
-  post_process_launch(m_layer_beauty->get_device_ptr(),
-                      m_layer_denoised->get_device_ptr(), m_imgui_resolution[0],
-                      m_imgui_resolution[1], m_imgui_iso,
-                      m_layer_beauty_pp->get_device_ptr(),
-                      m_layer_denoised_pp->get_device_ptr());
+  tone_mapping_kernel_launch(m_layer_beauty->get_device_ptr(),
+                             m_layer_denoised->get_device_ptr(),
+                             m_imgui_resolution[0], m_imgui_resolution[1],
+                             m_imgui_iso, m_layer_beauty_pp->get_device_ptr(),
+                             m_layer_denoised_pp->get_device_ptr());
   CUDA_SYNC_CHECK();
 }
 
