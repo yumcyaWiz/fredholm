@@ -18,7 +18,7 @@ endif()
 
 # OptiX path
 set(CMAKE_MODULE_PATH
-    "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64/SDK/CMake/"
+    "/opt/NVIDIA-OptiX-SDK-7.5.0-linux64-x86_64/SDK/CMake/"
     ${CMAKE_MODULE_PATH}
 )
 
@@ -26,7 +26,7 @@ set(CMAKE_MODULE_PATH
 find_package(CUDAToolkit REQUIRED)
 
 # OptiX
-set(OptiX_INSTALL_DIR "/opt/NVIDIA-OptiX-SDK-7.4.0-linux64-x86_64")
+set(OptiX_INSTALL_DIR "/opt/NVIDIA-OptiX-SDK-7.5.0-linux64-x86_64")
 find_package(OptiX REQUIRED)
 
 # OpenGL

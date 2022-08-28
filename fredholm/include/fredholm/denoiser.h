@@ -62,8 +62,8 @@ class Denoiser
         m_scratch_size));
 
     // set denoiser params
-    m_params.denoiseAlpha = 0;
-    m_params.blendFactor = 0.0f;
+    // m_params.denoiseAlpha = 0;
+    // m_params.blendFactor = 0
     // TODO: set these
     m_params.hdrIntensity = reinterpret_cast<CUdeviceptr>(nullptr);
     m_params.hdrAverageColor = reinterpret_cast<CUdeviceptr>(nullptr);
