@@ -115,6 +115,13 @@ static __forceinline__ __device__ float convert_EV100_to_exposure(float EV100)
   return 1.0f / maxLuminance;
 }
 
+void __host__ post_process_kernel_launch(
+    const float4* beauty_in, const float4* denoised_in,
+    float4* beauty_high_luminance, float4* denoised_high_luminance,
+    float4* beauty_temp, float4* denoised_temp, int width, int height,
+    float bloom_threshold, float bloom_sigma, float ISO, float4* beauty_out,
+    float4* denoised_out);
+
 void __host__ tone_mapping_kernel_launch(const float4* beauty_in,
                                          const float4* denoised_in, int width,
                                          int height, float ISO,
@@ -123,14 +130,15 @@ void __host__ tone_mapping_kernel_launch(const float4* beauty_in,
 
 __global__ void bloom_kernel_0(const float4* beauty_in,
                                const float4* denoised_in, int width, int height,
-                               float4* beauty_out, float4* denoised_out);
+                               float bloom_threshold, float4* beauty_out,
+                               float4* denoised_out);
 
 __global__ void bloom_kernel_1(const float4* beauty_in,
                                const float4* denoised_in,
                                const float4* beauty_high_luminance,
                                const float4* denoised_high_luminance, int width,
-                               int height, float4* beauty_out,
-                               float4* denoised_out);
+                               int height, float bloom_sigma,
+                               float4* beauty_out, float4* denoised_out);
 
 __global__ void tone_mapping_kernel(const float4* beauty_in,
                                     const float4* denoised_in, int width,

@@ -101,6 +101,8 @@ class Controller
   float m_imgui_arhosek_turbidity = 3.0f;
   float m_imgui_arhosek_albedo = 0.3f;
 
+  float m_imgui_bloom_threshold = 1.0f;
+  float m_imgui_bloom_sigma = 1.0f;
   float m_imgui_iso = 400.0f;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
@@ -114,6 +116,10 @@ class Controller
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised = nullptr;
 
   // post processed layer
+  std::unique_ptr<cwl::CUDABuffer<float4>> m_beauty_high_luminance = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float4>> m_denoised_high_luminance = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float4>> m_beauty_temp = nullptr;
+  std::unique_ptr<cwl::CUDABuffer<float4>> m_denoised_temp = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_beauty_pp = nullptr;
   std::unique_ptr<cwl::CUDAGLBuffer<float4>> m_layer_denoised_pp = nullptr;
 

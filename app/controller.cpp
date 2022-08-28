@@ -92,6 +92,14 @@ void Controller::init_render_layers()
   m_layer_albedo = std::make_unique<cwl::CUDAGLBuffer<float4>>(
       m_imgui_resolution[0] * m_imgui_resolution[1]);
 
+  m_beauty_high_luminance = std::make_unique<cwl::CUDABuffer<float4>>(
+      m_imgui_resolution[0] * m_imgui_resolution[1]);
+  m_denoised_high_luminance = std::make_unique<cwl::CUDABuffer<float4>>(
+      m_imgui_resolution[0] * m_imgui_resolution[1]);
+  m_beauty_temp = std::make_unique<cwl::CUDABuffer<float4>>(
+      m_imgui_resolution[0] * m_imgui_resolution[1]);
+  m_denoised_temp = std::make_unique<cwl::CUDABuffer<float4>>(
+      m_imgui_resolution[0] * m_imgui_resolution[1]);
   m_layer_beauty_pp = std::make_unique<cwl::CUDAGLBuffer<float4>>(
       m_imgui_resolution[0] * m_imgui_resolution[1]);
   m_layer_denoised_pp = std::make_unique<cwl::CUDAGLBuffer<float4>>(
@@ -107,6 +115,10 @@ void Controller::clear_render_layers()
   m_layer_texcoord->clear();
   m_layer_albedo->clear();
 
+  m_beauty_high_luminance->clear();
+  m_denoised_high_luminance->clear();
+  m_beauty_temp->clear();
+  m_denoised_temp->clear();
   m_layer_beauty_pp->clear();
   m_layer_denoised_pp->clear();
 }
@@ -226,11 +238,14 @@ void Controller::denoise()
 void Controller::post_process()
 {
   // launch post process kernel
-  tone_mapping_kernel_launch(m_layer_beauty->get_device_ptr(),
-                             m_layer_denoised->get_device_ptr(),
-                             m_imgui_resolution[0], m_imgui_resolution[1],
-                             m_imgui_iso, m_layer_beauty_pp->get_device_ptr(),
-                             m_layer_denoised_pp->get_device_ptr());
+  post_process_kernel_launch(
+      m_layer_beauty->get_device_ptr(), m_layer_denoised->get_device_ptr(),
+      m_beauty_high_luminance->get_device_ptr(),
+      m_denoised_high_luminance->get_device_ptr(),
+      m_beauty_temp->get_device_ptr(), m_denoised_temp->get_device_ptr(),
+      m_imgui_resolution[0], m_imgui_resolution[1], m_imgui_bloom_threshold,
+      m_imgui_bloom_sigma, m_imgui_iso, m_layer_beauty_pp->get_device_ptr(),
+      m_layer_denoised_pp->get_device_ptr());
   CUDA_SYNC_CHECK();
 }
 

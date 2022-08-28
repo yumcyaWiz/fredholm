@@ -6,4 +6,5 @@ target_include_directories(kernels PUBLIC
 )
 target_link_libraries(kernels PUBLIC
     sutil
+    cwl
 )

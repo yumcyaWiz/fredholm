@@ -54,10 +54,12 @@ int main()
 
   const int max_depth = 5;
   const float ISO = 70.0f;
+  const float bloom_threshold = 1.0f;
+  const float bloom_sigma = 1.0f;
   const float max_time = 9.5f;
   const float fps = 24.0f;
   const float time_step = 1.0f / fps;
-  const int kill_time = 15;
+  const int kill_time = 590;
 
   // if global timer elapsed greater than kill time, program will exit
   // immediately
@@ -93,6 +95,14 @@ int main()
   cwl::CUDABuffer<float4> layer_beauty_pp =
       cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> layer_denoised_pp =
+      cwl::CUDABuffer<float4>(width * height);
+
+  cwl::CUDABuffer<float4> beauty_high_luminance =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> denoised_high_luminance =
+      cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> beauty_temp = cwl::CUDABuffer<float4>(width * height);
+  cwl::CUDABuffer<float4> denoised_temp =
       cwl::CUDABuffer<float4>(width * height);
 
   // init denoiser
@@ -184,10 +194,13 @@ int main()
 
       // post process
       pp_timer.start();
-      tone_mapping_kernel_launch(layer_beauty.get_device_ptr(),
-                                 layer_denoised.get_device_ptr(), width, height,
-                                 ISO, layer_beauty_pp.get_device_ptr(),
-                                 layer_denoised_pp.get_device_ptr());
+      post_process_kernel_launch(
+          layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(),
+          beauty_high_luminance.get_device_ptr(),
+          denoised_high_luminance.get_device_ptr(),
+          beauty_temp.get_device_ptr(), denoised_temp.get_device_ptr(), width,
+          height, bloom_threshold, bloom_sigma, ISO,
+          layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
       CUDA_SYNC_CHECK();
       pp_timer.end();
 

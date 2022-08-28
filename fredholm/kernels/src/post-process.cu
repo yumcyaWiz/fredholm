@@ -1,5 +1,34 @@
+#include "cwl/util.h"
 #include "kernels/post-process.h"
 #include "sutil/vec_math.h"
+
+void __host__ post_process_kernel_launch(
+    const float4* beauty_in, const float4* denoised_in,
+    float4* beauty_high_luminance, float4* denoised_high_luminance,
+    float4* beauty_temp, float4* denoised_temp, int width, int height,
+    float bloom_threshold, float bloom_sigma, float ISO, float4* beauty_out,
+    float4* denoised_out)
+{
+  const dim3 threads_per_block(16, 16);
+  const dim3 blocks(max(width / threads_per_block.x, 1),
+                    max(height / threads_per_block.y, 1));
+
+  // extract high luminance pixels
+  bloom_kernel_0<<<blocks, threads_per_block>>>(
+      beauty_in, denoised_in, width, height, bloom_threshold,
+      beauty_high_luminance, denoised_high_luminance);
+  CUDA_SYNC_CHECK();
+
+  // gaussian blur
+  bloom_kernel_1<<<blocks, threads_per_block>>>(
+      beauty_in, denoised_in, beauty_high_luminance, denoised_high_luminance,
+      width, height, bloom_sigma, beauty_temp, denoised_temp);
+  CUDA_SYNC_CHECK();
+
+  // tone mapping
+  tone_mapping_kernel<<<blocks, threads_per_block>>>(
+      beauty_temp, denoised_temp, width, height, ISO, beauty_out, denoised_out);
+}
 
 void __host__ tone_mapping_kernel_launch(const float4* beauty_in,
                                          const float4* denoised_in, int width,
@@ -16,7 +45,8 @@ void __host__ tone_mapping_kernel_launch(const float4* beauty_in,
 
 __global__ void bloom_kernel_0(const float4* beauty_in,
                                const float4* denoised_in, int width, int height,
-                               float4* beauty_out, float4* denoised_out)
+                               float bloom_threshold, float4* beauty_out,
+                               float4* denoised_out)
 {
   const int i = blockIdx.x * blockDim.x + threadIdx.x;
   const int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -29,17 +59,18 @@ __global__ void bloom_kernel_0(const float4* beauty_in,
   const float beauty_luminance = rgb_to_luminance(make_float3(beauty));
   const float denoised_luminance = rgb_to_luminance(make_float3(denoised));
 
-  beauty_out[image_idx] = beauty_luminance > 1.0f ? beauty : make_float4(0.0f);
+  beauty_out[image_idx] =
+      beauty_luminance > bloom_threshold ? beauty : make_float4(0.0f);
   denoised_out[image_idx] =
-      denoised_luminance > 1.0f ? denoised : make_float4(0.0f);
+      denoised_luminance > bloom_threshold ? denoised : make_float4(0.0f);
 }
 
 __global__ void bloom_kernel_1(const float4* beauty_in,
                                const float4* denoised_in,
                                const float4* beauty_high_luminance,
                                const float4* denoised_high_luminance, int width,
-                               int height, float4* beauty_out,
-                               float4* denoised_out)
+                               int height, float bloom_sigma,
+                               float4* beauty_out, float4* denoised_out)
 {
   const int i = blockIdx.x * blockDim.x + threadIdx.x;
   const int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -49,7 +80,7 @@ __global__ void bloom_kernel_1(const float4* beauty_in,
   const float4 b0 = beauty_in[image_idx];
   const float4 d0 = denoised_in[image_idx];
 
-  const int K = 8;
+  const int K = 16;
   const float sigma = 1.0f;
 
   float4 b_sum = make_float4(0.0f);
@@ -60,11 +91,11 @@ __global__ void bloom_kernel_1(const float4* beauty_in,
       const int x = clamp(i + u, 0, width - 1);
       const int y = clamp(j + v, 0, height - 1);
 
-      const float4 b1 = beauty_high_luminance[x + width * j];
-      const float4 d1 = denoised_high_luminance[x + width * j];
+      const float4 b1 = beauty_high_luminance[x + width * y];
+      const float4 d1 = denoised_high_luminance[x + width * y];
 
       const float dist2 = u * u + v * v;
-      const float h = expf(-dist2 / (2.0f * sigma));
+      const float h = expf(-dist2 / (2.0f * bloom_sigma));
 
       b_sum += h * b1;
       d_sum += h * d1;

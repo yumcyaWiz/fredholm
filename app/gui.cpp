@@ -138,7 +138,8 @@ int main()
         {
           if (ImGui::Combo(
                   "Scene", &controller.m_imgui_scene_id,
-                  "CornellBox\0RT Camp 8\0Sponza\0PBR Sponza\0Modern Sponza\0Modern Sponza Small\0Salle de "
+                  "CornellBox\0RT Camp 8\0Sponza\0PBR Sponza\0Modern "
+                  "Sponza\0Modern Sponza Small\0Salle de "
                   "bain\0Sibenik\0San "
                   "Miguel\0Rungholt\0Vokselia\0BMW\0BMW glTF\0Specular "
                   "Test\0Metal Test\0Coat Test\0Transmission "
@@ -297,6 +298,9 @@ int main()
         ImGui::Separator();
 
         {
+          ImGui::InputFloat("Bloom threshold",
+                            &controller.m_imgui_bloom_threshold);
+          ImGui::InputFloat("Bloom sigma", &controller.m_imgui_bloom_sigma);
           ImGui::InputFloat("ISO", &controller.m_imgui_iso);
         }
       }
