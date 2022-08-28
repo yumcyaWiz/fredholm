@@ -1,9 +1,8 @@
-# cui
-add_executable(cui
-    "cui.cpp"
+# rtcamp8
+add_executable(rtcamp8
+    "rtcamp8.cpp"
 )
-target_link_libraries(cui PRIVATE
-    argparse
+target_link_libraries(rtcamp8 PRIVATE
     fredholm
     kernels
 )
