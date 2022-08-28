@@ -117,9 +117,25 @@ __global__ void tone_mapping_kernel(const float4* beauty_in,
   if (i >= width || j >= height) return;
   const int image_idx = i + width * j;
 
-  float3 color = make_float3(beauty_in[image_idx]);
+  // chromatic aberration
+  const float2 uv = make_float2(static_cast<float>(i) / width,
+                                static_cast<float>(j) / height);
+  const float2 d = (uv - make_float2(0.5f)) * 0.0000075f * 0.2f;
+
+  const float2 uv_r =
+      clamp(uv - 0.0f * d, make_float2(0.0f), make_float2(1.0f));
+  const float2 uv_g =
+      clamp(uv - 1.0f * d, make_float2(0.0f), make_float2(1.0f));
+  const float2 uv_b =
+      clamp(uv - 2.0f * d, make_float2(0.0f), make_float2(1.0f));
+
+  const int image_idx_r = uv_r.x * width + width * uv_r.y * height;
+  const int image_idx_g = uv_g.x * width + width * uv_g.y * height;
+  const int image_idx_b = uv_b.x * width + width * uv_b.y * height;
 
   // beauty
+  float3 color = make_float3(beauty_in[image_idx_r].x, beauty_in[image_idx_g].y,
+                             beauty_in[image_idx_b].z);
   const float EV100 = compute_EV100(1.0f, 1.0f, ISO);
   const float exposure = convert_EV100_to_exposure(EV100);
   color *= exposure;
@@ -129,7 +145,8 @@ __global__ void tone_mapping_kernel(const float4* beauty_in,
   beauty_out[image_idx] = make_float4(color, 1.0f);
 
   // denoised
-  color = make_float3(denoised_in[image_idx]);
+  color = make_float3(denoised_in[image_idx_r].x, denoised_in[image_idx_g].y,
+                      denoised_in[image_idx_b].z);
   color *= exposure;
   // color = aces_tone_mapping(color);
   color = uchimura(color);

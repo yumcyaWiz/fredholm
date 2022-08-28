@@ -29,7 +29,7 @@ enum class SkyType : int { CONSTANT, IBL, ARHOSEK };
 
 static std::vector<std::filesystem::path> scene_filepaths = {
     "../resources/cornellbox/CornellBox.obj",
-    "../resources/rtcamp8/rtcamp8.gltf",
+    "../resources/rtcamp8/rtcamp8.obj",
     "../resources/sponza/sponza.obj",
     "../resources/pbr_sponza/Sponza.gltf",
     "../resources/modern_sponza/NewSponza_Main_Blender_glTF.gltf",

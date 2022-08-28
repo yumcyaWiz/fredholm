@@ -53,9 +53,9 @@ int main()
       "../resources/camera_animation_test/camera_animation_test.gltf";
 
   const int max_depth = 5;
-  const float ISO = 70.0f;
-  const float bloom_threshold = 1.0f;
-  const float bloom_sigma = 1.0f;
+  const float ISO = 80.0f;
+  const float bloom_threshold = 2.0f;
+  const float bloom_sigma = 5.0f;
   const float max_time = 9.5f;
   const float fps = 24.0f;
   const float time_step = 1.0f / fps;
@@ -138,7 +138,7 @@ int main()
                                  make_float3(-0.1f, 1, 0.1f), 1.0f);
 
   // set arhosek sky
-  renderer.load_arhosek_sky(3.0f, 0.2f);
+  renderer.load_arhosek_sky(3.0f, 0.3f);
 
   Timer render_timer;
   Timer denoiser_timer;
