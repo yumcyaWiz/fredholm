@@ -1,6 +1,7 @@
 #include <chrono>
 #include <mutex>
 #include <queue>
+#include <ratio>
 #include <stdexcept>
 #include <thread>
 
@@ -20,12 +21,21 @@ class Timer
   Timer() {}
 
   void start() { m_start = std::chrono::steady_clock::now(); }
+
   void end() { m_end = std::chrono::steady_clock::now(); }
-  float duration() const
+
+  template <typename T>
+  int elapsed() const
   {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(m_end -
-                                                                 m_start)
+    return std::chrono::duration_cast<T>(std::chrono::steady_clock::now() -
+                                         m_start)
         .count();
+  }
+
+  template <typename T>
+  int duration() const
+  {
+    return std::chrono::duration_cast<T>(m_end - m_start).count();
   }
 
  private:
@@ -113,6 +123,7 @@ int main()
   // set arhosek sky
   renderer.load_arhosek_sky(3.0f, 0.2f);
 
+  Timer global_timer;
   Timer render_timer;
   Timer denoiser_timer;
   Timer pp_timer;
@@ -123,6 +134,8 @@ int main()
   std::queue<std::pair<int, std::vector<float4>>> queue;
   std::mutex queue_mutex;
   bool render_finished = false;
+
+  global_timer.start();
 
   std::thread render_thread([&] {
     int render_idx = 0;
@@ -155,7 +168,8 @@ int main()
       CUDA_SYNC_CHECK();
       render_timer.end();
 
-      printf("rendering time: %f\n", render_timer.duration());
+      printf("rendering time: %d\n",
+             render_timer.duration<std::chrono::milliseconds>());
 
       // denoise
       denoiser_timer.start();
@@ -172,7 +186,7 @@ int main()
       CUDA_SYNC_CHECK();
       pp_timer.end();
 
-      printf("post process time: %f\n", pp_timer.duration());
+      printf("post process time: %d\n", pp_timer.duration<std::chrono::milliseconds>());
 
       // copy image from device to host
       std::vector<float4> image_f4;
@@ -180,7 +194,7 @@ int main()
       layer_denoised_pp.copy_from_device_to_host(image_f4);
       transfer_timer.end();
 
-      printf("transfer time: %f\n", transfer_timer.duration());
+      printf("transfer time: %d\n", transfer_timer.duration<std::chrono::milliseconds>());
 
       // add image to queue
       {
@@ -228,7 +242,7 @@ int main()
       }
       convert_timer.end();
 
-      printf("convert time: %f\n", convert_timer.duration());
+      printf("convert time: %d\n", convert_timer.duration<std::chrono::milliseconds>());
 
       save_timer.start();
       const std::string filename =
@@ -237,7 +251,7 @@ int main()
                      sizeof(uchar4) * width);
       save_timer.end();
 
-      printf("image save time: %f\n", save_timer.duration());
+      printf("image save time: %d\n", save_timer.duration<std::chrono::milliseconds>());
     }
   });
 
