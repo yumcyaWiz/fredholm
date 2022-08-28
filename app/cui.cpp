@@ -1,10 +1,9 @@
-#include <bits/chrono.h>
-
 #include <chrono>
+#include <mutex>
+#include <queue>
 #include <stdexcept>
-#include <system_error>
+#include <thread>
 
-#include "argparse/argparse.hpp"
 #include "cwl/buffer.h"
 #include "cwl/util.h"
 #include "fredholm/denoiser.h"
@@ -34,27 +33,11 @@ class Timer
   std::chrono::steady_clock::time_point m_end;
 };
 
-int main(int argc, char* argv[])
+int main()
 {
-  // argparse::ArgumentParser program("fredholm");
-
-  // program.add_argument("width").help("width").scan<'i', int>();
-  // program.add_argument("height").help("height").scan<'i', int>();
-  // program.add_argument("spp").help("number of samples").scan<'i', int>();
-  // program.add_argument("scene").help("glTF scene file");
-
-  // try {
-  //   program.parse_args(argc, argv);
-  // }
-  // catch(const std::runtime_error& err) {
-  //   std::cerr << err.what() << std::endl;
-  //   std::cerr << program;
-  //   std::exit(EXIT_FAILURE);
-  // }
-
   const int width = 1920;
   const int height = 1080;
-  const int n_spp = 64;
+  const int n_spp = 16;
   const std::string scene_filepath =
       "../resources/camera_animation_test/camera_animation_test.gltf";
 
@@ -137,93 +120,129 @@ int main(int argc, char* argv[])
   Timer convert_timer;
   Timer save_timer;
 
-  // render loop
-  int render_idx = 0;
-  float time = 0.0f;
-  while (true) {
-    printf("rendering frame: %d\n", render_idx);
+  std::queue<std::pair<int, std::vector<float4>>> queue;
+  std::mutex queue_mutex;
+  bool render_finished = false;
 
-    if (time > max_time) break;
+  std::thread render_thread([&] {
+    int render_idx = 0;
+    float time = 0.0f;
 
-    // clear render layers
-    layer_beauty.clear();
-    layer_position.clear();
-    layer_normal.clear();
-    layer_depth.clear();
-    layer_texcoord.clear();
-    layer_albedo.clear();
+    while (true) {
+      printf("rendering frame: %d\n", render_idx);
 
-    // clear render states
-    renderer.init_render_states();
-
-    // render
-    render_timer.start();
-    renderer.set_time(time);
-    renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp,
-                    max_depth);
-    CUDA_SYNC_CHECK();
-    render_timer.end();
-
-    printf("rendering time: %f\n", render_timer.duration());
-
-    // denoise
-    denoiser_timer.start();
-    denoiser.denoise();
-    CUDA_SYNC_CHECK();
-    denoiser_timer.end();
-
-    printf("denoised time: %f\n", denoiser_timer.duration());
-
-    // post process
-    pp_timer.start();
-    post_process_launch(layer_beauty.get_device_ptr(),
-                        layer_denoised.get_device_ptr(), width, height, ISO,
-                        layer_beauty_pp.get_device_ptr(),
-                        layer_denoised_pp.get_device_ptr());
-    CUDA_SYNC_CHECK();
-    pp_timer.end();
-
-    printf("post process time: %f\n", pp_timer.duration());
-
-    // save image
-    std::vector<float4> image_f4;
-    transfer_timer.start();
-    layer_denoised_pp.copy_from_device_to_host(image_f4);
-    transfer_timer.end();
-
-    printf("transfer time: %f\n", transfer_timer.duration());
-
-    convert_timer.start();
-    std::vector<uchar4> image_c4(width * height);
-    for (int j = 0; j < height; ++j) {
-      for (int i = 0; i < width; ++i) {
-        const int idx = i + width * j;
-        const float4& v = image_f4[idx];
-        image_c4[idx].x =
-            static_cast<unsigned char>(std::clamp(255.0f * v.x, 0.0f, 255.0f));
-        image_c4[idx].y =
-            static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
-        image_c4[idx].z =
-            static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
-        image_c4[idx].w = 255;
+      if (time > max_time) {
+        render_finished = true;
+        break;
       }
+
+      // clear render layers
+      layer_beauty.clear();
+      layer_position.clear();
+      layer_normal.clear();
+      layer_depth.clear();
+      layer_texcoord.clear();
+      layer_albedo.clear();
+
+      // clear render states
+      renderer.init_render_states();
+
+      // render
+      render_timer.start();
+      renderer.set_time(time);
+      renderer.render(camera, make_float3(0, 0, 0), render_layer, n_spp,
+                      max_depth);
+      CUDA_SYNC_CHECK();
+      render_timer.end();
+
+      printf("rendering time: %f\n", render_timer.duration());
+
+      // denoise
+      denoiser_timer.start();
+      denoiser.denoise();
+      CUDA_SYNC_CHECK();
+      denoiser_timer.end();
+
+      // post process
+      pp_timer.start();
+      post_process_launch(layer_beauty.get_device_ptr(),
+                          layer_denoised.get_device_ptr(), width, height, ISO,
+                          layer_beauty_pp.get_device_ptr(),
+                          layer_denoised_pp.get_device_ptr());
+      CUDA_SYNC_CHECK();
+      pp_timer.end();
+
+      printf("post process time: %f\n", pp_timer.duration());
+
+      // copy image from device to host
+      std::vector<float4> image_f4;
+      transfer_timer.start();
+      layer_denoised_pp.copy_from_device_to_host(image_f4);
+      transfer_timer.end();
+
+      printf("transfer time: %f\n", transfer_timer.duration());
+
+      // add image to queue
+      {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        queue.push({render_idx, image_f4});
+      }
+
+      // go to next frame
+      render_idx++;
+      time += time_step;
     }
-    convert_timer.end();
+  });
 
-    printf("convert time: %f\n", convert_timer.duration());
+  std::thread save_thread([&] {
+    while (true) {
+      if (render_finished) break;
 
-    save_timer.start();
-    const std::string filename =
-        "output/" + std::to_string(render_idx) + ".png";
-    stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(),
-                   sizeof(uchar4) * width);
-    save_timer.end();
+      if (queue.empty()) continue;
 
-    printf("image save time: %f\n", save_timer.duration());
+      // get image from queue
+      int frame_idx;
+      std::vector<float4> image_f4;
+      {
+        std::lock_guard<std::mutex> lock(queue_mutex);
+        frame_idx = queue.front().first;
+        image_f4 = queue.front().second;
+        queue.pop();
+      }
 
-    render_idx++;
-    time += time_step;
-  }
+      // convert float image to uchar image
+      convert_timer.start();
+      std::vector<uchar4> image_c4(width * height);
+      for (int j = 0; j < height; ++j) {
+        for (int i = 0; i < width; ++i) {
+          const int idx = i + width * j;
+          const float4& v = image_f4[idx];
+          image_c4[idx].x = static_cast<unsigned char>(
+              std::clamp(255.0f * v.x, 0.0f, 255.0f));
+          image_c4[idx].y = static_cast<unsigned char>(
+              std::clamp(255.0f * v.y, 0.0f, 255.0f));
+          image_c4[idx].z = static_cast<unsigned char>(
+              std::clamp(255.0f * v.z, 0.0f, 255.0f));
+          image_c4[idx].w = 255;
+        }
+      }
+      convert_timer.end();
+
+      printf("convert time: %f\n", convert_timer.duration());
+
+      save_timer.start();
+      const std::string filename =
+          "output/" + std::to_string(frame_idx) + ".png";
+      stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(),
+                     sizeof(uchar4) * width);
+      save_timer.end();
+
+      printf("image save time: %f\n", save_timer.duration());
+    }
+  });
+
+  render_thread.join();
+  save_thread.join();
 
   return 0;
 }
