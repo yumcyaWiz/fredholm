@@ -76,7 +76,7 @@ int main()
 
   // init renderer
   fredholm::Renderer renderer(context.m_context);
-  renderer.create_module(std::filesystem::path(MODULES_SOURCE_DIR) / "pt.ptx");
+  renderer.create_module("./fredholm/CMakeFiles/modules.dir/modules/pt.ptx");
   renderer.create_program_group();
   renderer.create_pipeline();
   renderer.set_resolution(width, height);
