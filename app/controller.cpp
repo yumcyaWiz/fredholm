@@ -295,8 +295,7 @@ void Controller::save_image() const
           static_cast<unsigned char>(std::clamp(255.0f * v.y, 0.0f, 255.0f));
       image_c4[idx].z =
           static_cast<unsigned char>(std::clamp(255.0f * v.z, 0.0f, 255.0f));
-      image_c4[idx].w =
-          static_cast<unsigned char>(std::clamp(255.0f * v.w, 0.0f, 255.0f));
+      image_c4[idx].w = 255;
     }
   }
 
