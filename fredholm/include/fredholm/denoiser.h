@@ -16,7 +16,8 @@ class Denoiser
  public:
   Denoiser(OptixDeviceContext context, uint32_t width, uint32_t height,
            const float4* d_beauty, const float4* d_normal,
-           const float4* d_albedo, const float4* d_denoised)
+           const float4* d_albedo, const float4* d_denoised,
+           bool upscale = false)
       : m_context(context),
         m_width(width),
         m_height(height),
@@ -25,7 +26,7 @@ class Denoiser
         m_d_albedo(d_albedo),
         m_d_denoised(d_denoised)
   {
-    init_denoiser();
+    init_denoiser(upscale);
     init_layers();
   }
 

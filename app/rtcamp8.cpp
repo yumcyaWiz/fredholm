@@ -46,8 +46,9 @@ class Timer
 
 int main()
 {
-  const int width = 1920;
-  const int height = 1080;
+  const int width = 512;
+  const int height = 512;
+  const bool upscale = true;
   const int n_spp = 16;
   const std::string scene_filepath =
       "../resources/camera_animation_test/camera_animation_test.gltf";
@@ -60,6 +61,9 @@ int main()
   const float fps = 24.0f;
   const float time_step = 1.0f / fps;
   const int kill_time = 590;
+
+  const int width_denoised = upscale ? 2 * width : width;
+  const int height_denoised = upscale ? 2 * height : height;
 
   // if global timer elapsed greater than kill time, program will exit
   // immediately
@@ -95,21 +99,21 @@ int main()
   cwl::CUDABuffer<float4> layer_beauty_pp =
       cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> layer_denoised_pp =
-      cwl::CUDABuffer<float4>(width * height);
+      cwl::CUDABuffer<float4>(width_denoised * height_denoised);
 
   cwl::CUDABuffer<float4> beauty_high_luminance =
       cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> denoised_high_luminance =
-      cwl::CUDABuffer<float4>(width * height);
+      cwl::CUDABuffer<float4>(width_denoised * height_denoised);
   cwl::CUDABuffer<float4> beauty_temp = cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> denoised_temp =
-      cwl::CUDABuffer<float4>(width * height);
+      cwl::CUDABuffer<float4>(width_denoised * height_denoised);
 
   // init denoiser
   fredholm::Denoiser denoiser = fredholm::Denoiser(
       context.m_context, width, height, layer_beauty.get_device_ptr(),
       layer_normal.get_device_ptr(), layer_albedo.get_device_ptr(),
-      layer_denoised.get_device_ptr());
+      layer_denoised.get_device_ptr(), upscale);
 
   // load scene
   renderer.load_scene("../resources/rtcamp8/rtcamp8.obj");
@@ -200,9 +204,9 @@ int main()
           bloom_sigma, ISO, layer_beauty_pp.get_device_ptr());
       post_process_kernel_launch(layer_denoised.get_device_ptr(),
                                  denoised_high_luminance.get_device_ptr(),
-                                 denoised_temp.get_device_ptr(), width, height,
-                                 bloom_threshold, bloom_sigma, ISO,
-                                 layer_denoised_pp.get_device_ptr());
+                                 denoised_temp.get_device_ptr(), width_denoised,
+                                 height_denoised, bloom_threshold, bloom_sigma,
+                                 ISO, layer_denoised_pp.get_device_ptr());
       CUDA_SYNC_CHECK();
       pp_timer.end();
 
@@ -251,10 +255,10 @@ int main()
 
       // convert float image to uchar image
       convert_timer.start();
-      std::vector<uchar4> image_c4(width * height);
-      for (int j = 0; j < height; ++j) {
-        for (int i = 0; i < width; ++i) {
-          const int idx = i + width * j;
+      std::vector<uchar4> image_c4(width_denoised * height_denoised);
+      for (int j = 0; j < height_denoised; ++j) {
+        for (int i = 0; i < width_denoised; ++i) {
+          const int idx = i + width_denoised * j;
           const float4& v = image_f4[idx];
           image_c4[idx].x = static_cast<unsigned char>(
               std::clamp(255.0f * v.x, 0.0f, 255.0f));
@@ -273,8 +277,8 @@ int main()
       save_timer.start();
       const std::string filename =
           "output/" + std::to_string(frame_idx) + ".png";
-      stbi_write_png(filename.c_str(), width, height, 4, image_c4.data(),
-                     sizeof(uchar4) * width);
+      stbi_write_png(filename.c_str(), width_denoised, height_denoised, 4,
+                     image_c4.data(), sizeof(uchar4) * width_denoised);
       save_timer.end();
 
       spdlog::info("[Image Write] image save time: {}",
