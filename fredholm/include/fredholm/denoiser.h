@@ -24,15 +24,16 @@ class Denoiser
         m_d_beauty(d_beauty),
         m_d_normal(d_normal),
         m_d_albedo(d_albedo),
-        m_d_denoised(d_denoised)
+        m_d_denoised(d_denoised),
+        m_upscale(upscale)
   {
-    init_denoiser(upscale);
+    init_denoiser();
     init_layers();
   }
 
   ~Denoiser() noexcept(false) { OPTIX_CHECK(optixDenoiserDestroy(m_denoiser)); }
 
-  void init_denoiser(bool upscale = false)
+  void init_denoiser()
   {
     OptixDenoiserOptions options = {};
     options.guideAlbedo = 1;
@@ -40,8 +41,8 @@ class Denoiser
 
     // create denoiser
     OptixDenoiserModelKind model_kind =
-        upscale ? OPTIX_DENOISER_MODEL_KIND_UPSCALE2X
-                : OPTIX_DENOISER_MODEL_KIND_HDR;
+        m_upscale ? OPTIX_DENOISER_MODEL_KIND_UPSCALE2X
+                  : OPTIX_DENOISER_MODEL_KIND_HDR;
     OPTIX_CHECK(
         optixDenoiserCreate(m_context, model_kind, &options, &m_denoiser));
 
@@ -78,7 +79,9 @@ class Denoiser
     m_guide_layer.albedo = create_optix_image_2d(m_width, m_height, m_d_albedo);
 
     m_layer.input = create_optix_image_2d(m_width, m_height, m_d_beauty);
-    m_layer.output = create_optix_image_2d(m_width, m_height, m_d_denoised);
+    m_layer.output = create_optix_image_2d(m_upscale ? 2 * m_width : m_width,
+                                           m_upscale ? 2 * m_height : m_height,
+                                           m_d_denoised);
   }
 
   void denoise()
@@ -114,6 +117,7 @@ class Denoiser
   const float4* m_d_normal = nullptr;
   const float4* m_d_albedo = nullptr;
   const float4* m_d_denoised = nullptr;
+  bool m_upscale = false;
 
   OptixDeviceContext m_context = nullptr;
   OptixDenoiser m_denoiser = nullptr;

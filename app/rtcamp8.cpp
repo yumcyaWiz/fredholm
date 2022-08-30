@@ -46,9 +46,9 @@ class Timer
 
 int main()
 {
-  const int width = 512;
-  const int height = 512;
-  const bool upscale = true;
+  const int width = 1920;
+  const int height = 1080;
+  const bool upscale = false;
   const int n_spp = 16;
   const std::string scene_filepath =
       "../resources/camera_animation_test/camera_animation_test.gltf";
@@ -94,7 +94,7 @@ int main()
   cwl::CUDABuffer<float4> layer_albedo =
       cwl::CUDABuffer<float4>(width * height);
   cwl::CUDABuffer<float4> layer_denoised =
-      cwl::CUDABuffer<float4>(width * height);
+      cwl::CUDABuffer<float4>(width_denoised * height_denoised);
 
   cwl::CUDABuffer<float4> layer_beauty_pp =
       cwl::CUDABuffer<float4>(width * height);
@@ -196,6 +196,9 @@ int main()
       CUDA_SYNC_CHECK();
       denoiser_timer.end();
 
+      spdlog::info("[Render] denoising time: {}",
+                   denoiser_timer.duration<std::chrono::milliseconds>());
+
       // post process
       pp_timer.start();
       post_process_kernel_launch(
@@ -236,10 +239,8 @@ int main()
 
   std::thread save_thread([&] {
     while (true) {
-      if (render_finished ||
-          global_timer.elapsed<std::chrono::seconds>() > kill_time) {
-        break;
-      }
+      if (global_timer.elapsed<std::chrono::seconds>() > kill_time) { break; }
+      if (render_finished && queue.empty()) { break; }
 
       if (queue.empty()) continue;
 
@@ -281,6 +282,7 @@ int main()
                      image_c4.data(), sizeof(uchar4) * width_denoised);
       save_timer.end();
 
+      spdlog::info("[Image Write] {} saved", filename);
       spdlog::info("[Image Write] image save time: {}",
                    save_timer.duration<std::chrono::milliseconds>());
     }
