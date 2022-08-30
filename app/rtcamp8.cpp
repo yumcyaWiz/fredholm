@@ -195,12 +195,14 @@ int main()
       // post process
       pp_timer.start();
       post_process_kernel_launch(
-          layer_beauty.get_device_ptr(), layer_denoised.get_device_ptr(),
-          beauty_high_luminance.get_device_ptr(),
-          denoised_high_luminance.get_device_ptr(),
-          beauty_temp.get_device_ptr(), denoised_temp.get_device_ptr(), width,
-          height, bloom_threshold, bloom_sigma, ISO,
-          layer_beauty_pp.get_device_ptr(), layer_denoised_pp.get_device_ptr());
+          layer_beauty.get_device_ptr(), beauty_high_luminance.get_device_ptr(),
+          beauty_temp.get_device_ptr(), width, height, bloom_threshold,
+          bloom_sigma, ISO, layer_beauty_pp.get_device_ptr());
+      post_process_kernel_launch(layer_denoised.get_device_ptr(),
+                                 denoised_high_luminance.get_device_ptr(),
+                                 denoised_temp.get_device_ptr(), width, height,
+                                 bloom_threshold, bloom_sigma, ISO,
+                                 layer_denoised_pp.get_device_ptr());
       CUDA_SYNC_CHECK();
       pp_timer.end();
 

@@ -31,14 +31,16 @@ class Denoiser
 
   ~Denoiser() noexcept(false) { OPTIX_CHECK(optixDenoiserDestroy(m_denoiser)); }
 
-  void init_denoiser()
+  void init_denoiser(bool upscale = false)
   {
     OptixDenoiserOptions options = {};
     options.guideAlbedo = 1;
     options.guideNormal = 1;
 
     // create denoiser
-    OptixDenoiserModelKind model_kind = OPTIX_DENOISER_MODEL_KIND_HDR;
+    OptixDenoiserModelKind model_kind =
+        upscale ? OPTIX_DENOISER_MODEL_KIND_UPSCALE2X
+                : OPTIX_DENOISER_MODEL_KIND_HDR;
     OPTIX_CHECK(
         optixDenoiserCreate(m_context, model_kind, &options, &m_denoiser));
 
