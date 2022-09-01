@@ -2,14 +2,15 @@
 
 Research oriented GPU offline renderer.
 
-![](img/rtcamp8.png)
+![](img/rtcamp8.jpg)
 ![](img/gui.jpg)
 
 ## Requirements
 
-* C++17
+* C++ 17
 * CUDA 11.7
 * OptiX 7.5
+* OpenGL 4.6(for GUI app, optional)
 
 ## Features
 
