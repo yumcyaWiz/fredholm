@@ -3,6 +3,7 @@
 Research oriented GPU offline renderer.
 
 ![](img/rtcamp8.png)
+![](img/gui.jpg)
 
 ## Requirements
 
