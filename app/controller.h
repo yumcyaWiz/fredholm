@@ -104,6 +104,7 @@ class Controller
   float m_imgui_bloom_threshold = 1.0f;
   float m_imgui_bloom_sigma = 1.0f;
   float m_imgui_iso = 400.0f;
+  float m_imgui_chromatic_aberration = 1.0f;
 
   std::unique_ptr<fredholm::Camera> m_camera = nullptr;
 

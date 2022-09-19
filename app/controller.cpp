@@ -243,14 +243,16 @@ void Controller::post_process()
                              m_beauty_temp->get_device_ptr(),
                              m_imgui_resolution[0], m_imgui_resolution[1],
                              m_imgui_bloom_threshold, m_imgui_bloom_sigma,
-                             m_imgui_iso, m_layer_beauty_pp->get_device_ptr());
+                             m_imgui_iso, m_imgui_chromatic_aberration,
+                             m_layer_beauty_pp->get_device_ptr());
 
-  post_process_kernel_launch(
-      m_layer_denoised->get_device_ptr(),
-      m_denoised_high_luminance->get_device_ptr(),
-      m_denoised_temp->get_device_ptr(), m_imgui_resolution[0],
-      m_imgui_resolution[1], m_imgui_bloom_threshold, m_imgui_bloom_sigma,
-      m_imgui_iso, m_layer_denoised_pp->get_device_ptr());
+  post_process_kernel_launch(m_layer_denoised->get_device_ptr(),
+                             m_denoised_high_luminance->get_device_ptr(),
+                             m_denoised_temp->get_device_ptr(),
+                             m_imgui_resolution[0], m_imgui_resolution[1],
+                             m_imgui_bloom_threshold, m_imgui_bloom_sigma,
+                             m_imgui_iso, m_imgui_chromatic_aberration,
+                             m_layer_denoised_pp->get_device_ptr());
 
   CUDA_SYNC_CHECK();
 }

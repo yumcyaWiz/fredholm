@@ -2,12 +2,10 @@
 #include "kernels/post-process.h"
 #include "sutil/vec_math.h"
 
-void __host__ post_process_kernel_launch(const float4* beauty_in,
-                                         float4* beauty_high_luminance,
-                                         float4* beauty_temp, int width,
-                                         int height, float bloom_threshold,
-                                         float bloom_sigma, float ISO,
-                                         float4* beauty_out)
+void __host__ post_process_kernel_launch(
+    const float4* beauty_in, float4* beauty_high_luminance, float4* beauty_temp,
+    int width, int height, float bloom_threshold, float bloom_sigma, float ISO,
+    float chromatic_aberration, float4* beauty_out)
 {
   const dim3 threads_per_block(16, 16);
   const dim3 blocks(max(width / threads_per_block.x, 1),
@@ -25,19 +23,20 @@ void __host__ post_process_kernel_launch(const float4* beauty_in,
   CUDA_SYNC_CHECK();
 
   // tone mapping
-  tone_mapping_kernel<<<blocks, threads_per_block>>>(beauty_temp, width, height,
-                                                     ISO, beauty_out);
+  tone_mapping_kernel<<<blocks, threads_per_block>>>(
+      beauty_temp, width, height, ISO, chromatic_aberration, beauty_out);
 }
 
 void __host__ tone_mapping_kernel_launch(const float4* beauty_in, int width,
                                          int height, float ISO,
+                                         float chromatic_aberration,
                                          float4* beauty_out)
 {
   const dim3 threads_per_block(16, 16);
   const dim3 blocks(max(width / threads_per_block.x, 1),
                     max(height / threads_per_block.y, 1));
-  tone_mapping_kernel<<<blocks, threads_per_block>>>(beauty_in, width, height,
-                                                     ISO, beauty_out);
+  tone_mapping_kernel<<<blocks, threads_per_block>>>(
+      beauty_in, width, height, ISO, chromatic_aberration, beauty_out);
 }
 
 __global__ void bloom_kernel_0(const float4* beauty_in, int width, int height,
@@ -92,7 +91,9 @@ __global__ void bloom_kernel_1(const float4* beauty_in,
 }
 
 __global__ void tone_mapping_kernel(const float4* beauty_in, int width,
-                                    int height, float ISO, float4* beauty_out)
+                                    int height, float ISO,
+                                    float chromatic_aberration,
+                                    float4* beauty_out)
 {
   const int i = blockIdx.x * blockDim.x + threadIdx.x;
   const int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -102,7 +103,8 @@ __global__ void tone_mapping_kernel(const float4* beauty_in, int width,
   // chromatic aberration
   const float2 uv = make_float2(static_cast<float>(i) / width,
                                 static_cast<float>(j) / height);
-  const float2 d = (uv - make_float2(0.5f)) * 0.0000075f * 0.5f;
+  const float2 d =
+      (uv - make_float2(0.5f)) / (width * height) * chromatic_aberration;
 
   const float2 uv_r =
       clamp(uv - 0.0f * d, make_float2(0.0f), make_float2(1.0f));
@@ -111,18 +113,24 @@ __global__ void tone_mapping_kernel(const float4* beauty_in, int width,
   const float2 uv_b =
       clamp(uv - 2.0f * d, make_float2(0.0f), make_float2(1.0f));
 
-  const int image_idx_r = uv_r.x * width + width * uv_r.y * height;
-  const int image_idx_g = uv_g.x * width + width * uv_g.y * height;
-  const int image_idx_b = uv_b.x * width + width * uv_b.y * height;
+  const int image_idx_r = uv_r.x * width + width * (uv_r.y * height);
+  const int image_idx_g = uv_g.x * width + width * (uv_g.y * height);
+  const int image_idx_b = uv_b.x * width + width * (uv_b.y * height);
 
-  // beauty
   float3 color = make_float3(beauty_in[image_idx_r].x, beauty_in[image_idx_g].y,
                              beauty_in[image_idx_b].z);
+
+  // exposure adjustment
   const float EV100 = compute_EV100(1.0f, 1.0f, ISO);
   const float exposure = convert_EV100_to_exposure(EV100);
   color *= exposure;
+
+  // tone mapping
   // color = aces_tone_mapping(color);
   color = uchimura(color);
+
+  // linear to sRGB conversion
   color = linear_to_srgb(color);
+
   beauty_out[image_idx] = make_float4(color, 1.0f);
 }

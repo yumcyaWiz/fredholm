@@ -55,6 +55,7 @@ int main()
 
   const int max_depth = 5;
   const float ISO = 80.0f;
+  const float chromatic_aberration = 1.0f;
   const float bloom_threshold = 2.0f;
   const float bloom_sigma = 5.0f;
   const float max_time = 9.5f;
@@ -204,12 +205,14 @@ int main()
       post_process_kernel_launch(
           layer_beauty.get_device_ptr(), beauty_high_luminance.get_device_ptr(),
           beauty_temp.get_device_ptr(), width, height, bloom_threshold,
-          bloom_sigma, ISO, layer_beauty_pp.get_device_ptr());
+          bloom_sigma, ISO, chromatic_aberration,
+          layer_beauty_pp.get_device_ptr());
       post_process_kernel_launch(layer_denoised.get_device_ptr(),
                                  denoised_high_luminance.get_device_ptr(),
                                  denoised_temp.get_device_ptr(), width_denoised,
                                  height_denoised, bloom_threshold, bloom_sigma,
-                                 ISO, layer_denoised_pp.get_device_ptr());
+                                 ISO, chromatic_aberration,
+                                 layer_denoised_pp.get_device_ptr());
       CUDA_SYNC_CHECK();
       pp_timer.end();
 

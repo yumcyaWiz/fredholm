@@ -302,6 +302,8 @@ int main()
                             &controller.m_imgui_bloom_threshold);
           ImGui::InputFloat("Bloom sigma", &controller.m_imgui_bloom_sigma);
           ImGui::InputFloat("ISO", &controller.m_imgui_iso);
+          ImGui::InputFloat("Chromatic aberration",
+                            &controller.m_imgui_chromatic_aberration);
         }
       }
       ImGui::End();
