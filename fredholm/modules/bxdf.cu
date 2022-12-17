@@ -104,7 +104,7 @@ __forceinline__ __device__ float2 roughness_to_alpha(float roughness,
 }
 
 // https://jcgt.org/published/0003/04/03/
-__forceinline__ __device__ float3 artist_friendly_metallic_fresnel(
+__forceinline__ __device__ void artist_friendly_metallic_fresnel(
     const float3& reflectivity, const float3& edge_tint, float3& n, float3& k)
 {
   const float3 r_sqrt = sqrt(reflectivity);
@@ -115,6 +115,7 @@ __forceinline__ __device__ float3 artist_friendly_metallic_fresnel(
   k = sqrt((reflectivity * (t1 * t1) - t2 * t2) / (1.0f - reflectivity));
 }
 
+// Lambert BRDF
 class Lambert
 {
  public:
@@ -146,6 +147,7 @@ class Lambert
   float3 m_albedo;
 };
 
+// Oren-Nayer Diffuse BRDF
 class OrenNayer
 {
  public:
