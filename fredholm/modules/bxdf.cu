@@ -595,10 +595,7 @@ class MicrofacetSheen
 {
  public:
   __device__ MicrofacetSheen() {}
-  __device__ MicrofacetSheen(float roughness, float eta)
-      : m_fresnel(eta), m_roughness(roughness)
-  {
-  }
+  __device__ MicrofacetSheen(float roughness) : m_roughness(roughness) {}
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
@@ -673,5 +670,4 @@ class MicrofacetSheen
   }
 
   float m_roughness;
-  FresnelDielectric m_fresnel;
 };

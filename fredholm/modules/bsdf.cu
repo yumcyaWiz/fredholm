@@ -118,7 +118,7 @@ class BSDF
     m_transmission_btdf =
         MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
 
-    m_sheen_brdf = MicrofacetSheen(m_params.sheen_roughness, 1.5f);
+    m_sheen_brdf = MicrofacetSheen(m_params.sheen_roughness);
 
     m_diffuse_btdf =
         DiffuseTransmission(m_params.base_color, m_params.diffuse_roughness);
