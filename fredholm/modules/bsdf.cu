@@ -196,6 +196,7 @@ class BSDF
            transmission;
     f_mult *= (1.0f - m_params.transmission);
 
+    // sheen
     ret += f_mult * m_params.sheen * m_params.sheen_color * sheen;
     f_mult *= (1.0f - m_params.sheen * m_sheen_directional_albedo);
 

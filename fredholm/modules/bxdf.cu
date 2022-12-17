@@ -603,7 +603,7 @@ class MicrofacetSheen
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float f = m_fresnel.eval(fabs(dot(wo, wh)));
+    const float f = 1.0f;
     const float d = D(wh);
     const float g = G2(wo, wi);
     return make_float3(0.25f * (f * d * g) /
@@ -642,11 +642,7 @@ class MicrofacetSheen
   __device__ float lambda(const float3& w) const
   {
     const float cos = abs_cos_theta(w);
-    if (cos < 0.5f) {
-      return expf(L(cos));
-    } else {
-      return expf(2.0f * L(0.5f) - L(1.0f - cos));
-    }
+    return (cos < 0.5f) ? expf(L(cos)) : expf(2.0f * L(0.5f) - L(1.0f - cos));
   }
 
   __device__ float G1(const float3& w) const
