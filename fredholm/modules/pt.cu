@@ -362,7 +362,7 @@ static __forceinline__ __device__ float3 evaluate_arhosek_sky(const float3& v)
                                                        gamma, 2));
 }
 
-// power heuristics
+// balance heuristics
 static __forceinline__ __device__ float compute_mis_weight(float pdf0,
                                                            float pdf1)
 {
@@ -450,7 +450,7 @@ extern "C" __global__ void __raygen__rg()
     // payload.throughput =
     //     make_float3(dot(payload.direction, params.camera.forward) /
     //     camera_pdf);
-    payload.throughput = make_float3(1.0f / camera_pdf);
+    payload.throughput = make_float3(1.0f);
     payload.done = false;
     for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth) {
       // russian roulette
