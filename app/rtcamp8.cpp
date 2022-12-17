@@ -201,17 +201,22 @@ int main()
                    denoiser_timer.duration<std::chrono::milliseconds>());
 
       // post process
+      PostProcessParams params;
+      params.use_bloom = true;
+      params.bloom_threshold = bloom_threshold;
+      params.bloom_sigma = bloom_sigma;
+      params.chromatic_aberration = chromatic_aberration;
+      params.ISO = ISO;
+
       pp_timer.start();
-      post_process_kernel_launch(
-          layer_beauty.get_device_ptr(), beauty_high_luminance.get_device_ptr(),
-          beauty_temp.get_device_ptr(), width, height, bloom_threshold,
-          bloom_sigma, ISO, chromatic_aberration,
-          layer_beauty_pp.get_device_ptr());
+      post_process_kernel_launch(layer_beauty.get_device_ptr(),
+                                 beauty_high_luminance.get_device_ptr(),
+                                 beauty_temp.get_device_ptr(), width, height,
+                                 params, layer_beauty_pp.get_device_ptr());
       post_process_kernel_launch(layer_denoised.get_device_ptr(),
                                  denoised_high_luminance.get_device_ptr(),
                                  denoised_temp.get_device_ptr(), width_denoised,
-                                 height_denoised, bloom_threshold, bloom_sigma,
-                                 ISO, chromatic_aberration,
+                                 height_denoised, params,
                                  layer_denoised_pp.get_device_ptr());
       CUDA_SYNC_CHECK();
       pp_timer.end();

@@ -101,6 +101,7 @@ class Controller
   float m_imgui_arhosek_turbidity = 3.0f;
   float m_imgui_arhosek_albedo = 0.3f;
 
+  bool m_imgui_use_bloom = false;
   float m_imgui_bloom_threshold = 1.0f;
   float m_imgui_bloom_sigma = 1.0f;
   float m_imgui_iso = 400.0f;

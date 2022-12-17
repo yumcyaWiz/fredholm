@@ -4,27 +4,34 @@
 
 void __host__ post_process_kernel_launch(
     const float4* beauty_in, float4* beauty_high_luminance, float4* beauty_temp,
-    int width, int height, float bloom_threshold, float bloom_sigma, float ISO,
-    float chromatic_aberration, float4* beauty_out)
+    int width, int height, const PostProcessParams& params, float4* beauty_out)
 {
   const dim3 threads_per_block(16, 16);
   const dim3 blocks(max(width / threads_per_block.x, 1),
                     max(height / threads_per_block.y, 1));
 
-  // extract high luminance pixels
-  bloom_kernel_0<<<blocks, threads_per_block>>>(
-      beauty_in, width, height, bloom_threshold, beauty_high_luminance);
-  CUDA_SYNC_CHECK();
+  if (params.use_bloom) {
+    // extract high luminance pixels
+    bloom_kernel_0<<<blocks, threads_per_block>>>(beauty_in, width, height,
+                                                  params.bloom_threshold,
+                                                  beauty_high_luminance);
+    CUDA_SYNC_CHECK();
 
-  // gaussian blur
-  bloom_kernel_1<<<blocks, threads_per_block>>>(
-      beauty_in, beauty_high_luminance, width, height, bloom_sigma,
-      beauty_temp);
-  CUDA_SYNC_CHECK();
+    // gaussian blur
+    bloom_kernel_1<<<blocks, threads_per_block>>>(
+        beauty_in, beauty_high_luminance, width, height, params.bloom_sigma,
+        beauty_temp);
+    CUDA_SYNC_CHECK();
+  } else {
+    copy_kernel<<<blocks, threads_per_block>>>(beauty_in, width, height,
+                                               beauty_temp);
+    CUDA_SYNC_CHECK();
+  }
 
   // tone mapping
   tone_mapping_kernel<<<blocks, threads_per_block>>>(
-      beauty_temp, width, height, ISO, chromatic_aberration, beauty_out);
+      beauty_temp, width, height, params.ISO, params.chromatic_aberration,
+      beauty_out);
 }
 
 void __host__ tone_mapping_kernel_launch(const float4* beauty_in, int width,
@@ -37,6 +44,17 @@ void __host__ tone_mapping_kernel_launch(const float4* beauty_in, int width,
                     max(height / threads_per_block.y, 1));
   tone_mapping_kernel<<<blocks, threads_per_block>>>(
       beauty_in, width, height, ISO, chromatic_aberration, beauty_out);
+}
+
+__global__ void copy_kernel(const float4* in, int width, int height,
+                            float4* out)
+{
+  const int i = blockIdx.x * blockDim.x + threadIdx.x;
+  const int j = blockIdx.y * blockDim.y + threadIdx.y;
+  if (i >= width || j >= height) return;
+  const int image_idx = i + width * j;
+
+  out[image_idx] = in[image_idx];
 }
 
 __global__ void bloom_kernel_0(const float4* beauty_in, int width, int height,

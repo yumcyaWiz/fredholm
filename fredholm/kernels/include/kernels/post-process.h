@@ -1,6 +1,14 @@
 #pragma once
 #include "sutil/vec_math.h"
 
+struct PostProcessParams {
+  bool use_bloom;
+  float bloom_threshold;
+  float bloom_sigma;
+  float ISO;
+  float chromatic_aberration;
+};
+
 // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
 static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
 {
@@ -117,8 +125,7 @@ static __forceinline__ __device__ float convert_EV100_to_exposure(float EV100)
 
 void __host__ post_process_kernel_launch(
     const float4* beauty_in, float4* beauty_high_luminance, float4* beauty_temp,
-    int width, int height, float bloom_threshold, float bloom_sigma, float ISO,
-    float chromatic_aberration, float4* beauty_out);
+    int width, int height, const PostProcessParams& params, float4* beauty_out);
 
 void __host__ tone_mapping_kernel_launch(const float4* beauty_in,
                                          const float4* denoised_in, int width,
@@ -126,6 +133,9 @@ void __host__ tone_mapping_kernel_launch(const float4* beauty_in,
                                          float chromatic_aberration,
                                          float4* beauty_out,
                                          float4* denoised_out);
+
+__global__ void copy_kernel(const float4* in, int width, int height,
+                            float4* out);
 
 __global__ void bloom_kernel_0(const float4* beauty_in, int width, int height,
                                float bloom_threshold, float4* beauty_out);
