@@ -147,12 +147,12 @@ class Lambert
   float3 m_albedo;
 };
 
-// Oren-Nayer Diffuse BRDF
-class OrenNayer
+// Oren-Nayar Diffuse BRDF
+class OrenNayar
 {
  public:
-  __device__ OrenNayer() {}
-  __device__ OrenNayer(const float3& albedo, float roughness)
+  __device__ OrenNayar() {}
+  __device__ OrenNayar(const float3& albedo, float roughness)
       : m_albedo(albedo), m_roughness(roughness)
   {
     const float sigma2 = roughness * roughness;
@@ -243,8 +243,7 @@ class DiffuseTransmission
                            float& pdf) const
   {
     float3 wi = sample_cosine_weighted_hemisphere(u);
-    // flip direction
-    wi = -wi;
+    wi = -wi;  // flip direction
 
     f = eval(wo, wi);
     pdf = abs_cos_theta(wi) / M_PIf;
@@ -264,6 +263,7 @@ class DiffuseTransmission
   float m_B;
 };
 
+// Schlick approximation fresnel
 struct FresnelSchlick {
   __device__ FresnelSchlick() {}
   __device__ FresnelSchlick(float n)
@@ -281,6 +281,7 @@ struct FresnelSchlick {
   float m_F0;
 };
 
+// Dielectric fresnel
 struct FresnelDielectric {
   __device__ FresnelDielectric() {}
   __device__ FresnelDielectric(float n) : m_n(n) {}
@@ -299,6 +300,7 @@ struct FresnelDielectric {
   float m_n;
 };
 
+// Conductor fresnel
 struct FresnelConductor {
   __device__ FresnelConductor() {}
   __device__ FresnelConductor(const float3& n, const float3& k) : m_n(n), m_k(k)
@@ -322,6 +324,8 @@ struct FresnelConductor {
   float3 m_k;
 };
 
+// Microfacet(GGX) with dielectric fresnel
+// TODO: use template parameter for fresnel term?
 class MicrofacetReflectionDielectric
 {
  public:
@@ -400,6 +404,8 @@ class MicrofacetReflectionDielectric
   float2 m_alpha;
 };
 
+// Microfacet(GGX) with conductor fresnel
+// TODO: use template parameter for fresnel term?
 class MicrofacetReflectionConductor
 {
  public:
@@ -642,6 +648,7 @@ class MicrofacetSheen
       return expf(2.0f * L(0.5f) - L(1.0f - cos));
     }
   }
+
   __device__ float G1(const float3& w) const
   {
     return 1.0f / (1.0f + lambda(w));

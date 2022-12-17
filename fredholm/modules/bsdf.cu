@@ -96,12 +96,15 @@ class BSDF
     m_dist.init(weights, 7);
 
     // init each BxDF
+    // TODO: add coat anisotropy
     m_coat_brdf =
         MicrofacetReflectionDielectric(m_eta, m_params.coat_roughness, 0.0f);
 
+    // TODO: add specular anisotropy
     m_specular_brdf = MicrofacetReflectionDielectric(
         m_eta, m_params.specular_roughness, 0.0f);
 
+    // TODO: add specular anisotropy
     float3 n, k;
     const float3 reflectivity =
         clamp(m_params.base_color, make_float3(0), make_float3(0.99));
@@ -111,6 +114,7 @@ class BSDF
     m_metal_brdf =
         MicrofacetReflectionConductor(n, k, m_params.specular_roughness, 0.0f);
 
+    // TODO: add specular anisotropy
     m_transmission_btdf =
         MicrofacetTransmission(m_ni, m_nt, m_params.specular_roughness, 0.0f);
 
@@ -119,7 +123,7 @@ class BSDF
     m_diffuse_btdf =
         DiffuseTransmission(m_params.base_color, m_params.diffuse_roughness);
 
-    m_diffuse_brdf = OrenNayer(m_params.base_color, m_params.diffuse_roughness);
+    m_diffuse_brdf = OrenNayar(m_params.base_color, m_params.diffuse_roughness);
   }
 
   __device__ float3 eval(const float3& wo, const float3& wi) const
@@ -352,7 +356,7 @@ class BSDF
   MicrofacetTransmission m_transmission_btdf;
   MicrofacetSheen m_sheen_brdf;
   DiffuseTransmission m_diffuse_btdf;
-  OrenNayer m_diffuse_brdf;
+  OrenNayar m_diffuse_brdf;
 
   float3 m_coat_absorption_color = make_float3(1.0f);
   float m_coat_color_luminance = 0.0f;
