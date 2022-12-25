@@ -128,9 +128,17 @@ struct DiscreteDistribution1D {
 
   __device__ int sample(float u, float& pmf) const
   {
-    const int idx = binary_search(m_cdf, m_size + 1, u);
-    pmf = m_cdf[idx + 1] - m_cdf[idx];
-    return idx;
+    float cdf = 0.0f;
+    for (int i = 1; i <= m_size; ++i) {
+      cdf += m_cdf[i] - m_cdf[i - 1];
+      if (u < cdf) {
+        pmf = m_cdf[i] - m_cdf[i - 1];
+        return i - 1;
+      }
+    }
+
+    pmf = m_cdf[m_size] - m_cdf[m_size - 1];
+    return m_size - 1;
   }
 
   __device__ float eval_pmf(int idx) const
