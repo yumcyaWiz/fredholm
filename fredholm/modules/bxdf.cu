@@ -365,7 +365,9 @@ __forceinline__ __device__ float3 eval_sensitivity(float opd,
                expf(-var * phase * phase);
   xyz.x += 9.7470e-14f * sqrtf(2.0f * M_PIf * 4.5282e9f) *
            cosf(2.2399e6f * phase + shift.x) * expf(-4.5282e9f * phase * phase);
-  return xyz / 1.0685e-7;
+  xyz /= 1.0685e-7;
+
+  return xyz_to_rgb(xyz);
 }
 
 // Thin film interference
@@ -390,7 +392,7 @@ __forceinline__ __device__ float3 fresnel_airy(float cos, float ior1,
   float3 R23p, R23s, phi23p, phi23s;
   fresnel_conductor_poralized(cos, ior2, ior3, k3, R23p, R23s, phi23p, phi23s);
 
-  const float opd = 2.0f * ior2 * thickness * c2;
+  const float opd = 2.0f * ior2 * (thickness * 1e-9f) * c2;
   const float3 phi2p = phi21p + phi23p;
   const float3 phi2s = phi21s + phi23s;
 
@@ -400,12 +402,11 @@ __forceinline__ __device__ float3 fresnel_airy(float cos, float ior1,
   const float3 Rss = T121s * R23s / (1.0f - R23s * R12s);
 
   // m = 0
-  float3 xyz = make_float3(0.0f);
-  const float3 S0 = make_float3(1.0f);
+  float3 I = make_float3(0.0f);
   const float3 C0 = (R12p + Rsp + R12s + Rss);
-  xyz += C0 * S0;
+  I += C0;
 
-  // // m > 0
+  // m > 0
   float3 Cmp = Rsp - sqrtf(T121p);
   float3 Cms = Rss - sqrtf(T121s);
   for (int m = 1; m <= 3; ++m) {
@@ -413,13 +414,13 @@ __forceinline__ __device__ float3 fresnel_airy(float cos, float ior1,
     Cms *= sqrtf(R23s * R12s);
     const float3 Sp = 2.0f * eval_sensitivity(m * opd, m * phi2p);
     const float3 Ss = 2.0f * eval_sensitivity(m * opd, m * phi2s);
-    xyz += (Cmp * Sp + Cms * Ss);
+    I += (Cmp * Sp + Cms * Ss);
   }
 
-  // // average
-  xyz *= 0.5f;
+  // average
+  I *= 0.5f;
 
-  return clamp(xyz_to_rgb(xyz), make_float3(0.0f), make_float3(1.0f));
+  return clamp(I, make_float3(0.0f), make_float3(1.0f));
 }
 
 // Microfacet(GGX) with dielectric fresnel
@@ -518,9 +519,7 @@ class MicrofacetReflectionConductor
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    // const float3 f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
-    const float3 f =
-        fresnel_airy(fabs(dot(wo, wh)), 1.0f, 1.33f, 550e-9f, m_ior, m_k);
+    const float3 f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
     const float d = D(wh);
     const float g = G2(wo, wi);
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));

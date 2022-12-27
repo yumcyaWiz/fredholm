@@ -93,6 +93,14 @@ static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
 }
 
 // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+static __forceinline__ __device__ float3 rgb_to_xyz(const float3& rgb)
+{
+  return make_float3(dot(rgb, make_float3(0.4887180f, 0.3106803f, 0.2006017f)),
+                     dot(rgb, make_float3(0.1762044f, 0.8129847f, 0.0108109f)),
+                     dot(rgb, make_float3(0.0000000f, 0.0102048f, 0.9897952f)));
+}
+
+// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
 static __forceinline__ __device__ float3 xyz_to_rgb(const float3& xyz)
 {
   return make_float3(dot(xyz, make_float3(2.3706743, -0.9000405, -0.4706338)),
