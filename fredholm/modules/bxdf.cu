@@ -298,6 +298,130 @@ __forceinline__ __device__ float3 fresnel_conductor(float cos,
   return 0.5f * (Rp + Rs);
 }
 
+__forceinline__ __device__ void fresnel_dielectric_poralized(
+    float cos, float ior1, float ior2, float& R_p, float& R_s, float& phi_p,
+    float& phi_s)
+{
+  const float sin = 1.0 - cos * cos;
+  const float eta = ior1 / ior2;
+
+  // Total internal reflection
+  if (eta * eta * sin > 1.0f) {
+    R_p = 1.0f;
+    R_s = 1.0f;
+    phi_p = 2.0f * atanf(-eta * eta * sqrtf(sin - 1.0 / (eta * eta)) / cos);
+    phi_s = 2.0f * atanf(-sqrtf(sin - 1.0f / (eta * eta)) / cos);
+  }
+
+  const float cos2 = sqrtf(1.0f - eta * eta * sin);
+  const float r_p = (ior2 * cos - ior1 * cos2) / (ior2 * cos + ior1 * cos2);
+  const float r_s = (ior1 * cos - ior2 * cos2) / (ior1 * cos + ior2 * cos2);
+  R_p = r_p * r_p;
+  R_s = r_s * r_s;
+  phi_p = (r_p < 0.0f) ? M_PIf : 0.0f;
+  phi_s = (r_s < 0.0f) ? M_PIf : 0.0f;
+}
+
+__forceinline__ __device__ void fresnel_conductor_poralized(
+    float cos, float ior1, const float3& ior2, const float3& k2, float3& R_p,
+    float3& R_s, float3& phi_p, float3& phi_s)
+{
+  if (k2.x == 0.0f && k2.y == 0.0f && k2.z == 0.0f) {
+    fresnel_dielectric_poralized(cos, ior1, ior2.x, R_p.x, R_s.x, phi_p.x,
+                                 phi_s.x);
+    R_p = make_float3(R_p.x);
+    R_s = make_float3(R_s.x);
+    phi_p = make_float3(phi_p.x);
+    phi_s = make_float3(phi_s.x);
+  }
+
+  const float3 A =
+      ior2 * ior2 * (1.0f - k2 * k2) - ior1 * ior1 * (1.0f - cos * cos);
+  const float3 B = sqrt(A * A + square(2.0f * ior2 * ior2 * k2));
+  const float3 U = sqrt(0.5f * (A + B));
+  const float3 V = sqrt(0.5f * (B - A));
+
+  R_s = (square(ior1 * cos - U) + V * V) / (square(ior1 * cos + U) + V * V);
+  phi_s = atan2(2.0f * ior1 * V * cos, U * U + V * V - (ior1 * cos)) + M_PIf;
+  R_p = (square(ior2 * ior2 + (1.0f - k2 * k2) * cos - ior1 * U) +
+         square(2.0f * ior2 * ior2 * k2 * cos - ior1 * V)) /
+        (square(ior2 * ior2 * (1.0f - k2 * k2) * cos + ior1 * U) +
+         square(2.0f * ior2 * ior2 * k2 * cos + ior1 * V));
+  phi_p = atan2(
+      2.0f * ior1 * ior2 * ior2 * cos * (2.0f * k2 * U - (1.0f - k2 * k2) * V),
+      square(ior2 * ior2 * (1.0f + k2 * k2) * cos) -
+          ior1 * ior1 * (U * U + V * V));
+}
+
+// https://belcour.github.io/blog/research/publication/2017/05/01/brdf-thin-film.html
+__forceinline__ __device__ float3 eval_sensitivity(float opd,
+                                                   const float3& shift)
+{
+  const float phase = 2.0f * M_PIf * opd;
+  const float3 val = make_float3(5.4856e-13, 4.4201e-13, 5.2481e-13);
+  const float3 pos = make_float3(1.6810e+06, 1.7953e+06, 2.2084e+06);
+  const float3 var = make_float3(4.3278e+09, 9.3046e+09, 6.6121e+09);
+  float3 xyz = val * sqrt(2.0f * M_PIf * var) * cos(pos * phase + shift) *
+               exp(-var * phase * phase);
+  xyz.x += 9.7470e-14 * sqrt(2.0f * M_PIf * 4.5282e+09) *
+           cos(2.2399e+06 * phase + shift.x) * exp(-4.5282e+09 * phase * phase);
+  return xyz / 1.0685e-7;
+}
+
+// Thin film interference
+// https://belcour.github.io/blog/research/publication/2017/05/01/brdf-thin-film.html
+__forceinline__ __device__ float3 fresnel_airy(float cos, float ior1,
+                                               float ior2, float thickness,
+                                               const float3& ior3,
+                                               const float3& k3)
+{
+  float R12p, R12s, phi12p, phi12s;
+  fresnel_dielectric_poralized(cos, ior1, ior2, R12p, R12s, phi12p, phi12s);
+  const float T12p = 1.0f - R12p;
+  const float T12s = 1.0f - R12s;
+
+  const float s1 = 1.0f - cos * cos;
+  const float eta = ior1 / ior2;
+  const float c2 = sqrtf(1.0f - eta * eta * s1);
+
+  const float phi21p = M_PIf - phi12p;
+  const float phi21s = M_PIf - phi12s;
+
+  float3 R23p, R23s, phi23p, phi23s;
+  fresnel_conductor_poralized(cos, ior2, ior3, k3, R23p, R23s, phi23p, phi23s);
+
+  const float opd = 2.0f * ior2 * thickness * c2;
+  const float3 phi2p = phi21p + phi23p;
+  const float3 phi2s = phi21s + phi23s;
+
+  const float T121p = T12p * T12p;
+  const float3 Rsp = T121p * R23p / (1.0f - R23p * R12p);
+  const float T121s = T12s * T12s;
+  const float3 Rss = T121s * R23s / (1.0f - R23s * R12s);
+
+  // m = 0
+  float3 xyz = make_float3(0.0f);
+  const float3 S0 = make_float3(1.0f);
+  const float3 C0 = (R12p + Rsp + R12s + Rss);
+  xyz += C0 * S0;
+
+  // m > 0
+  float3 Cmp = Rsp - sqrtf(T121p);
+  float3 Cms = Rss - sqrtf(T121s);
+  for (int m = 1; m <= 3; ++m) {
+    Cmp *= sqrt(R23p * R12p);
+    Cms *= sqrt(R23s * R12s);
+    const float3 Sp = 2.0f * eval_sensitivity(m * opd, m * phi2p);
+    const float3 Ss = 2.0f * eval_sensitivity(m * opd, m * phi2s);
+    xyz += (Cmp * Sp + Cms * Ss);
+  }
+
+  // average
+  xyz *= 0.5f;
+
+  return clamp(xyz_to_rgb(xyz), make_float3(0.0f), make_float3(1.0f));
+}
+
 // Microfacet(GGX) with dielectric fresnel
 // TODO: use template parameter for fresnel term?
 class MicrofacetReflectionDielectric

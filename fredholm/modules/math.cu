@@ -39,9 +39,41 @@ static __forceinline__ __device__ float length2(const float3& v)
   return dot(v, v);
 }
 
+static __forceinline__ __device__ float3 square(const float3& v)
+{
+  return make_float3(v.x * v.x, v.y * v.y, v.z * v.z);
+}
+
 static __forceinline__ __device__ float3 sqrt(const float3& v)
 {
   return make_float3(sqrtf(v.x), sqrtf(v.y), sqrtf(v.z));
+}
+
+static __forceinline__ __device__ float3 sin(const float3& v)
+{
+  return make_float3(sinf(v.x), sinf(v.y), sinf(v.z));
+}
+
+static __forceinline__ __device__ float3 cos(const float3& v)
+{
+  return make_float3(cosf(v.x), cosf(v.y), cosf(v.z));
+}
+
+static __forceinline__ __device__ float3 tan(const float3& v)
+{
+  return make_float3(tanf(v.x), tanf(v.y), tanf(v.z));
+}
+
+static __forceinline__ __device__ float3 exp(const float3& v)
+{
+  return make_float3(expf(v.x), expf(v.y), expf(v.z));
+}
+
+static __forceinline__ __device__ float3 atan2(const float3& v1,
+                                               const float3& v2)
+{
+  return make_float3(atan2f(v1.x, v2.x), atan2f(v1.y, v2.y),
+                     atan2f(v1.z, v2.z));
 }
 
 static __forceinline__ __device__ bool isnan(const float3& v)
@@ -63,6 +95,14 @@ static __forceinline__ __device__ float deg_to_rad(float deg)
 static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
 {
   return dot(rgb, make_float3(0.2126729f, 0.7151522f, 0.0721750f));
+}
+
+// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+static __forceinline__ __device__ float3 xyz_to_rgb(const float3& xyz)
+{
+  return make_float3(dot(xyz, make_float3(2.3706743, -0.9000405, -0.4706338)),
+                     dot(xyz, make_float3(-0.5138850, 1.4253036, 0.0885814)),
+                     dot(xyz, make_float3(0.0052982, -0.0146949, 1.0093968)));
 }
 
 static __forceinline__ __device__ float2 cartesian_to_spherical(const float3& w)
