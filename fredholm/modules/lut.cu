@@ -1,8 +1,9 @@
 #pragma once
+
 #include "sutil/vec_math.h"
 
 #define REFLECTION_LUT_SIZE 16
-__constant__ float REFLECTION_LUT[] = {
+inline __constant__ float REFLECTION_LUT[] = {
     0.99996,  0.857567,    1,        0.613357,    1,        0.430158,
     1,        0.291317,    1,        0.191123,    1,        0.121853,
     1,        0.0737236,   1,        0.0426714,   1,        0.0226787,
@@ -91,7 +92,7 @@ __constant__ float REFLECTION_LUT[] = {
     0.626059, 0.0318956};
 
 #define REFLECTION_IOR1_LUT_SIZE 16
-__constant__ float REFLECTION_IOR1_LUT[] = {
+inline __constant__ float REFLECTION_IOR1_LUT[] = {
     0.99996,     1,           1,           1,           1,
     1,           1,           1,           1,           1,
     1,           1,           1,           1,           1,
@@ -914,7 +915,7 @@ __constant__ float REFLECTION_IOR1_LUT[] = {
     0.0464721};
 
 #define SHEEN_LUT_SIZE 16
-__constant__ float SHEEN_LUT[] = {
+inline __constant__ float SHEEN_LUT[] = {
     0.966765, 0.605588, 0.457547, 0.369858, 0.310205, 0.266845, 0.234127,
     0.208952, 0.189582, 0.175974, 0.167246, 0.162883, 0.16278,  0.167335,
     0.177701, 0.196602, 0.819144, 0.550113, 0.437399, 0.369537, 0.322456,

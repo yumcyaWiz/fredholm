@@ -1,11 +1,12 @@
 #pragma once
+
 #include "fredholm/shared.h"
 #define SOBOL_MATRICES_DIMENSION 1024
 #define SOBOL_MATRICES_SIZE 52
 
 using namespace fredholm;
 
-__device__ unsigned int SOBOL_MATRICES[] = {
+inline __device__ unsigned int SOBOL_MATRICES[] = {
     0x80000000U, 0x40000000U, 0x20000000U, 0x10000000U, 0x8000000U,
     0x4000000U,  0x2000000U,  0x1000000U,  0x800000U,   0x400000U,
     0x200000U,   0x100000U,   0x80000U,    0x40000U,    0x20000U,

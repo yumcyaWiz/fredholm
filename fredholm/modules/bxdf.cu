@@ -107,12 +107,12 @@ __forceinline__ __device__ float2 roughness_to_alpha(float roughness,
 __forceinline__ __device__ void artist_friendly_metallic_fresnel(
     const float3& reflectivity, const float3& edge_tint, float3& n, float3& k)
 {
-  const float3 r_sqrt = sqrt(reflectivity);
+  const float3 r_sqrt = sqrtf(reflectivity);
   n = edge_tint * (1.0f - reflectivity) / (1.0f + reflectivity) +
       (1.0f - edge_tint) * (1.0f + r_sqrt) / (1.0f - r_sqrt);
   const float3 t1 = n + 1.0f;
   const float3 t2 = n - 1.0f;
-  k = sqrt((reflectivity * (t1 * t1) - t2 * t2) / (1.0f - reflectivity));
+  k = sqrtf((reflectivity * (t1 * t1) - t2 * t2) / (1.0f - reflectivity));
 }
 
 // Lambert BRDF
@@ -337,17 +337,17 @@ __forceinline__ __device__ void fresnel_conductor_poralized(
 
   const float3 A =
       ior2 * ior2 * (1.0f - k2 * k2) - ior1 * ior1 * (1.0f - cos * cos);
-  const float3 B = sqrt(A * A + square(2.0f * ior2 * ior2 * k2));
-  const float3 U = sqrt(0.5f * (A + B));
-  const float3 V = sqrt(0.5f * (B - A));
+  const float3 B = sqrtf(A * A + square(2.0f * ior2 * ior2 * k2));
+  const float3 U = sqrtf(0.5f * (A + B));
+  const float3 V = sqrtf(0.5f * (B - A));
 
   R_s = (square(ior1 * cos - U) + V * V) / (square(ior1 * cos + U) + V * V);
-  phi_s = atan2(2.0f * ior1 * V * cos, U * U + V * V - (ior1 * cos)) + M_PIf;
+  phi_s = atan2f(2.0f * ior1 * V * cos, U * U + V * V - (ior1 * cos)) + M_PIf;
   R_p = (square(ior2 * ior2 + (1.0f - k2 * k2) * cos - ior1 * U) +
          square(2.0f * ior2 * ior2 * k2 * cos - ior1 * V)) /
         (square(ior2 * ior2 * (1.0f - k2 * k2) * cos + ior1 * U) +
          square(2.0f * ior2 * ior2 * k2 * cos + ior1 * V));
-  phi_p = atan2(
+  phi_p = atan2f(
       2.0f * ior1 * ior2 * ior2 * cos * (2.0f * k2 * U - (1.0f - k2 * k2) * V),
       square(ior2 * ior2 * (1.0f + k2 * k2) * cos) -
           ior1 * ior1 * (U * U + V * V));
@@ -358,13 +358,13 @@ __forceinline__ __device__ float3 eval_sensitivity(float opd,
                                                    const float3& shift)
 {
   const float phase = 2.0f * M_PIf * opd;
-  const float3 val = make_float3(5.4856e-13, 4.4201e-13, 5.2481e-13);
-  const float3 pos = make_float3(1.6810e+06, 1.7953e+06, 2.2084e+06);
-  const float3 var = make_float3(4.3278e+09, 9.3046e+09, 6.6121e+09);
-  float3 xyz = val * sqrt(2.0f * M_PIf * var) * cos(pos * phase + shift) *
-               exp(-var * phase * phase);
-  xyz.x += 9.7470e-14 * sqrt(2.0f * M_PIf * 4.5282e+09) *
-           cos(2.2399e+06 * phase + shift.x) * exp(-4.5282e+09 * phase * phase);
+  const float3 val = make_float3(5.4856e-13f, 4.4201e-13f, 5.2481e-13f);
+  const float3 pos = make_float3(1.6810e6f, 1.7953e6f, 2.2084e6f);
+  const float3 var = make_float3(4.3278e9f, 9.3046e9f, 6.6121e9f);
+  float3 xyz = val * sqrtf(2.0f * M_PIf * var) * cosf(pos * phase + shift) *
+               expf(-var * phase * phase);
+  xyz.x += 9.7470e-14f * sqrtf(2.0f * M_PIf * 4.5282e9f) *
+           cosf(2.2399e6f * phase + shift.x) * expf(-4.5282e9f * phase * phase);
   return xyz / 1.0685e-7;
 }
 
@@ -405,18 +405,18 @@ __forceinline__ __device__ float3 fresnel_airy(float cos, float ior1,
   const float3 C0 = (R12p + Rsp + R12s + Rss);
   xyz += C0 * S0;
 
-  // m > 0
+  // // m > 0
   float3 Cmp = Rsp - sqrtf(T121p);
   float3 Cms = Rss - sqrtf(T121s);
   for (int m = 1; m <= 3; ++m) {
-    Cmp *= sqrt(R23p * R12p);
-    Cms *= sqrt(R23s * R12s);
+    Cmp *= sqrtf(R23p * R12p);
+    Cms *= sqrtf(R23s * R12s);
     const float3 Sp = 2.0f * eval_sensitivity(m * opd, m * phi2p);
     const float3 Ss = 2.0f * eval_sensitivity(m * opd, m * phi2s);
     xyz += (Cmp * Sp + Cms * Ss);
   }
 
-  // average
+  // // average
   xyz *= 0.5f;
 
   return clamp(xyz_to_rgb(xyz), make_float3(0.0f), make_float3(1.0f));
@@ -518,7 +518,9 @@ class MicrofacetReflectionConductor
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float3 f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
+    // const float3 f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
+    const float3 f =
+        fresnel_airy(fabs(dot(wo, wh)), 1.0f, 1.33f, 550e-9f, m_ior, m_k);
     const float d = D(wh);
     const float g = G2(wo, wi);
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
