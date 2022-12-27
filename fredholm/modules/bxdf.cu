@@ -283,28 +283,20 @@ __forceinline__ __device__ float fresnel_dielectric(float cos, float ior)
 }
 
 // Conductor fresnel
-struct FresnelConductor {
-  __device__ FresnelConductor() {}
-  __device__ FresnelConductor(const float3& n, const float3& k) : m_n(n), m_k(k)
-  {
-  }
+__forceinline__ __device__ float3 fresnel_conductor(float cos,
+                                                    const float3& ior,
+                                                    const float3& k)
+{
+  const float c2 = cos * cos;
+  const float3 two_eta_cos = 2.0f * ior * cos;
 
-  __device__ float3 eval(float cos) const
-  {
-    const float c2 = cos * cos;
-    const float3 two_eta_cos = 2.0f * m_n * cos;
+  const float3 t0 = ior * ior + k * k;
+  const float3 t1 = t0 * c2;
+  const float3 Rs = (t0 - two_eta_cos + c2) / (t0 + two_eta_cos + c2);
+  const float3 Rp = (t1 - two_eta_cos + 1.0f) / (t1 + two_eta_cos + 1.0f);
 
-    const float3 t0 = m_n * m_n + m_k * m_k;
-    const float3 t1 = t0 * c2;
-    const float3 Rs = (t0 - two_eta_cos + c2) / (t0 + two_eta_cos + c2);
-    const float3 Rp = (t1 - two_eta_cos + 1.0f) / (t1 + two_eta_cos + 1.0f);
-
-    return 0.5f * (Rp + Rs);
-  }
-
-  float3 m_n;
-  float3 m_k;
-};
+  return 0.5f * (Rp + Rs);
+}
 
 // Microfacet(GGX) with dielectric fresnel
 // TODO: use template parameter for fresnel term?
@@ -392,9 +384,9 @@ class MicrofacetReflectionConductor
 {
  public:
   __device__ MicrofacetReflectionConductor() {}
-  __device__ MicrofacetReflectionConductor(const float3& n, const float3& k,
+  __device__ MicrofacetReflectionConductor(const float3& ior, const float3& k,
                                            float roughness, float anisotropy)
-      : m_fresnel(n, k)
+      : m_ior(ior), m_k(k)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -402,7 +394,7 @@ class MicrofacetReflectionConductor
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float3 f = m_fresnel.eval(fabs(dot(wo, wh)));
+    const float3 f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
     const float d = D(wh);
     const float g = G2(wo, wi);
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
@@ -461,7 +453,8 @@ class MicrofacetReflectionConductor
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
   }
 
-  FresnelConductor m_fresnel;
+  float3 m_ior;
+  float3 m_k;
   float2 m_alpha;
 };
 
