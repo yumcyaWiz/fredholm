@@ -617,8 +617,13 @@ class MicrofacetTransmission
  public:
   __device__ MicrofacetTransmission() {}
   __device__ MicrofacetTransmission(float ior_i, float ior_t, float roughness,
-                                    float anisotropy)
-      : m_ior_i(ior_i), m_ior_t(ior_t)
+                                    float anisotropy,
+                                    float thin_film_thickness = 0.0f,
+                                    float thin_film_ior = 1.5f)
+      : m_ior_i(ior_i),
+        m_ior_t(ior_t),
+        m_thin_film_thickness(thin_film_thickness),
+        m_thin_film_ior(thin_film_ior)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -626,15 +631,22 @@ class MicrofacetTransmission
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = compute_half_vector(wo, wi);
-    const float f = fresnel_dielectric(fabs(dot(wo, wh)), m_ior_t / m_ior_i);
+    float3 f;
+    if (m_thin_film_thickness > 0.0f) {
+      f = fresnel_airy(fabs(dot(wo, wh)), m_ior_i, m_thin_film_ior,
+                       m_thin_film_thickness, make_float3(m_ior_t),
+                       make_float3(0.0f));
+    } else {
+      f = make_float3(fresnel_dielectric(fabs(dot(wo, wh)), m_ior_t / m_ior_i));
+    }
     const float d = D(wh);
     const float g = G2(wo, wi);
     const float wo_dot_wh = dot(wo, wh);
     const float wi_dot_wh = dot(wi, wh);
     const float t = m_ior_i * wo_dot_wh + m_ior_t * wi_dot_wh;
-    return make_float3(fabs(wo_dot_wh) * fabs(wi_dot_wh) * m_ior_t * m_ior_t *
-                       fmax(1.0f - f, 0.0f) * g * d /
-                       (abs_cos_theta(wo) * abs_cos_theta(wi) * t * t));
+    return fabs(wo_dot_wh) * fabs(wi_dot_wh) * m_ior_t * m_ior_t *
+           fmaxf(1.0f - f, make_float3(0.0f)) * g * d /
+           (abs_cos_theta(wo) * abs_cos_theta(wi) * t * t);
   }
 
   __device__ float3 sample(const float3& wo, const float2& u, float3& f,
@@ -648,11 +660,20 @@ class MicrofacetTransmission
     if (!refract(wo, wh, m_ior_i, m_ior_t, wi)) {
       // total internal reflection
       wi = reflect(wo, wh);
-      const float fr = fresnel_dielectric(fabs(dot(wo, wh)), m_ior_t / m_ior_i);
+
+      float3 fr;
+      if (m_thin_film_thickness > 0.0f) {
+        fr = fresnel_airy(fabs(dot(wo, wh)), m_ior_i, m_thin_film_ior,
+                          m_thin_film_thickness, make_float3(m_ior_t),
+                          make_float3(0.0f));
+      } else {
+        fr = make_float3(
+            fresnel_dielectric(fabs(dot(wo, wh)), m_ior_t / m_ior_i));
+      }
+
       const float d = D(wh);
       const float g = G2(wo, wi);
-      f = make_float3(0.25f * (fr * d * g) /
-                      (abs_cos_theta(wo) * abs_cos_theta(wi)));
+      f = 0.25f * (fr * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
       pdf = 0.25f * D_visible(wo, wh) / fabs(dot(wi, wh));
       return wi;
     }
@@ -714,6 +735,8 @@ class MicrofacetTransmission
   float m_ior_i;
   float m_ior_t;
   float2 m_alpha;
+  float m_thin_film_thickness;
+  float m_thin_film_ior;
 };
 
 // Production Friendly Microfacet Sheen BRDF
