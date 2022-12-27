@@ -524,8 +524,13 @@ class MicrofacetReflectionConductor
  public:
   __device__ MicrofacetReflectionConductor() {}
   __device__ MicrofacetReflectionConductor(const float3& ior, const float3& k,
-                                           float roughness, float anisotropy)
-      : m_ior(ior), m_k(k)
+                                           float roughness, float anisotropy,
+                                           float thin_film_thickness = 0.0f,
+                                           float thin_film_ior = 1.5f)
+      : m_ior(ior),
+        m_k(k),
+        m_thin_film_thickness(thin_film_thickness),
+        m_thin_film_ior(thin_film_ior)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -533,7 +538,13 @@ class MicrofacetReflectionConductor
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float3 f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
+    float3 f;
+    if (m_thin_film_thickness > 0.0f) {
+      f = fresnel_airy(fabs(dot(wo, wh)), 1.0f, m_thin_film_ior,
+                       m_thin_film_thickness, m_ior, m_k);
+    } else {
+      f = fresnel_conductor(fabs(dot(wo, wh)), m_ior, m_k);
+    }
     const float d = D(wh);
     const float g = G2(wo, wi);
     return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
@@ -595,6 +606,8 @@ class MicrofacetReflectionConductor
   float3 m_ior;
   float3 m_k;
   float2 m_alpha;
+  float m_thin_film_thickness;
+  float m_thin_film_ior;
 };
 
 // Walter, Bruce, et al. "Microfacet Models for Refraction through Rough
