@@ -264,41 +264,23 @@ class DiffuseTransmission
 };
 
 // Schlick approximation fresnel
-struct FresnelSchlick {
-  __device__ FresnelSchlick() {}
-  __device__ FresnelSchlick(float n)
-  {
-    const float t = (1.0f - n) / (1.0f + n);
-    m_F0 = t * t;
-  }
-
-  __device__ float eval(float cos) const
-  {
-    const float t = fmax(1.0f - cos, 0.0f);
-    return m_F0 + fmax(1.0f - m_F0, 0.0f) * t * t * t * t * t;
-  }
-
-  float m_F0;
-};
+__forceinline__ __device__ float fresnel_schlick(float cos, float F0)
+{
+  const float t = fmax(1.0f - cos, 0.0f);
+  return F0 + fmax(1.0f - F0, 0.0f) * t * t * t * t * t;
+}
 
 // Dielectric fresnel
-struct FresnelDielectric {
-  __device__ FresnelDielectric() {}
-  __device__ FresnelDielectric(float n) : m_n(n) {}
+__forceinline__ __device__ float fresnel_dielectric(float cos, float ior)
+{
+  const float temp = ior * ior + cos * cos - 1.0f;
+  if (temp < 0.0f) { return 1.0f; }
 
-  __device__ float eval(float cos) const
-  {
-    const float temp = m_n * m_n + cos * cos - 1.0f;
-    if (temp < 0.0f) { return 1.0f; }
-
-    const float g = sqrtf(temp);
-    const float t0 = (g - cos) / (g + cos);
-    const float t1 = ((g + cos) * cos - 1.0f) / ((g - cos) * cos + 1.0f);
-    return 0.5f * t0 * t0 * (1.0f + t1 * t1);
-  }
-
-  float m_n;
-};
+  const float g = sqrtf(temp);
+  const float t0 = (g - cos) / (g + cos);
+  const float t1 = ((g + cos) * cos - 1.0f) / ((g - cos) * cos + 1.0f);
+  return 0.5f * t0 * t0 * (1.0f + t1 * t1);
+}
 
 // Conductor fresnel
 struct FresnelConductor {
@@ -332,7 +314,7 @@ class MicrofacetReflectionDielectric
   __device__ MicrofacetReflectionDielectric() {}
   __device__ MicrofacetReflectionDielectric(float ior, float roughness,
                                             float anisotropy)
-      : m_fresnel(ior)
+      : m_ior(ior)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -340,7 +322,7 @@ class MicrofacetReflectionDielectric
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float f = m_fresnel.eval(fabs(dot(wo, wh)));
+    const float f = fresnel_dielectric(fabs(dot(wo, wh)), m_ior);
     const float d = D(wh);
     const float g = G2(wo, wi);
     return make_float3(0.25f * (f * d * g) /
@@ -400,7 +382,7 @@ class MicrofacetReflectionDielectric
     return 1.0f / (1.0f + lambda(wo) + lambda(wi));
   }
 
-  FresnelDielectric m_fresnel;
+  float m_ior;
   float2 m_alpha;
 };
 
@@ -491,7 +473,7 @@ class MicrofacetTransmission
   __device__ MicrofacetTransmission() {}
   __device__ MicrofacetTransmission(float ior_i, float ior_t, float roughness,
                                     float anisotropy)
-      : m_ior_i(ior_i), m_ior_t(ior_t), m_fresnel(ior_t / ior_i)
+      : m_ior_i(ior_i), m_ior_t(ior_t)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -499,7 +481,7 @@ class MicrofacetTransmission
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = compute_half_vector(wo, wi);
-    const float f = m_fresnel.eval(fabs(dot(wo, wh)));
+    const float f = fresnel_dielectric(fabs(dot(wo, wh)), m_ior_t / m_ior_i);
     const float d = D(wh);
     const float g = G2(wo, wi);
     const float wo_dot_wh = dot(wo, wh);
@@ -521,7 +503,7 @@ class MicrofacetTransmission
     if (!refract(wo, wh, m_ior_i, m_ior_t, wi)) {
       // total internal reflection
       wi = reflect(wo, wh);
-      const float fr = m_fresnel.eval(fabs(dot(wo, wh)));
+      const float fr = fresnel_dielectric(fabs(dot(wo, wh)), m_ior_t / m_ior_i);
       const float d = D(wh);
       const float g = G2(wo, wi);
       f = make_float3(0.25f * (fr * d * g) /
@@ -586,7 +568,6 @@ class MicrofacetTransmission
 
   float m_ior_i;
   float m_ior_t;
-  FresnelDielectric m_fresnel;
   float2 m_alpha;
 };
 
