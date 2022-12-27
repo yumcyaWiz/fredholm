@@ -430,8 +430,12 @@ class MicrofacetReflectionDielectric
  public:
   __device__ MicrofacetReflectionDielectric() {}
   __device__ MicrofacetReflectionDielectric(float ior, float roughness,
-                                            float anisotropy)
-      : m_ior(ior)
+                                            float anisotropy,
+                                            float thin_film_thickness = 0.0f,
+                                            float thin_film_ior = 1.5f)
+      : m_ior(ior),
+        m_thin_film_thickness(thin_film_thickness),
+        m_thin_film_ior(thin_film_ior)
   {
     m_alpha = roughness_to_alpha(roughness, anisotropy);
   }
@@ -439,11 +443,19 @@ class MicrofacetReflectionDielectric
   __device__ float3 eval(const float3& wo, const float3& wi) const
   {
     const float3 wh = normalize(wo + wi);
-    const float f = fresnel_dielectric(fabs(dot(wo, wh)), m_ior);
+
+    float3 f;
+    if (m_thin_film_thickness > 0.0f) {
+      f = fresnel_airy(fabs(dot(wo, wh)), 1.0f, m_thin_film_ior,
+                       m_thin_film_thickness, make_float3(m_ior),
+                       make_float3(0.0f));
+    } else {
+      f = make_float3(fresnel_dielectric(fabs(dot(wo, wh)), m_ior));
+    }
+
     const float d = D(wh);
     const float g = G2(wo, wi);
-    return make_float3(0.25f * (f * d * g) /
-                       (abs_cos_theta(wo) * abs_cos_theta(wi)));
+    return 0.25f * (f * d * g) / (abs_cos_theta(wo) * abs_cos_theta(wi));
   }
 
   __device__ float3 sample(const float3& wo, const float2& u, float3& f,
@@ -501,6 +513,8 @@ class MicrofacetReflectionDielectric
 
   float m_ior;
   float2 m_alpha;
+  float m_thin_film_thickness;
+  float m_thin_film_ior;
 };
 
 // Microfacet(GGX) with conductor fresnel
