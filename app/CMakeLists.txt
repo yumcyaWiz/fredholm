@@ -1,11 +1,11 @@
 # rtcamp8
-add_executable(rtcamp8
-    "rtcamp8.cpp"
-)
-target_link_libraries(rtcamp8 PRIVATE
-    fredholm
-    kernels
-)
+# add_executable(rtcamp8
+# "rtcamp8.cpp"
+# )
+# target_link_libraries(rtcamp8 PRIVATE
+# fredholm
+# kernels
+# )
 
 # controller
 add_library(controller
