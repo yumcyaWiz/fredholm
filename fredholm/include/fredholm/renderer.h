@@ -149,7 +149,7 @@ class Renderer
 
     if (m_enable_validation_mode) {
       m_pipeline_compile_options.exceptionFlags =
-          OPTIX_EXCEPTION_FLAG_DEBUG | OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
+          OPTIX_EXCEPTION_FLAG_TRACE_DEPTH |
           OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW;
     } else {
       m_pipeline_compile_options.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
@@ -157,9 +157,9 @@ class Renderer
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    OPTIX_CHECK_LOG(optixModuleCreateFromPTX(
-        m_context, &options, &m_pipeline_compile_options, ptx.data(),
-        ptx.size(), log, &sizeof_log, &m_module));
+    OPTIX_CHECK_LOG(optixModuleCreate(m_context, &options,
+                                      &m_pipeline_compile_options, ptx.data(),
+                                      ptx.size(), log, &sizeof_log, &m_module));
   }
 
   // TODO: take module and entry function name from outside?
@@ -248,9 +248,6 @@ class Renderer
     // create pipeline
     OptixPipelineLinkOptions pipeline_link_options = {};
     pipeline_link_options.maxTraceDepth = m_max_trace_depth;
-    pipeline_link_options.debugLevel = m_enable_validation_mode
-                                           ? OPTIX_COMPILE_DEBUG_LEVEL_FULL
-                                           : OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
@@ -262,7 +259,8 @@ class Renderer
     // set pipeline stack size
     OptixStackSizes stack_sizes = {};
     for (auto& program_group : program_groups) {
-      OPTIX_CHECK(optixUtilAccumulateStackSizes(program_group, &stack_sizes));
+      OPTIX_CHECK(optixUtilAccumulateStackSizes(program_group, &stack_sizes,
+                                                m_pipeline));
     }
 
     uint32_t direct_callable_stack_size_from_traversal;
