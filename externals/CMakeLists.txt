@@ -41,19 +41,19 @@ add_subdirectory(spdlog)
 add_library(stb_image
     "stb_image.cpp"
 )
-target_include_directories(stb_image PUBLIC "stb/")
+target_include_directories(stb_image SYSTEM PUBLIC "stb/")
 
 # stb_image_write
 add_library(stb_image_write
     "stb_image_write.cpp"
 )
-target_include_directories(stb_image_write PUBLIC "stb/")
+target_include_directories(stb_image_write SYSTEM PUBLIC "stb/")
 
 # tinygltf
 add_library(tinygltf
     "tinygltf.cpp"
 )
-target_include_directories(tinygltf PUBLIC "tinygltf/")
+target_include_directories(tinygltf SYSTEM PUBLIC "tinygltf/")
 target_link_libraries(tinygltf PUBLIC
     stb_image
     stb_image_write
@@ -61,4 +61,4 @@ target_link_libraries(tinygltf PUBLIC
 
 # argparse
 add_library(argparse INTERFACE)
-target_include_directories(argparse INTERFACE "argparse/include")
+target_include_directories(argparse SYSTEM INTERFACE "argparse/include")
