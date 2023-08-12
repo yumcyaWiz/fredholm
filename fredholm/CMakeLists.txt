@@ -2,8 +2,12 @@
 add_library(modules OBJECT
     "modules/pt.cu"
 )
+
 set_target_properties(modules PROPERTIES
     CUDA_PTX_COMPILATION ON
+)
+target_compile_options(modules PRIVATE
+    --optix-ir
 )
 target_include_directories(modules PRIVATE
     ${OptiX_INCLUDE}
