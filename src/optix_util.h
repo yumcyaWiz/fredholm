@@ -9,6 +9,8 @@
 #include <source_location>
 #include <vector>
 
+#include "cuda_util.h"
+
 namespace fredholm
 {
 
@@ -193,6 +195,28 @@ inline OptixPipeline optix_create_pipeline(
 
     return pipeline;
 }
+
+struct RayGenSbtRecordData {
+};
+
+struct MissSbtRecordData {
+};
+
+struct HitGroupSbtRecordData {
+    uint3* indices;
+    uint* material_ids;
+};
+
+template <typename T>
+struct SbtRecord {
+    __align__(
+        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+    T data;
+};
+
+using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
+using MissSbtRecord = SbtRecord<MissSbtRecordData>;
+using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
 
 inline void optix_create_shader_binding_table() {}
 
