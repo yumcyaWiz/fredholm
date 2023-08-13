@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.27)
 project(fredholm LANGUAGES C CXX CUDA)
 
-# set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # C++ version and std
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -35,17 +35,5 @@ find_package(OpenGL REQUIRED)
 # external
 add_subdirectory("externals/")
 
-# oglw
-add_subdirectory("oglw/")
-
-# cwl
-add_subdirectory("cwl/")
-
-# optwl
-add_subdirectory("optwl/")
-
-# fredholm
-add_subdirectory("fredholm/")
-
-# app
-add_subdirectory("app/")
+# src
+add_executable(main "src/main.cpp")
