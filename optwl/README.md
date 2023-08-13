@@ -1,1 +1,0 @@
-# optwl(Optix Wrapping Library)
