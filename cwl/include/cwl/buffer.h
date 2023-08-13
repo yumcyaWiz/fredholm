@@ -1,5 +1,6 @@
 #pragma once
 #include <cstring>
+#include <source_location>
 #include <vector>
 
 #include "cwl/util.h"
@@ -10,6 +11,25 @@
 namespace cwl
 {
 
+inline void cudaCheckError(
+    const CUresult& result,
+    const std::source_location& loc = std::source_location::current())
+{
+    if (result == CUDA_SUCCESS) return;
+
+    const char* errorName = nullptr;
+    cuGetErrorName(result, &errorName);
+    const char* errorString = nullptr;
+    cuGetErrorString(result, &errorString);
+
+    // TODO: use std::format
+    std::stringstream ss;
+    ss << loc.file_name() << "(" << loc.line() << ":" << loc.column() << ") "
+       << loc.function_name() << ": " << errorName << ": " << errorString
+       << std::endl;
+    throw std::runtime_error(ss.str());
+}
+
 // RAII buffer object which is on device
 template <typename T>
 class CUDABuffer
@@ -17,17 +37,21 @@ class CUDABuffer
    public:
     CUDABuffer(uint32_t buffer_size) : m_buffer_size(buffer_size)
     {
-        CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&m_d_ptr),
-                              m_buffer_size * sizeof(T)));
+        if (buffer_size == 0) return;
+        cudaCheckError(cuMemAlloc(&m_d_ptr, m_buffer_size * sizeof(T)));
     }
 
-    CUDABuffer(uint32_t buffer_size, int value) : CUDABuffer<T>(buffer_size)
+    CUDABuffer(uint32_t buffer_size, uint32_t value)
+        : CUDABuffer<T>(buffer_size)
     {
-        CUDA_CHECK(cudaMemset(m_d_ptr, value, m_buffer_size * sizeof(T)));
+        if (buffer_size == 0) return;
+        cudaCheckError(cuMemsetD32(
+            m_d_ptr, value, m_buffer_size * sizeof(T) / sizeof(uint32_t)));
     }
 
     CUDABuffer(const std::vector<T>& values) : CUDABuffer<T>(values.size())
     {
+        if (values.size() == 0) return;
         copy_from_host_to_device(values);
     }
 
@@ -40,38 +64,41 @@ class CUDABuffer
         other.m_buffer_size = 0;
     }
 
-    ~CUDABuffer() noexcept(false)
+    ~CUDABuffer() { cudaCheckError(cuMemFree(m_d_ptr)); }
+
+    void clear() const
     {
-        CUDA_CHECK(cudaFree(reinterpret_cast<void*>(m_d_ptr)));
+        cudaCheckError(cuMemsetD32(
+            m_d_ptr, 0, m_buffer_size * sizeof(T) / sizeof(uint32_t)));
     }
 
-    void clear()
+    void copy_from_host_to_device(const std::vector<T>& value) const
     {
-        CUDA_CHECK(cudaMemset(m_d_ptr, 0, m_buffer_size * sizeof(T)));
+        cudaCheckError(
+            cuMemcpyHtoD(m_d_ptr, value.data(), m_buffer_size * sizeof(T)));
     }
 
-    void copy_from_host_to_device(const std::vector<T>& value)
-    {
-        CUDA_CHECK(cudaMemcpy(m_d_ptr, value.data(), m_buffer_size * sizeof(T),
-                              cudaMemcpyHostToDevice));
-    }
-
-    void copy_from_device_to_host(std::vector<T>& value)
+    void copy_from_device_to_host(std::vector<T>& value) const
     {
         value.resize(m_buffer_size);
-        CUDA_CHECK(cudaMemcpy(value.data(), m_d_ptr, m_buffer_size * sizeof(T),
-                              cudaMemcpyDeviceToHost));
+        cudaCheckError(
+            cuMemcpyDtoH(value.data(), m_d_ptr, m_buffer_size * sizeof(T)));
     }
 
-    T* get_device_ptr() const { return m_d_ptr; }
+    T* get_device_ptr() { return reinterpret_cast<T*>(m_d_ptr); }
+
+    const T* get_const_device_ptr() const
+    {
+        return reinterpret_cast<const T*>(m_d_ptr);
+    }
 
     uint32_t get_size() const { return m_buffer_size; }
 
     uint32_t get_size_in_bytes() const { return m_buffer_size * sizeof(T); }
 
    private:
-    T* m_d_ptr;
-    uint32_t m_buffer_size;
+    CUdeviceptr m_d_ptr = 0;
+    uint32_t m_buffer_size = 0;
 };
 
 template <typename T>
