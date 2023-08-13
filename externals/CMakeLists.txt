@@ -5,7 +5,8 @@ add_library(tinyobjloader
 target_include_directories(tinyobjloader PUBLIC "tinyobjloader/")
 
 # glm
-add_subdirectory("glm/")
+add_library(glm INTERFACE)
+target_include_directories(glm SYSTEM INTERFACE "glm/")
 
 # glad
 add_library(glad glad/src/gl.c)
