@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstring>
-#include <source_location>
 #include <vector>
+
+#include "cwl/util.h"
 //
 #include "oglw/buffer.h"
 //
@@ -11,25 +12,6 @@
 
 namespace cwl
 {
-
-inline void cudaCheckError(
-    const CUresult& result,
-    const std::source_location& loc = std::source_location::current())
-{
-    if (result == CUDA_SUCCESS) return;
-
-    const char* errorName = nullptr;
-    cuGetErrorName(result, &errorName);
-    const char* errorString = nullptr;
-    cuGetErrorString(result, &errorString);
-
-    // TODO: use std::format
-    std::stringstream ss;
-    ss << loc.file_name() << "(" << loc.line() << ":" << loc.column() << ") "
-       << loc.function_name() << ": " << errorName << ": " << errorString
-       << std::endl;
-    throw std::runtime_error(ss.str());
-}
 
 // RAII buffer object which is on device
 template <typename T>
@@ -131,7 +113,7 @@ struct CUDAGLBuffer {
     {
     }
 
-    ~CUDAGLBuffer() noexcept(false)
+    ~CUDAGLBuffer()
     {
         cudaCheckError(cuGraphicsUnmapResources(1, &m_resource, 0));
         cudaCheckError(cuGraphicsUnregisterResource(m_resource));

@@ -1,10 +1,12 @@
 #pragma once
 
-#include <cuda_runtime.h>
-#include <optix.h>
-
+#include <source_location>
 #include <sstream>
 #include <stdexcept>
+//
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <optix.h>
 
 #define CUDA_CHECK(call)                                              \
     do {                                                              \
@@ -33,6 +35,25 @@
 
 namespace cwl
 {
+
+inline void cudaCheckError(
+    const CUresult& result,
+    const std::source_location& loc = std::source_location::current())
+{
+    if (result == CUDA_SUCCESS) return;
+
+    const char* errorName = nullptr;
+    cuGetErrorName(result, &errorName);
+    const char* errorString = nullptr;
+    cuGetErrorString(result, &errorString);
+
+    // TODO: use std::format
+    std::stringstream ss;
+    ss << loc.file_name() << "(" << loc.line() << ":" << loc.column() << ") "
+       << loc.function_name() << ": " << errorName << ": " << errorString
+       << std::endl;
+    throw std::runtime_error(ss.str());
+}
 
 // RAII wrapper for objects on device
 template <typename T>
