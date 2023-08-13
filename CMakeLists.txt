@@ -35,5 +35,18 @@ find_package(OpenGL REQUIRED)
 # external
 add_subdirectory("externals/")
 
+# fredholm
+add_library(fredholm INTERFACE)
+target_include_directories(fredholm INTERFACE
+    "src/"
+    ${OptiX_INCLUDE}
+)
+target_link_libraries(fredholm INTERFACE
+    CUDA::cuda_driver
+)
+
 # src
 add_executable(main "src/main.cpp")
+target_link_libraries(main PRIVATE
+    fredholm
+)
