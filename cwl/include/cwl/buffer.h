@@ -1,14 +1,13 @@
 #pragma once
+
 #include <cstring>
 #include <source_location>
 #include <vector>
-
-#include "cwl/util.h"
+//
 #include "oglw/buffer.h"
 //
 #include <cuda.h>
 #include <cudaGL.h>
-#include <cuda_gl_interop.h>
 
 namespace cwl
 {
