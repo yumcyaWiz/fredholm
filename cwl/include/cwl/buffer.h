@@ -6,6 +6,8 @@
 #include "cwl/util.h"
 #include "oglw/buffer.h"
 //
+#include <cuda.h>
+#include <cudaGL.h>
 #include <cuda_gl_interop.h>
 
 namespace cwl
@@ -111,14 +113,14 @@ struct CUDAGLBuffer {
         m_buffer.setData(data, GL_STATIC_DRAW);
 
         // get cuda device ptr from OpenGL texture
-        CUDA_CHECK(cudaGraphicsGLRegisterBuffer(
-            &m_resource, m_buffer.getName(),
-            cudaGraphicsRegisterFlagsWriteDiscard));
-        CUDA_CHECK(cudaGraphicsMapResources(1, &m_resource));
+        cudaCheckError(
+            cuGraphicsGLRegisterBuffer(&m_resource, m_buffer.getName(),
+                                       CU_GRAPHICS_MAP_RESOURCE_FLAGS_NONE));
+        cudaCheckError(cuGraphicsMapResources(1, &m_resource, 0));
 
-        size_t size;
-        CUDA_CHECK(cudaGraphicsResourceGetMappedPointer(
-            reinterpret_cast<void**>(&m_d_buffer), &size, m_resource));
+        size_t size = 0;
+        cudaCheckError(
+            cuGraphicsResourceGetMappedPointer(&m_d_buffer, &size, m_resource));
     }
 
     CUDAGLBuffer(const CUDAGLBuffer& other) = delete;
@@ -132,31 +134,31 @@ struct CUDAGLBuffer {
 
     ~CUDAGLBuffer() noexcept(false)
     {
-        CUDA_CHECK(cudaGraphicsUnmapResources(1, &m_resource));
-        CUDA_CHECK(cudaGraphicsUnregisterResource(m_resource));
+        cudaCheckError(cuGraphicsUnmapResources(1, &m_resource, 0));
+        cudaCheckError(cuGraphicsUnregisterResource(m_resource));
     }
 
     void clear()
     {
-        CUDA_CHECK(cudaMemset(m_d_buffer, 0, m_buffer_size * sizeof(T)));
+        cudaCheckError(cuMemsetD32(
+            m_d_buffer, 0, m_buffer_size * sizeof(T) / sizeof(uint32_t)));
     }
 
     void copy_from_device_to_host(std::vector<T>& value)
     {
         value.resize(m_buffer_size);
-        CUDA_CHECK(cudaMemcpy(value.data(), m_d_buffer,
-                              m_buffer_size * sizeof(T),
-                              cudaMemcpyDeviceToHost));
+        cudaCheckError(
+            cuMemcpyDtoH(value.data(), m_d_buffer, m_buffer_size * sizeof(T)));
     }
 
     const oglw::Buffer<T>& get_gl_buffer() const { return m_buffer; }
 
-    T* get_device_ptr() const { return m_d_buffer; }
+    T* get_device_ptr() const { return reinterpret_cast<T*>(m_d_buffer); }
 
     oglw::Buffer<T> m_buffer;
-    uint32_t m_buffer_size;
-    cudaGraphicsResource* m_resource;
-    T* m_d_buffer;
+    uint32_t m_buffer_size = 0;
+    CUgraphicsResource m_resource = nullptr;
+    CUdeviceptr m_d_buffer = 0;
 };
 
 }  // namespace cwl
