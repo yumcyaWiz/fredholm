@@ -78,6 +78,10 @@ inline __host__ __device__ float2 make_float2(float3 a)
 {
     return make_float2(a.x, a.y);
 }
+inline __host__ __device__ float2 make_float2(float4 a)
+{
+    return make_float2(a.x, a.y);
+}
 inline __host__ __device__ float2 make_float2(int2 a)
 {
     return make_float2(float(a.x), float(a.y));
@@ -183,6 +187,14 @@ inline __host__ __device__ float4 make_float4(float3 a)
 {
     return make_float4(a.x, a.y, a.z, 0.0f);
 }
+inline __host__ __device__ float4 make_float4(float2 a, float b, float c)
+{
+    return make_float4(a.x, a.y, b, c);
+}
+inline __host__ __device__ float4 make_float4(float2 a, float2 b)
+{
+    return make_float4(a.x, a.y, b.x, b.y);
+}
 inline __host__ __device__ float4 make_float4(float3 a, float w)
 {
     return make_float4(a.x, a.y, a.z, w);
@@ -238,27 +250,27 @@ inline __host__ __device__ uint4 make_uint4(int4 a)
 // negate
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __host__ __device__ float2 operator-(float2 &a)
+inline __host__ __device__ float2 operator-(const float2 &a)
 {
     return make_float2(-a.x, -a.y);
 }
-inline __host__ __device__ int2 operator-(int2 &a)
+inline __host__ __device__ int2 operator-(const int2 &a)
 {
     return make_int2(-a.x, -a.y);
 }
-inline __host__ __device__ float3 operator-(float3 &a)
+inline __host__ __device__ float3 operator-(const float3 &a)
 {
     return make_float3(-a.x, -a.y, -a.z);
 }
-inline __host__ __device__ int3 operator-(int3 &a)
+inline __host__ __device__ int3 operator-(const int3 &a)
 {
     return make_int3(-a.x, -a.y, -a.z);
 }
-inline __host__ __device__ float4 operator-(float4 &a)
+inline __host__ __device__ float4 operator-(const float4 &a)
 {
     return make_float4(-a.x, -a.y, -a.z, -a.w);
 }
-inline __host__ __device__ int4 operator-(int4 &a)
+inline __host__ __device__ int4 operator-(const int4 &a)
 {
     return make_int4(-a.x, -a.y, -a.z, -a.w);
 }
@@ -1332,6 +1344,23 @@ inline __host__ __device__ float4 floorf(float4 v)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// exp
+////////////////////////////////////////////////////////////////////////////////
+
+inline __host__ __device__ float2 expf(float2 v)
+{
+    return make_float2(expf(v.x), expf(v.y));
+}
+inline __host__ __device__ float3 expf(float3 v)
+{
+    return make_float3(expf(v.x), expf(v.y), expf(v.z));
+}
+inline __host__ __device__ float4 expf(float4 v)
+{
+    return make_float4(expf(v.x), expf(v.y), expf(v.z), expf(v.w));
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // frac - returns the fractional portion of a scalar or each vector component
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1403,10 +1432,10 @@ inline __host__ __device__ int4 abs(int4 v)
 // - N should be normalized, reflected vector's length is equal to length of I
 ////////////////////////////////////////////////////////////////////////////////
 
-inline __host__ __device__ float3 reflect(float3 i, float3 n)
-{
-    return i - 2.0f * n * dot(n, i);
-}
+// inline __host__ __device__ float3 reflect(float3 i, float3 n)
+// {
+//     return i - 2.0f * n * dot(n, i);
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 // cross product
