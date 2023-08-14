@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(fredholm LANGUAGES C CXX CUDA)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # C++ version and std
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -51,12 +51,14 @@ target_include_directories(optix_kernel PRIVATE
 )
 
 # fredholm
-add_library(fredholm INTERFACE)
-target_include_directories(fredholm INTERFACE
+add_library(fredholm
+    "src/fredholm.cpp"
+)
+target_include_directories(fredholm PUBLIC
     "src/"
     ${OptiX_INCLUDE}
 )
-target_link_libraries(fredholm INTERFACE
+target_link_libraries(fredholm PUBLIC
     CUDA::cuda_driver
 )
 
