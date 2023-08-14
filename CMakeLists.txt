@@ -63,6 +63,7 @@ target_link_libraries(fredholm PUBLIC
     CUDA::cuda_driver
     glm
     stb_image
+    stb_image_write
     tinygltf
     tinyobjloader
 )
