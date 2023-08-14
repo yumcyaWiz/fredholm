@@ -112,6 +112,8 @@ class CUDADevice
         cuCtxDestroy(context);
     }
 
+    CUcontext get_context() const { return context; }
+
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
 };
 

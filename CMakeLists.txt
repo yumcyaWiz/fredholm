@@ -59,6 +59,7 @@ target_include_directories(fredholm PUBLIC
     ${OptiX_INCLUDE}
 )
 target_link_libraries(fredholm PUBLIC
+    CUDA::cudart
     CUDA::cuda_driver
 )
 

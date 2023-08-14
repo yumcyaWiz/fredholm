@@ -10,16 +10,13 @@ namespace fredholm
 class Renderer
 {
    public:
-    Renderer()
+    Renderer(CUcontext cu_context)
     {
 #ifdef NDEBUG
         constexpr bool debug = false;
 #else
         constexpr bool debug = true;
 #endif
-        CUcontext cu_context;
-        cuda_check(cuCtxGetCurrent(&cu_context));
-
         context = optix_create_context(cu_context, debug);
 
         module = optix_create_module(context, "pt.ptx", debug);
