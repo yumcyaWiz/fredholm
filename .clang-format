@@ -8,6 +8,6 @@ ColumnLimit: 80
 AlignTrailingComments: true
 AllowShortBlocksOnASingleLine: true
 AlwaysBreakTemplateDeclarations: true
-BreakBeforeBraces: Linux
+BreakBeforeBraces: Allman
 Cpp11BracedListStyle: true
 PointerAlignment: Left
