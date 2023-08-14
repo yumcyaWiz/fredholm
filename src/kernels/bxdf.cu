@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cmath>
-
 #include "helper_math.h"
 #include "math.cu"
 #include "sampling.cu"

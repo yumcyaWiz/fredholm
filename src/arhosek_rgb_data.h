@@ -102,6 +102,8 @@ the model.
 
 #pragma once
 
+#ifndef __CUDACC__
+
 inline float datasetRGB1[] = {
     // albedo 0, turbidity 1
     -1.099459e+000,
@@ -3844,3 +3846,5 @@ inline float *datasetsRGB[] = {datasetRGB1, datasetRGB2, datasetRGB3};
 
 inline float *datasetsRGBRad[] = {datasetRGBRad1, datasetRGBRad2,
                                   datasetRGBRad3};
+
+#endif

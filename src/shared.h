@@ -1,9 +1,11 @@
 #pragma once
+#ifndef __CUDACC__
 #include <cuda_runtime.h>
 #include <optix.h>
 
 #include "arhosek.h"
 #include "helper_math.h"
+#endif
 
 namespace fredholm
 {

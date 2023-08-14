@@ -98,7 +98,13 @@ All instructions on how to use this code are in the accompanying header file.
 */
 
 #pragma once
+
+#ifndef __CUDACC__
+#include <cmath>
+
 #include "arhosek_rgb_data.h"
+#include "cuda_util.h"
+#endif
 
 //   Some macro definitions that occur elsewhere in ART, and that have to be
 //   replicated to make this a stand-alone module.
@@ -128,196 +134,210 @@ All instructions on how to use this code are in the accompanying header file.
 
 typedef float ArHosekSkyModelConfiguration[9];
 
-typedef struct ArHosekSkyModelState {
-  ArHosekSkyModelConfiguration configs[11];
-  float radiances[11];
-  float turbidity;
-  float solar_radius;
-  float emission_correction_factor_sky[11];
-  float emission_correction_factor_sun[11];
-  float albedo;
-  float elevation;
+typedef struct ArHosekSkyModelState
+{
+    ArHosekSkyModelConfiguration configs[11];
+    float radiances[11];
+    float turbidity;
+    float solar_radius;
+    float emission_correction_factor_sky[11];
+    float emission_correction_factor_sun[11];
+    float albedo;
+    float elevation;
 } ArHosekSkyModelState;
 
 typedef float *ArHosekSkyModel_Dataset;
 typedef float *ArHosekSkyModel_Radiance_Dataset;
 
-inline __host__ void ArHosekSkyModel_CookConfiguration(
+#ifndef __CUDACC__
+
+inline CUDA_HOST void ArHosekSkyModel_CookConfiguration(
     ArHosekSkyModel_Dataset dataset, ArHosekSkyModelConfiguration config,
     float turbidity, float albedo, float solar_elevation)
 {
-  float *elev_matrix;
+    float *elev_matrix;
 
-  int int_turbidity = (int)turbidity;
-  float turbidity_rem = turbidity - (float)int_turbidity;
+    int int_turbidity = (int)turbidity;
+    float turbidity_rem = turbidity - (float)int_turbidity;
 
-  solar_elevation = powf(solar_elevation / (MATH_PI / 2.0f), (1.0f / 3.0f));
+    solar_elevation = powf(solar_elevation / (MATH_PI / 2.0f), (1.0f / 3.0f));
 
-  // alb 0 low turb
+    // alb 0 low turb
 
-  elev_matrix = dataset + (9 * 6 * (int_turbidity - 1));
+    elev_matrix = dataset + (9 * 6 * (int_turbidity - 1));
 
-  for (unsigned int i = 0; i < 9; ++i) {
-    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-    config[i] = (1.0f - albedo) * (1.0f - turbidity_rem) *
-                (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
-                 5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-                     elev_matrix[i + 9] +
-                 10.0f * powf(1.0f - solar_elevation, 3.0f) *
-                     powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
-                 10.0f * powf(1.0f - solar_elevation, 2.0f) *
-                     powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
-                 5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
-                     elev_matrix[i + 36] +
-                 powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
-  }
+    for (unsigned int i = 0; i < 9; ++i)
+    {
+        //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 *
+        // A4;
+        config[i] = (1.0f - albedo) * (1.0f - turbidity_rem) *
+                    (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
+                     5.0f * powf(1.0f - solar_elevation, 4.0f) *
+                         solar_elevation * elev_matrix[i + 9] +
+                     10.0f * powf(1.0f - solar_elevation, 3.0f) *
+                         powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
+                     10.0f * powf(1.0f - solar_elevation, 2.0f) *
+                         powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
+                     5.0f * (1.0f - solar_elevation) *
+                         powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
+                     powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
+    }
 
-  // alb 1 low turb
-  elev_matrix = dataset + (9 * 6 * 10 + 9 * 6 * (int_turbidity - 1));
-  for (unsigned int i = 0; i < 9; ++i) {
-    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-    config[i] += (albedo) * (1.0f - turbidity_rem) *
-                 (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
-                  5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-                      elev_matrix[i + 9] +
-                  10.0f * powf(1.0f - solar_elevation, 3.0f) *
-                      powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
-                  10.0f * powf(1.0f - solar_elevation, 2.0f) *
-                      powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
-                  5.0f * (1.0f - solar_elevation) *
-                      powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
-                  powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
-  }
+    // alb 1 low turb
+    elev_matrix = dataset + (9 * 6 * 10 + 9 * 6 * (int_turbidity - 1));
+    for (unsigned int i = 0; i < 9; ++i)
+    {
+        //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 *
+        // A4;
+        config[i] += (albedo) * (1.0f - turbidity_rem) *
+                     (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
+                      5.0f * powf(1.0f - solar_elevation, 4.0f) *
+                          solar_elevation * elev_matrix[i + 9] +
+                      10.0f * powf(1.0f - solar_elevation, 3.0f) *
+                          powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
+                      10.0f * powf(1.0f - solar_elevation, 2.0f) *
+                          powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
+                      5.0f * (1.0f - solar_elevation) *
+                          powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
+                      powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
+    }
 
-  if (int_turbidity == 10) return;
+    if (int_turbidity == 10) return;
 
-  // alb 0 high turb
-  elev_matrix = dataset + (9 * 6 * (int_turbidity));
-  for (unsigned int i = 0; i < 9; ++i) {
-    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-    config[i] += (1.0f - albedo) * (turbidity_rem) *
-                 (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
-                  5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-                      elev_matrix[i + 9] +
-                  10.0f * powf(1.0f - solar_elevation, 3.0f) *
-                      powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
-                  10.0f * powf(1.0 - solar_elevation, 2.0f) *
-                      powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
-                  5.0f * (1.0f - solar_elevation) *
-                      powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
-                  powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
-  }
+    // alb 0 high turb
+    elev_matrix = dataset + (9 * 6 * (int_turbidity));
+    for (unsigned int i = 0; i < 9; ++i)
+    {
+        //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 *
+        // A4;
+        config[i] += (1.0f - albedo) * (turbidity_rem) *
+                     (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
+                      5.0f * powf(1.0f - solar_elevation, 4.0f) *
+                          solar_elevation * elev_matrix[i + 9] +
+                      10.0f * powf(1.0f - solar_elevation, 3.0f) *
+                          powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
+                      10.0f * powf(1.0 - solar_elevation, 2.0f) *
+                          powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
+                      5.0f * (1.0f - solar_elevation) *
+                          powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
+                      powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
+    }
 
-  // alb 1 high turb
-  elev_matrix = dataset + (9 * 6 * 10 + 9 * 6 * (int_turbidity));
-  for (unsigned int i = 0; i < 9; ++i) {
-    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-    config[i] += (albedo) * (turbidity_rem) *
-                 (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
-                  5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-                      elev_matrix[i + 9] +
-                  10.0f * powf(1.0f - solar_elevation, 3.0f) *
-                      powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
-                  10.0f * powf(1.0f - solar_elevation, 2.0f) *
-                      powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
-                  5.0f * (1.0f - solar_elevation) *
-                      powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
-                  powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
-  }
+    // alb 1 high turb
+    elev_matrix = dataset + (9 * 6 * 10 + 9 * 6 * (int_turbidity));
+    for (unsigned int i = 0; i < 9; ++i)
+    {
+        //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 *
+        // A4;
+        config[i] += (albedo) * (turbidity_rem) *
+                     (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[i] +
+                      5.0f * powf(1.0f - solar_elevation, 4.0f) *
+                          solar_elevation * elev_matrix[i + 9] +
+                      10.0f * powf(1.0f - solar_elevation, 3.0f) *
+                          powf(solar_elevation, 2.0f) * elev_matrix[i + 18] +
+                      10.0f * powf(1.0f - solar_elevation, 2.0f) *
+                          powf(solar_elevation, 3.0f) * elev_matrix[i + 27] +
+                      5.0f * (1.0f - solar_elevation) *
+                          powf(solar_elevation, 4.0f) * elev_matrix[i + 36] +
+                      powf(solar_elevation, 5.0f) * elev_matrix[i + 45]);
+    }
 }
 
-inline __host__ float ArHosekSkyModel_CookRadianceConfiguration(
+inline CUDA_HOST float ArHosekSkyModel_CookRadianceConfiguration(
     ArHosekSkyModel_Radiance_Dataset dataset, float turbidity, float albedo,
     float solar_elevation)
 {
-  float *elev_matrix;
+    float *elev_matrix;
 
-  int int_turbidity = (int)turbidity;
-  float turbidity_rem = turbidity - (float)int_turbidity;
-  float res;
-  solar_elevation = powf(solar_elevation / (MATH_PI / 2.0f), (1.0f / 3.0f));
+    int int_turbidity = (int)turbidity;
+    float turbidity_rem = turbidity - (float)int_turbidity;
+    float res;
+    solar_elevation = powf(solar_elevation / (MATH_PI / 2.0f), (1.0f / 3.0f));
 
-  // alb 0 low turb
-  elev_matrix = dataset + (6 * (int_turbidity - 1));
-  //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-  res = (1.0f - albedo) * (1.0f - turbidity_rem) *
-        (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
-         5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-             elev_matrix[1] +
-         10.0f * powf(1.0f - solar_elevation, 3.0f) *
-             powf(solar_elevation, 2.0f) * elev_matrix[2] +
-         10.0f * powf(1.0f - solar_elevation, 2.0f) *
-             powf(solar_elevation, 3.0f) * elev_matrix[3] +
-         5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
-             elev_matrix[4] +
-         powf(solar_elevation, 5.0f) * elev_matrix[5]);
+    // alb 0 low turb
+    elev_matrix = dataset + (6 * (int_turbidity - 1));
+    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
+    res = (1.0f - albedo) * (1.0f - turbidity_rem) *
+          (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
+           5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
+               elev_matrix[1] +
+           10.0f * powf(1.0f - solar_elevation, 3.0f) *
+               powf(solar_elevation, 2.0f) * elev_matrix[2] +
+           10.0f * powf(1.0f - solar_elevation, 2.0f) *
+               powf(solar_elevation, 3.0f) * elev_matrix[3] +
+           5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
+               elev_matrix[4] +
+           powf(solar_elevation, 5.0f) * elev_matrix[5]);
 
-  // alb 1 low turb
-  elev_matrix = dataset + (6 * 10 + 6 * (int_turbidity - 1));
-  //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-  res += (albedo) * (1.0f - turbidity_rem) *
-         (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
-          5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-              elev_matrix[1] +
-          10.0f * pow(1.0f - solar_elevation, 3.0f) *
-              powf(solar_elevation, 2.0f) * elev_matrix[2] +
-          10.0f * pow(1.0f - solar_elevation, 2.0f) *
-              powf(solar_elevation, 3.0f) * elev_matrix[3] +
-          5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
-              elev_matrix[4] +
-          powf(solar_elevation, 5.0f) * elev_matrix[5]);
-  if (int_turbidity == 10) return res;
+    // alb 1 low turb
+    elev_matrix = dataset + (6 * 10 + 6 * (int_turbidity - 1));
+    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
+    res += (albedo) * (1.0f - turbidity_rem) *
+           (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
+            5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
+                elev_matrix[1] +
+            10.0f * pow(1.0f - solar_elevation, 3.0f) *
+                powf(solar_elevation, 2.0f) * elev_matrix[2] +
+            10.0f * pow(1.0f - solar_elevation, 2.0f) *
+                powf(solar_elevation, 3.0f) * elev_matrix[3] +
+            5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
+                elev_matrix[4] +
+            powf(solar_elevation, 5.0f) * elev_matrix[5]);
+    if (int_turbidity == 10) return res;
 
-  // alb 0 high turb
-  elev_matrix = dataset + (6 * (int_turbidity));
-  //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-  res += (1.0f - albedo) * (turbidity_rem) *
-         (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
-          5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-              elev_matrix[1] +
-          10.0f * powf(1.0f - solar_elevation, 3.0f) *
-              powf(solar_elevation, 2.0f) * elev_matrix[2] +
-          10.0f * powf(1.0f - solar_elevation, 2.0f) *
-              powf(solar_elevation, 3.0f) * elev_matrix[3] +
-          5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
-              elev_matrix[4] +
-          powf(solar_elevation, 5.0f) * elev_matrix[5]);
+    // alb 0 high turb
+    elev_matrix = dataset + (6 * (int_turbidity));
+    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
+    res += (1.0f - albedo) * (turbidity_rem) *
+           (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
+            5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
+                elev_matrix[1] +
+            10.0f * powf(1.0f - solar_elevation, 3.0f) *
+                powf(solar_elevation, 2.0f) * elev_matrix[2] +
+            10.0f * powf(1.0f - solar_elevation, 2.0f) *
+                powf(solar_elevation, 3.0f) * elev_matrix[3] +
+            5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
+                elev_matrix[4] +
+            powf(solar_elevation, 5.0f) * elev_matrix[5]);
 
-  // alb 1 high turb
-  elev_matrix = dataset + (6 * 10 + 6 * (int_turbidity));
-  //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
-  res += (albedo) * (turbidity_rem) *
-         (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
-          5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
-              elev_matrix[1] +
-          10.0f * powf(1.0f - solar_elevation, 3.0f) *
-              powf(solar_elevation, 2.0f) * elev_matrix[2] +
-          10.0f * powf(1.0f - solar_elevation, 2.0f) *
-              powf(solar_elevation, 3.0f) * elev_matrix[3] +
-          5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
-              elev_matrix[4] +
-          powf(solar_elevation, 5.0f) * elev_matrix[5]);
-  return res;
+    // alb 1 high turb
+    elev_matrix = dataset + (6 * 10 + 6 * (int_turbidity));
+    //(1-t).^3* A1 + 3*(1-t).^2.*t * A2 + 3*(1-t) .* t .^ 2 * A3 + t.^3 * A4;
+    res += (albedo) * (turbidity_rem) *
+           (powf(1.0f - solar_elevation, 5.0f) * elev_matrix[0] +
+            5.0f * powf(1.0f - solar_elevation, 4.0f) * solar_elevation *
+                elev_matrix[1] +
+            10.0f * powf(1.0f - solar_elevation, 3.0f) *
+                powf(solar_elevation, 2.0f) * elev_matrix[2] +
+            10.0f * powf(1.0f - solar_elevation, 2.0f) *
+                powf(solar_elevation, 3.0f) * elev_matrix[3] +
+            5.0f * (1.0f - solar_elevation) * powf(solar_elevation, 4.0f) *
+                elev_matrix[4] +
+            powf(solar_elevation, 5.0f) * elev_matrix[5]);
+    return res;
 }
 
-inline __host__ ArHosekSkyModelState arhosek_rgb_skymodelstate_alloc_init(
+inline CUDA_HOST ArHosekSkyModelState arhosek_rgb_skymodelstate_alloc_init(
     const float turbidity, const float albedo, const float elevation)
 {
-  ArHosekSkyModelState state;
+    ArHosekSkyModelState state;
 
-  state.solar_radius = TERRESTRIAL_SOLAR_RADIUS;
-  state.turbidity = turbidity;
-  state.albedo = albedo;
-  state.elevation = elevation;
+    state.solar_radius = TERRESTRIAL_SOLAR_RADIUS;
+    state.turbidity = turbidity;
+    state.albedo = albedo;
+    state.elevation = elevation;
 
-  for (unsigned int channel = 0; channel < 3; ++channel) {
-    ArHosekSkyModel_CookConfiguration(datasetsRGB[channel],
-                                      state.configs[channel], turbidity, albedo,
-                                      elevation);
+    for (unsigned int channel = 0; channel < 3; ++channel)
+    {
+        ArHosekSkyModel_CookConfiguration(datasetsRGB[channel],
+                                          state.configs[channel], turbidity,
+                                          albedo, elevation);
 
-    state.radiances[channel] = ArHosekSkyModel_CookRadianceConfiguration(
-        datasetsRGBRad[channel], turbidity, albedo, elevation);
-  }
+        state.radiances[channel] = ArHosekSkyModel_CookRadianceConfiguration(
+            datasetsRGBRad[channel], turbidity, albedo, elevation);
+    }
 
-  return state;
+    return state;
 }
+
+#endif

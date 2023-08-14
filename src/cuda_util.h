@@ -1,4 +1,11 @@
 #pragma once
+
+#define CUDA_HOST __host__
+#define CUDA_DEVICE __device__
+#define CUDA_HOST_DEVICE __host__ __device__
+#define CUDA_INLINE __forceinline__
+
+#ifndef __CUDACC__
 #include <cuda.h>
 
 #include <format>
@@ -141,5 +148,7 @@ class CUDAKernel
                                   nullptr));
     }
 };
+
+#endif
 
 }  // namespace fredholm
