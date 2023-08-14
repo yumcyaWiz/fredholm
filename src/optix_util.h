@@ -1,4 +1,5 @@
 #pragma once
+#ifndef __CUDACC__
 #include <optix.h>
 #include <optix_function_table_definition.h>
 #include <optix_stack_size.h>
@@ -12,9 +13,47 @@
 #include <vector>
 
 #include "cuda_util.h"
+#endif
 
 namespace fredholm
 {
+
+template <typename T>
+struct SbtRecord
+{
+    __align__(
+        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
+    T data;
+};
+
+struct RayGenSbtRecordData
+{
+};
+
+struct MissSbtRecordData
+{
+};
+
+struct HitGroupSbtRecordData
+{
+};
+
+using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
+using MissSbtRecord = SbtRecord<MissSbtRecordData>;
+using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
+
+#ifndef __CUDACC__
+struct SbtRecordSet
+{
+    CUdeviceptr raygen_records = 0;
+    uint32_t raygen_records_count = 1;
+
+    CUdeviceptr miss_records = 0;
+    uint32_t miss_records_count = 1;
+
+    CUdeviceptr hitgroup_records = 0;
+    uint32_t hitgroup_records_count = 1;
+};
 
 inline std::vector<char> read_binary_from_file(
     const std::filesystem::path& filepath)
@@ -295,42 +334,6 @@ inline OptixPipeline optix_create_pipeline(
     return pipeline;
 }
 
-struct RayGenSbtRecordData
-{
-};
-
-struct MissSbtRecordData
-{
-};
-
-struct HitGroupSbtRecordData
-{
-};
-
-template <typename T>
-struct SbtRecord
-{
-    __align__(
-        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-    T data;
-};
-
-using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
-using MissSbtRecord = SbtRecord<MissSbtRecordData>;
-using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
-
-struct SbtRecordSet
-{
-    CUdeviceptr raygen_records = 0;
-    uint32_t raygen_records_count = 1;
-
-    CUdeviceptr miss_records = 0;
-    uint32_t miss_records_count = 1;
-
-    CUdeviceptr hitgroup_records = 0;
-    uint32_t hitgroup_records_count = 1;
-};
-
 inline SbtRecordSet optix_create_sbt_records(
     const ProgramGroupSet& program_groups)
 {
@@ -530,5 +533,7 @@ inline IASBuildOutput optix_create_ias(
 
     return IASBuildOutput{instance_buffer, output_buffer, ias_handle};
 }
+
+#endif
 
 }  // namespace fredholm

@@ -19,25 +19,25 @@ class Renderer
 #endif
         context = optix_create_context(cu_context, debug);
 
-        module = optix_create_module(context, "pt.ptx", debug);
+        module = optix_create_module(context, "test.ptx", debug);
 
         std::vector<ProgramGroupEntry> program_group_entries;
         program_group_entries.push_back(
             {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "rg", module});
 
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_MISS, "radiance", module});
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_MISS, "shadow", module});
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_MISS, "light", module});
+        // program_group_entries.push_back(
+        //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "radiance", module});
+        // program_group_entries.push_back(
+        //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "shadow", module});
+        // program_group_entries.push_back(
+        //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "light", module});
 
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "radiance", module});
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "shadow", module});
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "light", module});
+        // program_group_entries.push_back(
+        //     {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "radiance", module});
+        // program_group_entries.push_back(
+        //     {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "shadow", module});
+        // program_group_entries.push_back(
+        //     {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "light", module});
 
         program_group_set =
             optix_create_program_group(context, program_group_entries);

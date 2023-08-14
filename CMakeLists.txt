@@ -37,7 +37,7 @@ add_subdirectory("externals/")
 
 # optix kernel
 add_library(optix_kernel OBJECT
-    "src/kernels/pt.cu"
+    "src/kernels/test.cu"
 )
 set_target_properties(optix_kernel PROPERTIES
     CUDA_PTX_COMPILATION ON
@@ -61,6 +61,10 @@ target_include_directories(fredholm PUBLIC
 target_link_libraries(fredholm PUBLIC
     CUDA::cudart
     CUDA::cuda_driver
+    glm
+    stb_image
+    tinygltf
+    tinyobjloader
 )
 
 # src

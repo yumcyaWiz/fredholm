@@ -3,11 +3,13 @@
 #include <cuda_runtime.h>
 #include <optix.h>
 
-#include "arhosek.h"
 #include "helper_math.h"
 #endif
 
+#include "arhosek.h"
 #include "cuda_util.h"
+#include "helper_math.h"
+#include "optix_util.h"
 
 namespace fredholm
 {
@@ -262,32 +264,6 @@ struct LaunchParams
 
     OptixTraversableHandle ias_handle;
 };
-
-struct RayGenSbtRecordData
-{
-};
-
-struct MissSbtRecordData
-{
-};
-
-struct HitGroupSbtRecordData
-{
-    uint3* indices;
-    uint* material_ids;
-};
-
-template <typename T>
-struct SbtRecord
-{
-    __align__(
-        OPTIX_SBT_RECORD_ALIGNMENT) char header[OPTIX_SBT_RECORD_HEADER_SIZE];
-    T data;
-};
-
-using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
-using MissSbtRecord = SbtRecord<MissSbtRecordData>;
-using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)

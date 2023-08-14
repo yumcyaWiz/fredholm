@@ -1,3 +1,5 @@
+#include <optix.h>
+
 #include "cuda_util.h"
 #include "renderer.h"
 
