@@ -396,20 +396,18 @@ inline SbtRecordSet optix_create_sbt_records(
 }
 
 inline OptixShaderBindingTable optix_create_sbt(
-    const CUdeviceptr& raygen_records, const CUdeviceptr& miss_records,
-    uint32_t miss_records_count, const CUdeviceptr& hit_records,
-    uint32_t hit_records_count)
+    const SbtRecordSet& sbt_record_set)
 {
     OptixShaderBindingTable ret;
-    ret.raygenRecord = raygen_records;
+    ret.raygenRecord = sbt_record_set.raygen_records;
 
-    ret.missRecordBase = miss_records;
+    ret.missRecordBase = sbt_record_set.miss_records;
     ret.missRecordStrideInBytes = sizeof(MissSbtRecord);
-    ret.missRecordCount = miss_records_count;
+    ret.missRecordCount = sbt_record_set.miss_records_count;
 
-    ret.hitgroupRecordBase = hit_records;
+    ret.hitgroupRecordBase = sbt_record_set.hitgroup_records;
     ret.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
-    ret.hitgroupRecordCount = hit_records_count;
+    ret.hitgroupRecordCount = sbt_record_set.hitgroup_records_count;
 
     return ret;
 }

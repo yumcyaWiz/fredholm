@@ -62,7 +62,7 @@ class CUDABuffer
 
     ~CUDABuffer() { cuda_check(cuMemFree(dptr)); }
 
-    const CUdeviceptr &get_device_ptr() const { return dptr; }
+    CUdeviceptr get_device_ptr() { return dptr; }
 
     void copy_h_to_d(const T *hptr) const
     {

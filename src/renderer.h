@@ -3,6 +3,7 @@
 
 #include "cuda_util.h"
 #include "optix_util.h"
+#include "shared.h"
 
 namespace fredholm
 {
@@ -50,9 +51,7 @@ class Renderer
 
         sbt_record_set = optix_create_sbt_records(program_group_set);
 
-        sbt = optix_create_sbt(sbt_record_set.raygen_records,
-                               sbt_record_set.miss_records, 1,
-                               sbt_record_set.hitgroup_records, 1);
+        sbt = optix_create_sbt(sbt_record_set);
 
         // TODO: fill build entries
         std::vector<GASBuildEntry> gas_build_entries;
@@ -100,10 +99,22 @@ class Renderer
         optix_check(optixDeviceContextDestroy(context));
     }
 
-   private:
-    uint32_t width = 0;
-    uint32_t height = 0;
+    void render(uint32_t width, uint32_t height, const CUdeviceptr& beauty)
+    {
+        LaunchParams params;
+        params.width = width;
+        params.height = height;
+        params.render_layer.beauty = reinterpret_cast<float4*>(beauty);
 
+        CUdeviceptr params_buffer;
+        cuda_check(cuMemAlloc(&params_buffer, sizeof(LaunchParams)));
+        cuda_check(cuMemcpyHtoD(params_buffer, &params, sizeof(LaunchParams)));
+
+        optix_check(optixLaunch(pipeline, 0, params_buffer,
+                                sizeof(LaunchParams), &sbt, width, height, 1));
+    }
+
+   private:
     OptixDeviceContext context;
 
     OptixModule module = nullptr;
