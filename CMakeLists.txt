@@ -35,6 +35,21 @@ find_package(OpenGL REQUIRED)
 # external
 add_subdirectory("externals/")
 
+# optix kernel
+add_library(optix_kernel OBJECT
+    "src/kernels/pt.cu"
+)
+set_target_properties(optix_kernel PROPERTIES
+    CUDA_PTX_COMPILATION ON
+)
+target_compile_options(optix_kernel PRIVATE
+    --optix-ir
+)
+target_include_directories(optix_kernel PRIVATE
+    "src/"
+    ${OptiX_INCLUDE}
+)
+
 # fredholm
 add_library(fredholm INTERFACE)
 target_include_directories(fredholm INTERFACE
