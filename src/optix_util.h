@@ -19,7 +19,7 @@ namespace fredholm
 inline std::vector<uint8_t> read_binary_from_file(
     const std::filesystem::path& filepath)
 {
-    std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+    std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open())
     {
         throw std::runtime_error(
@@ -27,6 +27,12 @@ inline std::vector<uint8_t> read_binary_from_file(
     }
 
     std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(file), {});
+    if (buffer.size() == 0)
+    {
+        throw std::runtime_error(
+            std::format("Failed to read file: {}", filepath.string()));
+    }
+
     return buffer;
 }
 
