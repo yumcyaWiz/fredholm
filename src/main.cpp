@@ -43,7 +43,7 @@ int main()
     constexpr uint32_t height = 512;
     fredholm::CUDABuffer<float4> beauty_d(width * height);
     renderer.render(width, height, beauty_d.get_device_ptr());
-    device.synchronize();
+    renderer.synchronize();
 
     std::vector<float4> beauty(width * height);
     beauty_d.copy_d_to_h(beauty.data());

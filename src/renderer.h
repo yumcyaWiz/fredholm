@@ -116,6 +116,8 @@ class Renderer
                                 sizeof(LaunchParams), &sbt, width, height, 1));
     }
 
+    void synchronize() const { cuda_check(cuCtxSynchronize()); }
+
    private:
     OptixDeviceContext context;
 
