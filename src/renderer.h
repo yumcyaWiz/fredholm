@@ -10,13 +10,17 @@ namespace fredholm
 class Renderer
 {
    public:
-    Renderer(CUdevice device_id) : device{device_id}
+    Renderer()
     {
 #ifdef NDEBUG
         constexpr bool debug = false;
 #else
         constexpr bool debug = true;
 #endif
+        CUcontext cu_context;
+        cuda_check(cuCtxGetCurrent(&cu_context));
+
+        context = optix_create_context(cu_context, debug);
 
         module = optix_create_module(context, "pt.ptx", debug);
 
@@ -103,6 +107,8 @@ class Renderer
     uint32_t width = 0;
     uint32_t height = 0;
 
+    OptixDeviceContext context;
+
     OptixModule module = nullptr;
     ProgramGroupSet program_group_set;
     OptixPipeline pipeline = nullptr;
@@ -110,9 +116,6 @@ class Renderer
     OptixShaderBindingTable sbt;
     std::vector<GASBuildOutput> gas_build_output;
     IASBuildOutput ias_build_output;
-
-    CUDADevice device;
-    OptixDeviceContext context;
 };
 
 }  // namespace fredholm

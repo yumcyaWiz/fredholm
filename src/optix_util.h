@@ -16,7 +16,7 @@
 namespace fredholm
 {
 
-inline std::vector<uint8_t> read_binary_from_file(
+inline std::vector<char> read_binary_from_file(
     const std::filesystem::path& filepath)
 {
     std::ifstream file(filepath, std::ios::binary);
@@ -26,7 +26,7 @@ inline std::vector<uint8_t> read_binary_from_file(
             std::format("Failed to open file: {}", filepath.string()));
     }
 
-    std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(file), {});
+    std::vector<char> buffer(std::istreambuf_iterator<char>(file), {});
     if (buffer.size() == 0)
     {
         throw std::runtime_error(
@@ -54,6 +54,46 @@ inline void optix_check(
     throw std::runtime_error(
         std::format("OptiX error: {}({}:{}): {}\n", loc.file_name(), loc.line(),
                     loc.column(), optixGetErrorString(result)));
+}
+
+inline void optix_log_callback(unsigned int level, const char* tag,
+                               const char* message, void* cbdata)
+{
+    if (level == 1)
+    {
+        std::cerr << std::format("Optix critical error[{}]: {}\n", tag, message)
+                  << std::endl;
+    }
+    else if (level == 2)
+    {
+        std::cerr << std::format("Optix error[{}]: {}\n", tag, message)
+                  << std::endl;
+    }
+    else if (level == 3)
+    {
+        std::cerr << std::format("Optix warning[{}]: {}\n", tag, message)
+                  << std::endl;
+    }
+    else if (level == 4)
+    {
+        std::cerr << std::format("Optix info[{}]: {}\n", tag, message)
+                  << std::endl;
+    }
+}
+
+inline OptixDeviceContext optix_create_context(const CUcontext& cu_context,
+                                               bool debug = false)
+{
+    OptixDeviceContextOptions options = {};
+    options.validationMode = debug ? OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_ALL
+                                   : OPTIX_DEVICE_CONTEXT_VALIDATION_MODE_OFF;
+    options.logCallbackFunction = &optix_log_callback;
+    options.logCallbackLevel = 4;
+
+    OptixDeviceContext context = nullptr;
+    optix_check(optixDeviceContextCreate(cu_context, &options, &context));
+
+    return context;
 }
 
 inline OptixPipelineCompileOptions optix_create_pipeline_compile_options(
@@ -88,18 +128,19 @@ inline OptixModule optix_create_module(const OptixDeviceContext& context,
                                           ? OPTIX_COMPILE_OPTIMIZATION_LEVEL_0
                                           : OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
 
-    const std::vector<uint8_t> ptx = read_binary_from_file(filepath);
+    const std::vector<char> ptx = read_binary_from_file(filepath);
 
     OptixPipelineCompileOptions pipeline_compile_options =
         optix_create_pipeline_compile_options(debug);
+
     OptixModule module = nullptr;
     char log[2048];
     size_t sizeof_log = sizeof(log);
-    optix_check_log(optixModuleCreate(context, &module_compile_options,
-                                      &pipeline_compile_options,
-                                      reinterpret_cast<const char*>(ptx.data()),
-                                      ptx.size(), log, &sizeof_log, &module),
-                    log, sizeof_log);
+    optix_check_log(
+        optixModuleCreate(context, &module_compile_options,
+                          &pipeline_compile_options, ptx.data(),
+                          ptx.size() * sizeof(char), log, &sizeof_log, &module),
+        log, sizeof_log);
 
     return module;
 }
