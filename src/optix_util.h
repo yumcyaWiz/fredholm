@@ -1,6 +1,8 @@
 #pragma once
 #include <optix.h>
+#include <optix_function_table_definition.h>
 #include <optix_stack_size.h>
+#include <optix_stubs.h>
 
 #include <filesystem>
 #include <format>
@@ -103,18 +105,18 @@ struct ProgramGroupEntry
     OptixModule module;
 };
 
-struct ProgramGroupOutput
+struct ProgramGroupSet
 {
     std::vector<OptixProgramGroup> raygen_program_groups;
     std::vector<OptixProgramGroup> miss_program_groups;
     std::vector<OptixProgramGroup> hitgroup_program_groups;
 };
 
-inline ProgramGroupOutput optix_create_program_group(
-    const OptixDeviceContext& context, const OptixModule& module,
+inline ProgramGroupSet optix_create_program_group(
+    const OptixDeviceContext& context,
     const std::vector<ProgramGroupEntry>& program_groups)
 {
-    ProgramGroupOutput ret;
+    ProgramGroupSet ret;
 
     OptixProgramGroupOptions program_group_options = {};
 
@@ -134,22 +136,22 @@ inline ProgramGroupOutput optix_create_program_group(
         prog_group_desc.kind = prog_entry.kind;
         if (prog_entry.kind == OPTIX_PROGRAM_GROUP_KIND_RAYGEN)
         {
-            prog_group_desc.raygen.module = module;
+            prog_group_desc.raygen.module = prog_entry.module;
             prog_group_desc.raygen.entryFunctionName =
                 raygen_entry_function_name.c_str();
         }
         else if (prog_entry.kind == OPTIX_PROGRAM_GROUP_KIND_MISS)
         {
-            prog_group_desc.miss.module = module;
+            prog_group_desc.miss.module = prog_entry.module;
             prog_group_desc.miss.entryFunctionName =
                 miss_entry_function_name.c_str();
         }
         else if (prog_entry.kind == OPTIX_PROGRAM_GROUP_KIND_HITGROUP)
         {
-            prog_group_desc.hitgroup.moduleAH = module;
+            prog_group_desc.hitgroup.moduleAH = prog_entry.module;
             prog_group_desc.hitgroup.entryFunctionNameAH =
                 anyhit_entry_function_name.c_str();
-            prog_group_desc.hitgroup.moduleCH = module;
+            prog_group_desc.hitgroup.moduleCH = prog_entry.module;
             prog_group_desc.hitgroup.entryFunctionNameCH =
                 closest_entry_function_name.c_str();
         }
@@ -182,15 +184,31 @@ inline ProgramGroupOutput optix_create_program_group(
 
 inline OptixPipeline optix_create_pipeline(
     const OptixDeviceContext& context,
-    const std::vector<OptixProgramGroup>& program_groups,
-    uint32_t max_trace_depth = 1, uint32_t max_traversal_depth = 1,
-    bool debug = false)
+    const ProgramGroupSet& program_group_output, uint32_t max_trace_depth = 1,
+    uint32_t max_traversal_depth = 1, bool debug = false)
 {
     OptixPipelineCompileOptions pipeline_compile_options =
         optix_create_pipeline_compile_options(debug);
 
     OptixPipelineLinkOptions pipeline_link_options = {};
     pipeline_link_options.maxTraceDepth = max_trace_depth;
+
+    std::vector<OptixProgramGroup> program_groups;
+    for (const auto& raygen_program_group :
+         program_group_output.raygen_program_groups)
+    {
+        program_groups.push_back(raygen_program_group);
+    }
+    for (const auto& miss_program_group :
+         program_group_output.miss_program_groups)
+    {
+        program_groups.push_back(miss_program_group);
+    }
+    for (const auto& hitgroup_program_group :
+         program_group_output.hitgroup_program_groups)
+    {
+        program_groups.push_back(hitgroup_program_group);
+    }
 
     OptixPipeline pipeline = nullptr;
     char log[2048];
@@ -240,8 +258,6 @@ struct MissSbtRecordData
 
 struct HitGroupSbtRecordData
 {
-    uint3* indices;
-    uint* material_ids;
 };
 
 template <typename T>
@@ -256,44 +272,69 @@ using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
 using MissSbtRecord = SbtRecord<MissSbtRecordData>;
 using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
 
-struct SbtRecordOutput
+struct SbtRecordSet
+{
+    CUdeviceptr raygen_records = 0;
+    uint32_t raygen_records_count = 1;
+
+    CUdeviceptr miss_records = 0;
+    uint32_t miss_records_count = 1;
+
+    CUdeviceptr hitgroup_records = 0;
+    uint32_t hitgroup_records_count = 1;
+};
+
+inline SbtRecordSet optix_create_sbt_records(
+    const ProgramGroupSet& program_groups)
 {
     std::vector<RayGenSbtRecord> raygen_records;
     std::vector<MissSbtRecord> miss_records;
     std::vector<HitGroupSbtRecord> hit_records;
-};
-
-inline SbtRecordOutput optix_create_shader_binding_table_records(
-    const ProgramGroupOutput& program_groups)
-{
-    SbtRecordOutput ret;
-
     for (const OptixProgramGroup& program_group :
          program_groups.raygen_program_groups)
     {
         RayGenSbtRecord raygen_record;
         optix_check(optixSbtRecordPackHeader(program_group, &raygen_record));
-        ret.raygen_records.push_back(raygen_record);
+        raygen_records.push_back(raygen_record);
     }
     for (const OptixProgramGroup& program_group :
          program_groups.miss_program_groups)
     {
         MissSbtRecord miss_record;
         optix_check(optixSbtRecordPackHeader(program_group, &miss_record));
-        ret.miss_records.push_back(miss_record);
+        miss_records.push_back(miss_record);
     }
     for (const OptixProgramGroup& program_group :
          program_groups.hitgroup_program_groups)
     {
         HitGroupSbtRecord hit_record;
         optix_check(optixSbtRecordPackHeader(program_group, &hit_record));
-        ret.hit_records.push_back(hit_record);
+        hit_records.push_back(hit_record);
     }
+
+    SbtRecordSet ret;
+    cuda_check(cuMemAlloc(&ret.raygen_records,
+                          sizeof(RayGenSbtRecord) * raygen_records.size()));
+    cuda_check(cuMemcpyHtoD(ret.raygen_records, raygen_records.data(),
+                            sizeof(RayGenSbtRecord) * raygen_records.size()));
+    ret.raygen_records_count = 1;
+
+    cuda_check(cuMemAlloc(&ret.miss_records,
+                          sizeof(MissSbtRecord) * miss_records.size()));
+    cuda_check(cuMemcpyHtoD(ret.miss_records, miss_records.data(),
+                            sizeof(MissSbtRecord) * miss_records.size()));
+    ret.miss_records_count = miss_records.size();
+
+    cuda_check(cuMemAlloc(&ret.hitgroup_records,
+                          sizeof(HitGroupSbtRecord) * hit_records.size()));
+    cuda_check(cuMemcpyHtoD(ret.hitgroup_records, hit_records.data(),
+                            sizeof(HitGroupSbtRecord) * hit_records.size()));
+    ret.hitgroup_records_count = hit_records.size();
 
     return ret;
 }
 
-inline OptixShaderBindingTable optix_create_shader_binding_table(
+inline OptixShaderBindingTable optix_create_sbt(
     const CUdeviceptr& raygen_records, const CUdeviceptr& miss_records,
     uint32_t miss_records_count, const CUdeviceptr& hit_records,
     uint32_t hit_records_count)
@@ -322,7 +363,7 @@ struct GASBuildEntry
 
 struct GASBuildOutput
 {
-    CUDABuffer<uint8_t> output_buffer;
+    CUdeviceptr output_buffer;
     OptixTraversableHandle handle;
 };
 
@@ -361,16 +402,19 @@ inline std::vector<GASBuildOutput> optix_create_gas(
         optix_check(optixAccelComputeMemoryUsage(
             context, &accel_build_options, &build_input, 1, &gas_buffer_sizes));
 
-        CUDABuffer<uint8_t> temp_buffer(gas_buffer_sizes.tempSizeInBytes);
-        CUDABuffer<uint8_t> output_buffer(gas_buffer_sizes.outputSizeInBytes);
+        CUdeviceptr temp_buffer;
+        cuda_check(cuMemAlloc(&temp_buffer, gas_buffer_sizes.tempSizeInBytes));
+        CUdeviceptr output_buffer;
+        cuda_check(
+            cuMemAlloc(&output_buffer, gas_buffer_sizes.outputSizeInBytes));
+
         OptixTraversableHandle gas_handle;
         optix_check(optixAccelBuild(
-            context, 0, &accel_build_options, &build_input, 1,
-            temp_buffer.get_device_ptr(), gas_buffer_sizes.tempSizeInBytes,
-            output_buffer.get_device_ptr(), gas_buffer_sizes.outputSizeInBytes,
-            &gas_handle, nullptr, 0));
+            context, 0, &accel_build_options, &build_input, 1, temp_buffer,
+            gas_buffer_sizes.tempSizeInBytes, output_buffer,
+            gas_buffer_sizes.outputSizeInBytes, &gas_handle, nullptr, 0));
 
-        ret.push_back(GASBuildOutput{std::move(output_buffer), gas_handle});
+        ret.push_back(GASBuildOutput{output_buffer, gas_handle});
     }
 
     return ret;
@@ -385,8 +429,8 @@ struct IASBuildEntry
 
 struct IASBuildOutput
 {
-    CUDABuffer<OptixInstance> instance_buffer;
-    CUDABuffer<uint8_t> output_buffer;
+    CUdeviceptr instance_buffer;
+    CUdeviceptr output_buffer;
     OptixTraversableHandle handle;
 };
 
@@ -412,29 +456,32 @@ inline IASBuildOutput optix_create_ias(
         instances.push_back(instance);
     }
 
-    CUDABuffer<OptixInstance> instance_buffer(instances.data(),
-                                              instances.size());
+    CUdeviceptr instance_buffer;
+    cuda_check(
+        cuMemAlloc(&instance_buffer, sizeof(OptixInstance) * instances.size()));
+    cuda_check(cuMemcpyHtoD(instance_buffer, instances.data(),
+                            sizeof(OptixInstance) * instances.size()));
 
     OptixBuildInput build_input = {};
     build_input.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
-    build_input.instanceArray.instances = instance_buffer.get_device_ptr();
+    build_input.instanceArray.instances = instance_buffer;
     build_input.instanceArray.numInstances = instances.size();
 
     OptixAccelBufferSizes ias_buffer_sizes;
     optix_check(optixAccelComputeMemoryUsage(
         context, &accel_build_options, &build_input, 1, &ias_buffer_sizes));
 
-    CUDABuffer<uint8_t> temp_buffer(ias_buffer_sizes.tempSizeInBytes);
-    CUDABuffer<uint8_t> output_buffer(ias_buffer_sizes.outputSizeInBytes);
+    CUdeviceptr temp_buffer;
+    cuda_check(cuMemAlloc(&temp_buffer, ias_buffer_sizes.tempSizeInBytes));
+    CUdeviceptr output_buffer;
+    cuda_check(cuMemAlloc(&output_buffer, ias_buffer_sizes.outputSizeInBytes));
     OptixTraversableHandle ias_handle;
     optix_check(optixAccelBuild(
-        context, 0, &accel_build_options, &build_input, 1,
-        temp_buffer.get_device_ptr(), ias_buffer_sizes.tempSizeInBytes,
-        output_buffer.get_device_ptr(), ias_buffer_sizes.outputSizeInBytes,
-        &ias_handle, nullptr, 0));
+        context, 0, &accel_build_options, &build_input, 1, temp_buffer,
+        ias_buffer_sizes.tempSizeInBytes, output_buffer,
+        ias_buffer_sizes.outputSizeInBytes, &ias_handle, nullptr, 0));
 
-    return IASBuildOutput{std::move(instance_buffer), std::move(output_buffer),
-                          ias_handle};
+    return IASBuildOutput{instance_buffer, output_buffer, ias_handle};
 }
 
 }  // namespace fredholm
