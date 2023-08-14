@@ -7,6 +7,8 @@
 #include "helper_math.h"
 #endif
 
+#include "cuda_util.h"
+
 namespace fredholm
 {
 
@@ -17,9 +19,9 @@ struct Matrix3x4
 };
 
 // TODO: rename c(column) to r(row)
-__forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
-                                                          const float4& c1,
-                                                          const float4& c2)
+CUDA_INLINE CUDA_HOST_DEVICE Matrix3x4 make_mat3x4(const float4& c0,
+                                                   const float4& c1,
+                                                   const float4& c2)
 {
     Matrix3x4 m;
     m.m[0] = c0;
@@ -28,22 +30,22 @@ __forceinline__ __host__ __device__ Matrix3x4 make_mat3x4(const float4& c0,
     return m;
 }
 
-__forceinline__ __host__ __device__ float3
-transform_position(const Matrix3x4& m, const float3& p)
+CUDA_INLINE CUDA_HOST_DEVICE float3 transform_position(const Matrix3x4& m,
+                                                       const float3& p)
 {
     const float4 v = make_float4(p.x, p.y, p.z, 1.0f);
     return make_float3(dot(m.m[0], v), dot(m.m[1], v), dot(m.m[2], v));
 }
 
-__forceinline__ __host__ __device__ float3
-transform_direction(const Matrix3x4& m, const float3& v)
+CUDA_INLINE CUDA_HOST_DEVICE float3 transform_direction(const Matrix3x4& m,
+                                                        const float3& v)
 {
     const float4 t = make_float4(v.x, v.y, v.z, 0.0f);
     return make_float3(dot(m.m[0], t), dot(m.m[1], t), dot(m.m[2], t));
 }
 
-__forceinline__ __host__ __device__ float3 transform_normal(const Matrix3x4& m,
-                                                            const float3& n)
+CUDA_INLINE CUDA_HOST_DEVICE float3 transform_normal(const Matrix3x4& m,
+                                                     const float3& n)
 {
     const float4 c0 = make_float4(m.m[0].x, m.m[1].x, m.m[2].x, 0.0f);
     const float4 c1 = make_float4(m.m[0].y, m.m[1].y, m.m[2].y, 0.0f);
@@ -289,7 +291,7 @@ using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-static __forceinline__ __device__ __host__ uint pcg32_random_r(PCGState* rng)
+static CUDA_INLINE CUDA_HOST_DEVICE uint pcg32_random_r(PCGState* rng)
 {
     unsigned long long oldstate = rng->state;
     // Advance internal state
@@ -301,7 +303,7 @@ static __forceinline__ __device__ __host__ uint pcg32_random_r(PCGState* rng)
 }
 
 // https://www.shadertoy.com/view/XlGcRh
-static __forceinline__ __device__ __host__ uint xxhash32(uint p)
+static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(uint p)
 {
     const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
     const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
@@ -312,7 +314,7 @@ static __forceinline__ __device__ __host__ uint xxhash32(uint p)
     return h32 ^ (h32 >> 16);
 }
 
-static __forceinline__ __device__ __host__ uint xxhash32(const uint3& p)
+static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(const uint3& p)
 {
     const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
     const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
@@ -325,7 +327,7 @@ static __forceinline__ __device__ __host__ uint xxhash32(const uint3& p)
     return h32 ^ (h32 >> 16);
 }
 
-static __forceinline__ __device__ __host__ uint xxhash32(const uint4& p)
+static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(const uint4& p)
 {
     const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
     const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
