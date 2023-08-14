@@ -409,6 +409,10 @@ inline OptixShaderBindingTable optix_create_sbt(
     ret.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
     ret.hitgroupRecordCount = sbt_record_set.hitgroup_records_count;
 
+    ret.callablesRecordBase = 0;
+    ret.callablesRecordStrideInBytes = 0;
+    ret.callablesRecordCount = 0;
+
     return ret;
 }
 

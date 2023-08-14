@@ -17,3 +17,5 @@ extern "C" __global__ void __raygen__rg()
 
     params.render_layer.beauty[image_idx] = make_float4(1.0f, 1.0f, 1.0f, 1.0f);
 }
+
+extern "C" __global__ void __miss__() {}
