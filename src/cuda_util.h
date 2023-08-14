@@ -10,7 +10,7 @@
 namespace fredholm
 {
 
-inline void cuda_check_error(
+inline void cuda_check(
     const CUresult &result,
     const std::source_location &loc = std::source_location::current())
 {
@@ -34,9 +34,11 @@ class CUDABuffer
     uint32_t size = 0;
 
    public:
+    CUDABuffer() {}
+
     CUDABuffer(uint32_t size) : size(size)
     {
-        cuda_check_error(cuMemAlloc(&dptr, sizeof(T) * size));
+        cuda_check(cuMemAlloc(&dptr, sizeof(T) * size));
     }
 
     CUDABuffer(const T *hptr, uint32_t size) : CUDABuffer(size)
@@ -51,18 +53,18 @@ class CUDABuffer
         other.dptr = 0;
     }
 
-    ~CUDABuffer() { cuda_check_error(cuMemFree(dptr)); }
+    ~CUDABuffer() { cuda_check(cuMemFree(dptr)); }
 
     const CUdeviceptr &get_device_ptr() const { return dptr; }
 
     void copy_h_to_d(const T *hptr) const
     {
-        cuda_check_error(cuMemcpyHtoD(dptr, hptr, sizeof(T) * size));
+        cuda_check(cuMemcpyHtoD(dptr, hptr, sizeof(T) * size));
     }
 
     void copy_d_to_h(T *hptr) const
     {
-        cuda_check_error(cuMemcpyDtoH(hptr, dptr, sizeof(T) * size));
+        cuda_check(cuMemcpyDtoH(hptr, dptr, sizeof(T) * size));
     }
 };
 
@@ -77,14 +79,14 @@ class CUDADevice
     {
         // check device availability
         int nDevices = 0;
-        cuda_check_error(cuDeviceGetCount(&nDevices));
+        cuda_check(cuDeviceGetCount(&nDevices));
         if (device >= nDevices)
         {
             throw std::runtime_error(
                 std::format("device {} is not available\n", device));
         }
 
-        cuda_check_error(cuCtxCreate(&context, CU_CTX_SCHED_AUTO, device));
+        cuda_check(cuCtxCreate(&context, CU_CTX_SCHED_AUTO, device));
         cuCtxPushCurrent(context);
     }
 
@@ -103,7 +105,7 @@ class CUDADevice
         cuCtxDestroy(context);
     }
 
-    void synchronize() const { cuda_check_error(cuCtxSynchronize()); }
+    void synchronize() const { cuda_check(cuCtxSynchronize()); }
 };
 
 class CUDAKernel
@@ -115,9 +117,8 @@ class CUDAKernel
    public:
     CUDAKernel(const std::string &filename, const std::string &kernelName)
     {
-        cuda_check_error(cuModuleLoad(&module, filename.c_str()));
-        cuda_check_error(
-            cuModuleGetFunction(&function, module, kernelName.c_str()));
+        cuda_check(cuModuleLoad(&module, filename.c_str()));
+        cuda_check(cuModuleGetFunction(&function, module, kernelName.c_str()));
     }
 
     CUDAKernel(const CUDAKernel &) = delete;
@@ -129,15 +130,15 @@ class CUDAKernel
         other.function = nullptr;
     }
 
-    ~CUDAKernel() { cuda_check_error(cuModuleUnload(module)); }
+    ~CUDAKernel() { cuda_check(cuModuleUnload(module)); }
 
     void launch(const int gridX, const int gridY, const int gridZ,
                 const int blockX, const int blockY, const int blockZ,
                 const void *args[]) const
     {
-        cuda_check_error(cuLaunchKernel(function, gridX, gridY, gridZ, blockX,
-                                        blockY, blockZ, 0, nullptr,
-                                        const_cast<void **>(args), nullptr));
+        cuda_check(cuLaunchKernel(function, gridX, gridY, gridZ, blockX, blockY,
+                                  blockZ, 0, nullptr, const_cast<void **>(args),
+                                  nullptr));
     }
 };
 
