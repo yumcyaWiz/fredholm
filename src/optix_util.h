@@ -363,23 +363,34 @@ inline SbtRecordSet optix_create_sbt_records(
     }
 
     SbtRecordSet ret;
-    cuda_check(cuMemAlloc(&ret.raygen_records,
-                          sizeof(RayGenSbtRecord) * raygen_records.size()));
-    cuda_check(cuMemcpyHtoD(ret.raygen_records, raygen_records.data(),
-                            sizeof(RayGenSbtRecord) * raygen_records.size()));
     ret.raygen_records_count = 1;
+    if (ret.raygen_records_count > 0)
+    {
+        cuda_check(cuMemAlloc(&ret.raygen_records,
+                              sizeof(RayGenSbtRecord) * raygen_records.size()));
+        cuda_check(
+            cuMemcpyHtoD(ret.raygen_records, raygen_records.data(),
+                         sizeof(RayGenSbtRecord) * raygen_records.size()));
+    }
 
-    cuda_check(cuMemAlloc(&ret.miss_records,
-                          sizeof(MissSbtRecord) * miss_records.size()));
-    cuda_check(cuMemcpyHtoD(ret.miss_records, miss_records.data(),
-                            sizeof(MissSbtRecord) * miss_records.size()));
     ret.miss_records_count = miss_records.size();
+    if (ret.miss_records_count > 0)
+    {
+        cuda_check(cuMemAlloc(&ret.miss_records,
+                              sizeof(MissSbtRecord) * miss_records.size()));
+        cuda_check(cuMemcpyHtoD(ret.miss_records, miss_records.data(),
+                                sizeof(MissSbtRecord) * miss_records.size()));
+    }
 
-    cuda_check(cuMemAlloc(&ret.hitgroup_records,
-                          sizeof(HitGroupSbtRecord) * hit_records.size()));
-    cuda_check(cuMemcpyHtoD(ret.hitgroup_records, hit_records.data(),
-                            sizeof(HitGroupSbtRecord) * hit_records.size()));
     ret.hitgroup_records_count = hit_records.size();
+    if (ret.hitgroup_records_count > 0)
+    {
+        cuda_check(cuMemAlloc(&ret.hitgroup_records,
+                              sizeof(HitGroupSbtRecord) * hit_records.size()));
+        cuda_check(
+            cuMemcpyHtoD(ret.hitgroup_records, hit_records.data(),
+                         sizeof(HitGroupSbtRecord) * hit_records.size()));
+    }
 
     return ret;
 }
@@ -405,16 +416,16 @@ inline OptixShaderBindingTable optix_create_sbt(
 
 struct GASBuildEntry
 {
-    CUdeviceptr vertex_buffer;
-    uint32_t vertex_count;
-    CUdeviceptr index_buffer;
-    uint32_t index_count;
+    CUdeviceptr vertex_buffer = 0;
+    uint32_t vertex_count = 0;
+    CUdeviceptr index_buffer = 0;
+    uint32_t index_count = 0;
 };
 
 struct GASBuildOutput
 {
-    CUdeviceptr output_buffer;
-    OptixTraversableHandle handle;
+    CUdeviceptr output_buffer = 0;
+    OptixTraversableHandle handle = 0;
 };
 
 inline std::vector<GASBuildOutput> optix_create_gas(
@@ -452,9 +463,9 @@ inline std::vector<GASBuildOutput> optix_create_gas(
         optix_check(optixAccelComputeMemoryUsage(
             context, &accel_build_options, &build_input, 1, &gas_buffer_sizes));
 
-        CUdeviceptr temp_buffer;
+        CUdeviceptr temp_buffer = 0;
         cuda_check(cuMemAlloc(&temp_buffer, gas_buffer_sizes.tempSizeInBytes));
-        CUdeviceptr output_buffer;
+        CUdeviceptr output_buffer = 0;
         cuda_check(
             cuMemAlloc(&output_buffer, gas_buffer_sizes.outputSizeInBytes));
 
@@ -479,9 +490,9 @@ struct IASBuildEntry
 
 struct IASBuildOutput
 {
-    CUdeviceptr instance_buffer;
-    CUdeviceptr output_buffer;
-    OptixTraversableHandle handle;
+    CUdeviceptr instance_buffer = 0;
+    CUdeviceptr output_buffer = 0;
+    OptixTraversableHandle handle = 0;
 };
 
 inline IASBuildOutput optix_create_ias(
@@ -506,11 +517,14 @@ inline IASBuildOutput optix_create_ias(
         instances.push_back(instance);
     }
 
-    CUdeviceptr instance_buffer;
-    cuda_check(
-        cuMemAlloc(&instance_buffer, sizeof(OptixInstance) * instances.size()));
-    cuda_check(cuMemcpyHtoD(instance_buffer, instances.data(),
-                            sizeof(OptixInstance) * instances.size()));
+    CUdeviceptr instance_buffer = 0;
+    if (instances.size() > 0)
+    {
+        cuda_check(cuMemAlloc(&instance_buffer,
+                              sizeof(OptixInstance) * instances.size()));
+        cuda_check(cuMemcpyHtoD(instance_buffer, instances.data(),
+                                sizeof(OptixInstance) * instances.size()));
+    }
 
     OptixBuildInput build_input = {};
     build_input.type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
@@ -521,9 +535,9 @@ inline IASBuildOutput optix_create_ias(
     optix_check(optixAccelComputeMemoryUsage(
         context, &accel_build_options, &build_input, 1, &ias_buffer_sizes));
 
-    CUdeviceptr temp_buffer;
+    CUdeviceptr temp_buffer = 0;
     cuda_check(cuMemAlloc(&temp_buffer, ias_buffer_sizes.tempSizeInBytes));
-    CUdeviceptr output_buffer;
+    CUdeviceptr output_buffer = 0;
     cuda_check(cuMemAlloc(&output_buffer, ias_buffer_sizes.outputSizeInBytes));
     OptixTraversableHandle ias_handle;
     optix_check(optixAccelBuild(
