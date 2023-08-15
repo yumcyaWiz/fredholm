@@ -1,5 +1,6 @@
 #include <optix.h>
 
+#include "camera.h"
 #include "cuda_util.h"
 #include "renderer.h"
 #include "scene.h"
