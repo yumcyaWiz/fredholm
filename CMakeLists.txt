@@ -37,7 +37,7 @@ add_subdirectory("externals/")
 
 # optix kernel
 add_library(optix_kernel OBJECT
-    "src/kernels/test.cu"
+    "src/kernels/test2.cu"
 )
 set_target_properties(optix_kernel PROPERTIES
     CUDA_PTX_COMPILATION ON

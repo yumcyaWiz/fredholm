@@ -1,6 +1,7 @@
 #pragma once
 #include <optix.h>
 
+#include "camera.h"
 #include "cuda_util.h"
 #include "optix_util.h"
 #include "scene.h"
@@ -21,7 +22,7 @@ class Renderer
 #endif
         context = optix_create_context(cu_context, debug);
 
-        module = optix_create_module(context, "test.ptx", debug);
+        module = optix_create_module(context, "test2.ptx", debug);
 
         std::vector<ProgramGroupEntry> program_group_entries;
         program_group_entries.push_back(
@@ -160,12 +161,27 @@ class Renderer
         ias_build_output = optix_create_ias(context, ias_build_entries);
     }
 
-    void render(uint32_t width, uint32_t height, const CUdeviceptr& beauty)
+    void render(uint32_t width, uint32_t height, const Camera& camera,
+                const CUdeviceptr& beauty)
     {
         LaunchParams params;
         params.width = width;
         params.height = height;
+
+        params.camera.transform = make_mat3x4(
+            make_float4(camera.m_transform[0][0], camera.m_transform[1][0],
+                        camera.m_transform[2][0], camera.m_transform[3][0]),
+            make_float4(camera.m_transform[0][1], camera.m_transform[1][1],
+                        camera.m_transform[2][1], camera.m_transform[3][1]),
+            make_float4(camera.m_transform[0][2], camera.m_transform[1][2],
+                        camera.m_transform[2][2], camera.m_transform[3][2]));
+        params.camera.fov = camera.m_fov;
+        params.camera.F = camera.m_F;
+        params.camera.focus = camera.m_focus;
+
         params.render_layer.beauty = reinterpret_cast<float4*>(beauty);
+
+        params.ias_handle = ias_build_output.handle;
 
         CUdeviceptr params_buffer;
         cuda_check(cuMemAlloc(&params_buffer, sizeof(LaunchParams)));
@@ -187,6 +203,7 @@ class Renderer
                 cuda_check(cuMemFree(gas_output.output_buffer));
                 gas_output.output_buffer = 0;
             }
+            gas_output.handle = 0;
         }
     }
 
@@ -202,6 +219,7 @@ class Renderer
             cuda_check(cuMemFree(ias_build_output.output_buffer));
             ias_build_output.output_buffer = 0;
         }
+        ias_build_output.handle = 0;
     }
 
     OptixDeviceContext context;

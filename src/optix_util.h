@@ -413,6 +413,8 @@ inline OptixShaderBindingTable optix_create_sbt(
     ret.callablesRecordStrideInBytes = 0;
     ret.callablesRecordCount = 0;
 
+    ret.exceptionRecord = 0;
+
     return ret;
 }
 

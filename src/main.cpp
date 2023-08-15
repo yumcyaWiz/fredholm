@@ -34,30 +34,33 @@ void save_png(const std::filesystem::path& filepath, const uint32_t width,
 
 int main()
 {
+    // init CUDA
+    fredholm::cuda_check(cuInit(0));
+    fredholm::CUDADevice device(0);
+
+    // init OptiX
+    optixInit();
+
+    // init renderer
     fredholm::Camera camera(glm::vec3(0, 0, 5));
 
     fredholm::SceneGraph scene;
     scene.load_obj("CornellBox-Original.obj");
-    scene.print_tree();
-
-    fredholm::cuda_check(cuInit(0));
-    fredholm::CUDADevice device(0);
-
-    optixInit();
 
     fredholm::Renderer renderer(device.get_context());
     renderer.set_scene(scene);
 
-    // constexpr uint32_t width = 512;
-    // constexpr uint32_t height = 512;
-    // fredholm::CUDABuffer<float4> beauty_d(width * height);
-    // renderer.render(width, height, beauty_d.get_device_ptr());
-    // renderer.synchronize();
+    // render
+    constexpr uint32_t width = 512;
+    constexpr uint32_t height = 512;
+    fredholm::CUDABuffer<float4> beauty_d(width * height);
+    renderer.render(width, height, camera, beauty_d.get_device_ptr());
+    renderer.synchronize();
 
-    // std::vector<float4> beauty(width * height);
-    // beauty_d.copy_d_to_h(beauty.data());
-
-    // save_png("output.png", width, height, beauty.data());
+    // save image
+    std::vector<float4> beauty(width * height);
+    beauty_d.copy_d_to_h(beauty.data());
+    save_png("output.png", width, height, beauty.data());
 
     return 0;
 }
