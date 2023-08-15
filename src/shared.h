@@ -32,15 +32,14 @@ struct Matrix3x4
     }
 };
 
-// TODO: rename c(column) to r(row)
-CUDA_INLINE CUDA_HOST_DEVICE Matrix3x4 make_mat3x4(const float4& c0,
-                                                   const float4& c1,
-                                                   const float4& c2)
+CUDA_INLINE CUDA_HOST_DEVICE Matrix3x4 make_mat3x4(const float4& r0,
+                                                   const float4& r1,
+                                                   const float4& r2)
 {
     Matrix3x4 m;
-    m.m[0] = c0;
-    m.m[1] = c1;
-    m.m[2] = c2;
+    m.m[0] = r0;
+    m.m[1] = r1;
+    m.m[2] = r2;
     return m;
 }
 
