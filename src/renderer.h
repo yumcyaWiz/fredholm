@@ -29,6 +29,8 @@ class Renderer
             {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "rg", module});
         program_group_entries.push_back(
             {OPTIX_PROGRAM_GROUP_KIND_MISS, "", module});
+        program_group_entries.push_back(
+            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "", module});
 
         // program_group_entries.push_back(
         //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "radiance", module});

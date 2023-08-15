@@ -63,3 +63,11 @@ extern "C" __global__ void __miss__()
     RayPayload* payload_ptr = get_payload_ptr<RayPayload>();
     payload_ptr->color = make_float3(0.0f, 0.0f, 0.0f);
 }
+
+extern "C" __global__ void __anyhit__() {}
+
+extern "C" __global__ void __closesthit__()
+{
+    RayPayload* payload_ptr = get_payload_ptr<RayPayload>();
+    payload_ptr->color = make_float3(1.0f, 1.0f, 1.0f);
+}
