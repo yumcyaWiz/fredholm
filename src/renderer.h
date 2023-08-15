@@ -58,14 +58,6 @@ class Renderer
         sbt_record_set = optix_create_sbt_records(program_group_set);
 
         sbt = optix_create_sbt(sbt_record_set);
-
-        // TODO: fill build entries
-        std::vector<GASBuildEntry> gas_build_entries;
-        gas_build_output = optix_create_gas(context, gas_build_entries);
-
-        // TODO: fill build entries
-        std::vector<IASBuildEntry> ias_build_entries;
-        ias_build_output = optix_create_ias(context, ias_build_entries);
     }
 
     ~Renderer()

@@ -42,7 +42,7 @@ int main()
     optixInit();
 
     // init renderer
-    fredholm::Camera camera(glm::vec3(0, 0, -1));
+    fredholm::Camera camera(glm::vec3(0, 0, -3));
 
     fredholm::SceneGraph scene;
     scene.load_obj("CornellBox-Original.obj");

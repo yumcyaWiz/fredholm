@@ -456,8 +456,7 @@ inline std::vector<GASBuildOutput> optix_create_gas(
         build_input.triangleArray.indexFormat =
             OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
         build_input.triangleArray.indexStrideInBytes = sizeof(uint3);
-        build_input.triangleArray.numIndexTriplets =
-            build_entry.index_count / 3;
+        build_input.triangleArray.numIndexTriplets = build_entry.index_count;
         build_input.triangleArray.indexBuffer = build_entry.index_buffer;
 
         build_input.triangleArray.flags = flags;
