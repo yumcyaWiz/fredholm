@@ -478,6 +478,8 @@ inline std::vector<GASBuildOutput> optix_create_gas(
             gas_buffer_sizes.tempSizeInBytes, output_buffer,
             gas_buffer_sizes.outputSizeInBytes, &gas_handle, nullptr, 0));
 
+        cuda_check(cuMemFree(temp_buffer));
+
         ret.push_back(GASBuildOutput{output_buffer, gas_handle});
     }
 
@@ -547,6 +549,8 @@ inline IASBuildOutput optix_create_ias(
         context, 0, &accel_build_options, &build_input, 1, temp_buffer,
         ias_buffer_sizes.tempSizeInBytes, output_buffer,
         ias_buffer_sizes.outputSizeInBytes, &ias_handle, nullptr, 0));
+
+    cuda_check(cuMemFree(temp_buffer));
 
     return IASBuildOutput{instance_buffer, output_buffer, ias_handle};
 }
