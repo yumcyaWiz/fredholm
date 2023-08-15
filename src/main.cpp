@@ -37,6 +37,10 @@ int main()
     scene.load_obj("CornellBox-Original.obj");
     scene.print_tree();
 
+    const auto compiled_scene = scene.compile();
+    printf("%d\n", compiled_scene.geometry_nodes.size());
+    printf("%d\n", compiled_scene.geometry_transforms.size());
+
     // fredholm::cuda_check(cuInit(0));
     // fredholm::CUDADevice device(0);
 

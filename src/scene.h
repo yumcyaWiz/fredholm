@@ -48,27 +48,48 @@ struct hash<fredholm::Vertex>
 namespace fredholm
 {
 
+enum class SceneNodeType
+{
+    NONE,
+    TRANSFORM,
+    GEOMETRY,
+    INSTANCE,
+};
+
 struct SceneNode
 {
+    void add_children(SceneNode* node) { children.push_back(node); }
+
     std::string name = "SceneNode";
+    SceneNodeType type = SceneNodeType::NONE;
     std::vector<SceneNode*> children = {};
 };
 
+// always internal node
 struct TransformNode : public SceneNode
 {
-    TransformNode() { name = "TransformNode"; }
+    TransformNode()
+    {
+        name = "TransformNode";
+        type = SceneNodeType::TRANSFORM;
+    }
 
-    void set_transform(const Matrix3x4& transform)
+    void set_transform(const glm::mat4& transform)
     {
         this->transform = transform;
     }
 
-    Matrix3x4 transform = Matrix3x4::identity();
+    glm::mat4 transform = glm::mat4(1.0f);
 };
 
+// always leaf node
 struct GeometryNode : public SceneNode
 {
-    GeometryNode() { name = "GeometryNode"; }
+    GeometryNode()
+    {
+        name = "GeometryNode";
+        type = SceneNodeType::GEOMETRY;
+    }
 
     void load_obj(const std::filesystem::path& filepath)
     {
@@ -208,11 +229,25 @@ struct GeometryNode : public SceneNode
     std::vector<float2> m_texcoords = {};
 };
 
+// always leaf node
 struct InstanceNode : public SceneNode
 {
-    InstanceNode() { name = "InstanceNode"; }
+    InstanceNode()
+    {
+        name = "InstanceNode";
+        type = SceneNodeType::INSTANCE;
+    }
 
     const GeometryNode* geometry = nullptr;
+};
+
+// used for creating GAS and IAS
+struct CompiledScene
+{
+    std::vector<const GeometryNode*> geometry_nodes = {};
+    std::vector<glm::mat4> geometry_transforms = {};
+    std::vector<const InstanceNode*> instance_nodes = {};
+    std::vector<glm::mat4> instance_transforms = {};
 };
 
 class SceneGraph
@@ -224,15 +259,20 @@ class SceneGraph
 
     void load_obj(const std::filesystem::path& filepath)
     {
-        root = new SceneNode;
-
         GeometryNode* geometry = new GeometryNode;
         geometry->load_obj(filepath);
 
         TransformNode* transform = new TransformNode;
-
         transform->children.push_back(geometry);
-        root->children.push_back(transform);
+
+        root = transform;
+    }
+
+    CompiledScene compile() const
+    {
+        CompiledScene ret;
+        compile(root, glm::mat4(1.0f), ret);
+        return ret;
     }
 
     void print_tree() const { print_tree(root, ""); }
@@ -241,8 +281,55 @@ class SceneGraph
     void destroy(SceneNode* node)
     {
         if (node == nullptr) return;
+
         for (auto child : node->children) { destroy(child); }
         delete node;
+    }
+
+    void compile(const SceneNode* node, const glm::mat4& transform,
+                 CompiledScene& compiled_scene) const
+    {
+        if (node == nullptr) return;
+
+        switch (node->type)
+        {
+            case SceneNodeType::TRANSFORM:
+            {
+                const TransformNode* transform_node =
+                    static_cast<const TransformNode*>(node);
+
+                const glm::mat4 transform_new =
+                    transform * transform_node->transform;
+
+                for (const auto& child : transform_node->children)
+                {
+                    compile(child, transform_new, compiled_scene);
+                }
+                break;
+            }
+            case SceneNodeType::GEOMETRY:
+            {
+                const GeometryNode* geometry_node =
+                    static_cast<const GeometryNode*>(node);
+
+                compiled_scene.geometry_nodes.push_back(geometry_node);
+                compiled_scene.geometry_transforms.push_back(transform);
+                break;
+            }
+            case SceneNodeType::INSTANCE:
+            {
+                const InstanceNode* instance_node =
+                    static_cast<const InstanceNode*>(node);
+
+                compiled_scene.instance_nodes.push_back(instance_node);
+                compiled_scene.instance_transforms.push_back(transform);
+                break;
+            }
+            default:
+            {
+                throw std::runtime_error("unknown scene node type");
+            }
+        }
     }
 
     void print_tree(const SceneNode* node, const std::string& prefix) const

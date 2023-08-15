@@ -102,6 +102,8 @@ class Renderer
         optix_check(optixDeviceContextDestroy(context));
     }
 
+    void set_scene(const SceneGraph& scene) {}
+
     void render(uint32_t width, uint32_t height, const CUdeviceptr& beauty)
     {
         LaunchParams params;
