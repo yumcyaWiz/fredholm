@@ -66,6 +66,7 @@ target_link_libraries(fredholm PUBLIC
     stb_image_write
     tinygltf
     tinyobjloader
+    spdlog::spdlog
 )
 
 # src
