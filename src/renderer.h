@@ -134,18 +134,20 @@ class Renderer
 
             IASBuildEntry entry;
             entry.gas_handle = gas_build_output[i].handle;
+
             entry.transform[0] = transform[0][0];
-            entry.transform[1] = transform[1][0];
-            entry.transform[2] = transform[2][0];
-            entry.transform[3] = transform[0][1];
-            entry.transform[4] = transform[1][1];
-            entry.transform[5] = transform[2][1];
-            entry.transform[6] = transform[0][2];
-            entry.transform[7] = transform[1][2];
-            entry.transform[8] = transform[2][2];
-            entry.transform[9] = transform[0][3];
-            entry.transform[10] = transform[1][3];
+            entry.transform[1] = transform[0][1];
+            entry.transform[2] = transform[0][2];
+            entry.transform[3] = transform[0][3];
+            entry.transform[4] = transform[1][0];
+            entry.transform[5] = transform[1][1];
+            entry.transform[6] = transform[1][2];
+            entry.transform[7] = transform[1][3];
+            entry.transform[8] = transform[2][0];
+            entry.transform[9] = transform[2][1];
+            entry.transform[10] = transform[2][2];
             entry.transform[11] = transform[2][3];
+
             // TODO: set appriopriate value
             entry.sbt_offset = 1;
 
@@ -163,12 +165,12 @@ class Renderer
         params.height = height;
 
         params.camera.transform = make_mat3x4(
-            make_float4(camera.m_transform[0][0], camera.m_transform[1][0],
-                        camera.m_transform[2][0], camera.m_transform[3][0]),
-            make_float4(camera.m_transform[0][1], camera.m_transform[1][1],
-                        camera.m_transform[2][1], camera.m_transform[3][1]),
-            make_float4(camera.m_transform[0][2], camera.m_transform[1][2],
-                        camera.m_transform[2][2], camera.m_transform[3][2]));
+            make_float4(camera.m_transform[0][0], camera.m_transform[0][1],
+                        camera.m_transform[0][2], camera.m_transform[0][3]),
+            make_float4(camera.m_transform[1][0], camera.m_transform[1][1],
+                        camera.m_transform[1][2], camera.m_transform[1][3]),
+            make_float4(camera.m_transform[2][0], camera.m_transform[2][1],
+                        camera.m_transform[2][2], camera.m_transform[2][3]));
         params.camera.fov = camera.m_fov;
         params.camera.F = camera.m_F;
         params.camera.focus = camera.m_focus;
