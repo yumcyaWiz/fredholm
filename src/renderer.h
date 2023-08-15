@@ -67,13 +67,8 @@ class Renderer
 
     ~Renderer()
     {
-        cuda_check(cuMemFree(ias_build_output.instance_buffer));
-        cuda_check(cuMemFree(ias_build_output.output_buffer));
-
-        for (const auto& gas_output : gas_build_output)
-        {
-            cuda_check(cuMemFree(gas_output.output_buffer));
-        }
+        destroy_ias();
+        destroy_gas();
 
         cuda_check(cuMemFree(sbt_record_set.raygen_records));
         cuda_check(cuMemFree(sbt_record_set.miss_records));
@@ -102,7 +97,69 @@ class Renderer
         optix_check(optixDeviceContextDestroy(context));
     }
 
-    void set_scene(const SceneGraph& scene) {}
+    void set_scene(const SceneGraph& scene)
+    {
+        destroy_ias();
+        destroy_gas();
+
+        const CompiledScene compiled_scene = scene.compile();
+
+        // build GAS
+        std::vector<GASBuildEntry> gas_build_entries;
+        for (const auto& geometry : compiled_scene.geometry_nodes)
+        {
+            GASBuildEntry entry;
+
+            printf("%d\n", geometry->m_vertices.size());
+            printf("%d\n", geometry->m_indices.size());
+
+            cuda_check(
+                cuMemAlloc(&entry.vertex_buffer,
+                           geometry->m_vertices.size() * sizeof(float3)));
+            cuda_check(
+                cuMemcpyHtoD(entry.vertex_buffer, geometry->m_vertices.data(),
+                             geometry->m_vertices.size() * sizeof(float3)));
+
+            cuda_check(cuMemAlloc(&entry.index_buffer,
+                                  geometry->m_indices.size() * sizeof(uint3)));
+            cuda_check(
+                cuMemcpyHtoD(entry.index_buffer, geometry->m_indices.data(),
+                             geometry->m_indices.size() * sizeof(uint3)));
+
+            gas_build_entries.push_back(entry);
+        }
+
+        gas_build_output = optix_create_gas(context, gas_build_entries);
+
+        // build IAS
+        std::vector<IASBuildEntry> ias_build_entries;
+        for (int i = 0; i < compiled_scene.geometry_nodes.size(); ++i)
+        {
+            const auto& geometry = compiled_scene.geometry_nodes[i];
+            const auto& transform = compiled_scene.geometry_transforms[i];
+
+            IASBuildEntry entry;
+            entry.gas_handle = gas_build_output[i].handle;
+            entry.transform[0] = transform[0][0];
+            entry.transform[1] = transform[1][0];
+            entry.transform[2] = transform[2][0];
+            entry.transform[3] = transform[0][1];
+            entry.transform[4] = transform[1][1];
+            entry.transform[5] = transform[2][1];
+            entry.transform[6] = transform[0][2];
+            entry.transform[7] = transform[1][2];
+            entry.transform[8] = transform[2][2];
+            entry.transform[9] = transform[0][3];
+            entry.transform[10] = transform[1][3];
+            entry.transform[11] = transform[2][3];
+            // TODO: set appriopriate value
+            entry.sbt_offset = 1;
+
+            ias_build_entries.push_back(entry);
+        }
+
+        ias_build_output = optix_create_ias(context, ias_build_entries);
+    }
 
     void render(uint32_t width, uint32_t height, const CUdeviceptr& beauty)
     {
@@ -122,6 +179,32 @@ class Renderer
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
 
    private:
+    void destroy_gas()
+    {
+        for (auto& gas_output : gas_build_output)
+        {
+            if (gas_output.output_buffer != 0)
+            {
+                cuda_check(cuMemFree(gas_output.output_buffer));
+                gas_output.output_buffer = 0;
+            }
+        }
+    }
+
+    void destroy_ias()
+    {
+        if (ias_build_output.instance_buffer != 0)
+        {
+            cuda_check(cuMemFree(ias_build_output.instance_buffer));
+            ias_build_output.instance_buffer = 0;
+        }
+        if (ias_build_output.output_buffer != 0)
+        {
+            cuda_check(cuMemFree(ias_build_output.output_buffer));
+            ias_build_output.output_buffer = 0;
+        }
+    }
+
     OptixDeviceContext context;
 
     OptixModule module = nullptr;

@@ -37,16 +37,13 @@ int main()
     scene.load_obj("CornellBox-Original.obj");
     scene.print_tree();
 
-    const auto compiled_scene = scene.compile();
-    printf("%d\n", compiled_scene.geometry_nodes.size());
-    printf("%d\n", compiled_scene.geometry_transforms.size());
+    fredholm::cuda_check(cuInit(0));
+    fredholm::CUDADevice device(0);
 
-    // fredholm::cuda_check(cuInit(0));
-    // fredholm::CUDADevice device(0);
+    optixInit();
 
-    // optixInit();
-
-    // fredholm::Renderer renderer(device.get_context());
+    fredholm::Renderer renderer(device.get_context());
+    renderer.set_scene(scene);
 
     // constexpr uint32_t width = 512;
     // constexpr uint32_t height = 512;
