@@ -187,7 +187,7 @@ struct GeometryNode : public SceneNode
                     texcoords_temp.push_back(glm::vec2(0, 1));
                 }
 
-                for (int v = 0; v < 3; ++v)
+                for (size_t v = 0; v < 3; ++v)
                 {
                     Vertex vertex = {};
                     vertex.position = vertices_temp[v];
@@ -217,9 +217,15 @@ struct GeometryNode : public SceneNode
                 make_float2(vertex.texcoord.x, vertex.texcoord.y));
         }
 
+        for (size_t i = 0; i < indices.size(); i += 3)
+        {
+            m_indices.push_back(
+                make_uint3(indices[i], indices[i + 1], indices[i + 2]));
+        }
+
         spdlog::info("loaded obj file {}", filepath.generic_string());
         spdlog::info("# of vertices: {}", m_vertices.size());
-        spdlog::info("# of faces: {}", indices.size() / 3);
+        spdlog::info("# of faces: {}", m_indices.size());
     }
 
     std::vector<float3> m_vertices = {};
