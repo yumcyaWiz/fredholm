@@ -16,8 +16,20 @@ namespace fredholm
 
 struct Matrix3x4
 {
-    // column major
+    // 0 - (a00 a01 a02 a03)
+    // 1 - (a10 a11 a12 a13)
+    // 2 - (a20 a21 a22 a23)
+    // 3 - (0   0   0   1  )
     float4 m[3];
+
+    static CUDA_INLINE CUDA_HOST_DEVICE Matrix3x4 identity()
+    {
+        Matrix3x4 ret;
+        ret.m[0] = make_float4(1.0f, 0.0f, 0.0f, 0.0f);
+        ret.m[1] = make_float4(0.0f, 1.0f, 0.0f, 0.0f);
+        ret.m[2] = make_float4(0.0f, 0.0f, 1.0f, 0.0f);
+        return ret;
+    }
 };
 
 // TODO: rename c(column) to r(row)
