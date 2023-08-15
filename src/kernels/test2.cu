@@ -50,6 +50,7 @@ extern "C" __global__ void __raygen__rg()
     float camera_pdf;
     sample_ray_pinhole_camera(params.camera, uv, ray.origin, ray.direction,
                               camera_pdf);
+    // printf("%f, %f, %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
 
     // trace ray
     RayPayload payload;

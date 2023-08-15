@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
@@ -63,7 +64,6 @@ struct Camera
         m_forward = glm::vec3(0, 0, -1);
         m_right = glm::normalize(glm::cross(m_forward, glm::vec3(0, 1, 0)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
-
         m_transform = glm::inverse(
             glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
