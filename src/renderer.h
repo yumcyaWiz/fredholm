@@ -3,6 +3,7 @@
 
 #include "cuda_util.h"
 #include "optix_util.h"
+#include "scene.h"
 #include "shared.h"
 
 namespace fredholm

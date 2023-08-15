@@ -1,27 +1,19 @@
 #pragma once
-#include <unistd.h>
-
 #include <algorithm>
 #include <filesystem>
-#include <functional>
+#include <format>
 #include <iostream>
-#include <set>
-#include <stdexcept>
-#include <unordered_map>
+#include <vector>
 
-#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
-#include "spdlog/spdlog.h"
-#include "stb_image.h"
-#include "tiny_gltf.h"
-#include "tiny_obj_loader.h"
-//
+#include "helper_math.h"
 #include "shared.h"
+#include "spdlog/spdlog.h"
+#include "tiny_obj_loader.h"
 
 namespace fredholm
 {
-
 // https://vulkan-tutorial.com/Loading_models
 // vertex deduplication
 struct Vertex
@@ -36,7 +28,6 @@ struct Vertex
                texcoord == other.texcoord;
     }
 };
-
 }  // namespace fredholm
 
 namespace std
@@ -52,140 +43,223 @@ struct hash<fredholm::Vertex>
                (hash<glm::vec2>()(vertex.texcoord) << 1);
     }
 };
-
 }  // namespace std
 
 namespace fredholm
 {
 
-enum class TextureType
+struct SceneNode
 {
-    COLOR,
-    NONCOLOR
+    std::string name = "SceneNode";
+    std::vector<SceneNode*> children = {};
 };
 
-struct Texture
+struct TransformNode : public SceneNode
 {
-    uint32_t m_width;
-    uint32_t m_height;
-    std::vector<uchar4> m_data;
-    TextureType m_texture_type;
+    TransformNode() { name = "TransformNode"; }
 
-    Texture();
-    Texture(const std::filesystem::path& filepath,
-            const TextureType& texture_type);
+    void set_transform(const Matrix3x4& transform)
+    {
+        this->transform = transform;
+    }
+
+    Matrix3x4 transform = Matrix3x4::identity();
 };
 
-struct FloatTexture
+struct GeometryNode : public SceneNode
 {
-    uint32_t m_width;
-    uint32_t m_height;
-    std::vector<float4> m_data;
+    GeometryNode() { name = "GeometryNode"; }
 
-    FloatTexture(const std::filesystem::path& filepath);
-};
+    void load_obj(const std::filesystem::path& filepath)
+    {
+        tinyobj::ObjReaderConfig reader_config;
+        reader_config.triangulate = true;
 
-struct Node
-{
-    int idx;  // tinygltf node index
-    std::vector<Node> children;
-    glm::mat4 transform;
-    int camera_id;
-    int submesh_id;
-};
+        tinyobj::ObjReader reader;
+        if (!reader.ParseFromFile(filepath.generic_string(), reader_config))
+        {
+            if (!reader.Error().empty())
+            {
+                spdlog::error("tinyobjloader: {}", reader.Error());
+            }
+            throw std::runtime_error(std::format("failed to load obj file {}\n",
+                                                 filepath.generic_string()));
+        }
 
-struct Animation
-{
-    Node* node;  // target node
+        if (!reader.Warning().empty())
+        {
+            spdlog::warn("tinyobjloader: {}", reader.Warning());
+        }
 
-    std::vector<float> translation_input;       // key frame time
-    std::vector<glm::vec3> translation_output;  // key frame translation
+        const auto& attrib = reader.GetAttrib();
+        const auto& shapes = reader.GetShapes();
 
-    std::vector<float> rotation_input;       // key frame time
-    std::vector<glm::quat> rotation_output;  // key frame rotation
+        std::vector<Vertex> unique_vertices = {};
+        std::unordered_map<Vertex, uint32_t> unique_vertex_indices = {};
+        std::vector<uint32_t> indices = {};
 
-    std::vector<float> scale_input;       // key frame time
-    std::vector<glm::vec3> scale_output;  // key frame scale
-};
+        for (size_t s = 0; s < shapes.size(); ++s)
+        {
+            size_t index_offset = 0;
 
-// TODO: add transform in each submesh
-struct Scene
-{
-    bool m_has_camera_transform = false;
-    glm::mat4 m_camera_transform = {};
+            for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f)
+            {
+                const size_t fv = shapes[s].mesh.num_face_vertices[f];
+                if (fv != 3)
+                {
+                    throw std::runtime_error(
+                        "non-triangle faces are not supported");
+                }
 
-    // vertex data
+                std::vector<glm::vec3> vertices_temp;
+                std::vector<glm::vec3> normals_temp;
+                std::vector<glm::vec2> texcoords_temp;
+
+                for (size_t v = 0; v < 3; ++v)
+                {
+                    const tinyobj::index_t idx =
+                        shapes[s].mesh.indices[index_offset + v];
+
+                    // vertex position
+                    const glm::vec3 vertex = {
+                        attrib.vertices[3 * idx.vertex_index + 0],
+                        attrib.vertices[3 * idx.vertex_index + 1],
+                        attrib.vertices[3 * idx.vertex_index + 2]};
+                    vertices_temp.push_back(vertex);
+
+                    // vertex normal
+                    if (idx.normal_index >= 0)
+                    {
+                        const glm::vec3 normal = {
+                            attrib.normals[3 * idx.normal_index + 0],
+                            attrib.normals[3 * idx.normal_index + 1],
+                            attrib.normals[3 * idx.normal_index + 2]};
+                        normals_temp.push_back(normal);
+                    }
+
+                    // vertex texcoord
+                    if (idx.texcoord_index >= 0)
+                    {
+                        const glm::vec2 texcoord = {
+                            attrib.texcoords[2 * idx.texcoord_index + 0],
+                            attrib.texcoords[2 * idx.texcoord_index + 1]};
+                        texcoords_temp.push_back(texcoord);
+                    }
+                }
+
+                // if vertex normal is empty, use face normal instead
+                if (normals_temp.size() == 0)
+                {
+                    const glm::vec3 normal = glm::normalize(
+                        glm::cross(vertices_temp[1] - vertices_temp[0],
+                                   vertices_temp[2] - vertices_temp[0]));
+                    normals_temp.push_back(normal);
+                    normals_temp.push_back(normal);
+                    normals_temp.push_back(normal);
+                }
+
+                // if texcoord is empty, use barycentric coordinates instead
+                if (texcoords_temp.size() == 0)
+                {
+                    texcoords_temp.push_back(glm::vec2(0, 0));
+                    texcoords_temp.push_back(glm::vec2(1, 0));
+                    texcoords_temp.push_back(glm::vec2(0, 1));
+                }
+
+                for (int v = 0; v < 3; ++v)
+                {
+                    Vertex vertex = {};
+                    vertex.position = vertices_temp[v];
+                    vertex.normal = normals_temp[v];
+                    vertex.texcoord = texcoords_temp[v];
+
+                    if (unique_vertex_indices.count(vertex) == 0)
+                    {
+                        unique_vertex_indices[vertex] =
+                            static_cast<uint32_t>(unique_vertices.size());
+                        unique_vertices.push_back(vertex);
+                    }
+                    indices.push_back(unique_vertex_indices[vertex]);
+                }
+
+                index_offset += fv;
+            }
+        }
+
+        for (const auto& vertex : unique_vertices)
+        {
+            m_vertices.push_back(make_float3(
+                vertex.position.x, vertex.position.y, vertex.position.z));
+            m_normals.push_back(
+                make_float3(vertex.normal.x, vertex.normal.y, vertex.normal.z));
+            m_texcoords.push_back(
+                make_float2(vertex.texcoord.x, vertex.texcoord.y));
+        }
+
+        spdlog::info("loaded obj file {}", filepath.generic_string());
+        spdlog::info("# of vertices: {}", m_vertices.size());
+        spdlog::info("# of faces: {}", indices.size() / 3);
+    }
+
     std::vector<float3> m_vertices = {};
     std::vector<uint3> m_indices = {};
-    std::vector<float2> m_texcoords = {};
     std::vector<float3> m_normals = {};
     std::vector<float3> m_tangents = {};
+    std::vector<float2> m_texcoords = {};
+};
 
-    // per-face material id
-    std::vector<uint> m_material_ids = {};
+struct InstanceNode : public SceneNode
+{
+    InstanceNode() { name = "InstanceNode"; }
 
-    std::vector<Material> m_materials;
+    const GeometryNode* geometry = nullptr;
+};
 
-    std::vector<Texture> m_textures;
+class SceneGraph
+{
+   public:
+    SceneGraph() {}
 
-    // offset of each sub-mesh in index buffer
-    std::vector<uint> m_submesh_offsets = {};
-    // number of faces in each sub-mesh
-    std::vector<uint> m_submesh_n_faces = {};
+    ~SceneGraph() { destroy(root); }
 
-    // per-face instance id
-    std::vector<uint> m_instance_ids = {};
-
-    // per-instance transform
-    std::vector<glm::mat4> m_transforms = {};
-
-    std::vector<Node> m_nodes = {};  // root nodes
-
-    std::vector<Animation> m_animations = {};
-
-    Scene();
-
-    bool is_valid() const;
-
-    void clear();
-
-    void load_model(const std::filesystem::path& filepath, bool do_clear);
-
-    void load_obj(const std::filesystem::path& filepath);
-
-    void load_gltf(const std::filesystem::path& filepath);
-
-    Node load_gltf_node(const tinygltf::Model& model, int node_idx,
-                        int& indices_offset, int& prev_indices_size);
-
-    void update_transform();
-    void update_transform_node(const Node& node, glm::mat4& transform);
-
-    void update_animation(float time);
-
-    Node* find_node(int node_idx);
-    Node* find_node_node(Node& node, int node_idx);
-
-    static const unsigned char* get_gltf_buffer(const tinygltf::Model& model,
-                                                int accessor_id, int& stride,
-                                                int& count);
-
-    template <typename T>
-    static T animation_linear_interpolate(const std::vector<float>& input,
-                                          const std::vector<T>& output,
-                                          float time)
+    void load_obj(const std::filesystem::path& filepath)
     {
-        const float t = std::fmod(time, input[input.size() - 1]);
-        const int idx1 =
-            std::lower_bound(input.begin(), input.end(), t) - input.begin();
-        const int idx0 = std::max(idx1 - 1, 0);
+        root = new SceneNode;
 
-        // linear interpolation
-        const float h = t - input[idx0];
-        const T output0 = output[idx0];
-        const T output1 = output[idx1];
-        return glm::mix(output0, output1, h);
+        GeometryNode* geometry = new GeometryNode;
+        geometry->load_obj(filepath);
+
+        TransformNode* transform = new TransformNode;
+
+        transform->children.push_back(geometry);
+        root->children.push_back(transform);
     }
+
+    void print_tree() const { print_tree(root, ""); }
+
+   private:
+    void destroy(SceneNode* node)
+    {
+        if (node == nullptr) return;
+        for (auto child : node->children) { destroy(child); }
+        delete node;
+    }
+
+    void print_tree(const SceneNode* node, const std::string& prefix) const
+    {
+        if (node == nullptr) return;
+
+        std::cout << prefix;
+        std::cout << "├── ";
+        std::cout << node->name << std::endl;
+
+        for (const auto& child : node->children)
+        {
+            print_tree(child, prefix + "│   ");
+        }
+    }
+
+    SceneNode* root = nullptr;
 };
 
 }  // namespace fredholm
