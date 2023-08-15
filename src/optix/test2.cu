@@ -78,9 +78,19 @@ extern "C" __global__ void __closesthit__()
     const uint indices_offset = params.scene.indices_offsets[geom_id];
     const uint3 idx = params.scene.indices[indices_offset + prim_id];
 
-    const float3 n0 = params.scene.normals[idx.x];
-    const float3 n1 = params.scene.normals[idx.y];
-    const float3 n2 = params.scene.normals[idx.z];
+    const Matrix3x4 object_to_world =
+        params.scene.object_to_worlds[instance_id];
+    const Matrix3x4 world_to_object =
+        params.scene.world_to_objects[instance_id];
 
-    payload_ptr->color = make_float3(barycentric.x, barycentric.y, 1.0f);
+    const float3 n0 =
+        transform_normal(world_to_object, params.scene.normals[idx.x]);
+    const float3 n1 =
+        transform_normal(world_to_object, params.scene.normals[idx.y]);
+    const float3 n2 =
+        transform_normal(world_to_object, params.scene.normals[idx.z]);
+    const float3 ns = normalize((1.0f - barycentric.x - barycentric.y) * n0 +
+                                barycentric.x * n1 + barycentric.y * n2);
+
+    payload_ptr->color = 0.5f * (ns + 1.0f);
 }
