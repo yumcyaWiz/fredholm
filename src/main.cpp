@@ -34,6 +34,8 @@ void save_png(const std::filesystem::path& filepath, const uint32_t width,
 
 int main()
 {
+    fredholm::Camera camera(glm::vec3(0, 0, 5));
+
     fredholm::SceneGraph scene;
     scene.load_obj("CornellBox-Original.obj");
     scene.print_tree();

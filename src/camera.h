@@ -4,7 +4,6 @@
 
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
-#include "helper_math.h"
 
 namespace fredholm
 {
@@ -49,10 +48,11 @@ struct Camera
         m_transform = glm::identity<glm::mat4>();
     }
 
-    Camera(const float3& origin, float fov = 0.5f * M_PI, float F = 8.0f,
+    Camera(const glm::vec3& origin, float fov = 0.5f * M_PI, float F = 8.0f,
            float focus = 10000.0f, float movement_speed = 1.0f,
            float look_around_speed = 0.1f)
-        : m_fov(fov),
+        : m_origin(origin),
+          m_fov(fov),
           m_F(F),
           m_focus(focus),
           m_movement_speed(movement_speed),
@@ -60,23 +60,10 @@ struct Camera
           m_phi(270.0f),
           m_theta(90.0f)
     {
-        m_origin = glm::vec3(origin.x, origin.y, origin.z);
         m_forward = glm::vec3(0, 0, -1);
         m_right = glm::normalize(glm::cross(m_forward, glm::vec3(0, 1, 0)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
 
-        m_transform = glm::inverse(
-            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
-    }
-
-    float3 get_origin() const
-    {
-        return make_float3(m_origin.x, m_origin.y, m_origin.z);
-    }
-
-    void set_origin(const float3& origin)
-    {
-        m_origin = glm::vec3(origin.x, origin.y, origin.z);
         m_transform = glm::inverse(
             glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
