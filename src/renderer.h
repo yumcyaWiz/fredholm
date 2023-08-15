@@ -110,21 +110,20 @@ class Renderer
         {
             GASBuildEntry entry;
 
-            printf("%d\n", geometry->m_vertices.size());
-            printf("%d\n", geometry->m_indices.size());
-
             cuda_check(
                 cuMemAlloc(&entry.vertex_buffer,
                            geometry->m_vertices.size() * sizeof(float3)));
             cuda_check(
                 cuMemcpyHtoD(entry.vertex_buffer, geometry->m_vertices.data(),
                              geometry->m_vertices.size() * sizeof(float3)));
+            entry.vertex_count = geometry->m_vertices.size();
 
             cuda_check(cuMemAlloc(&entry.index_buffer,
                                   geometry->m_indices.size() * sizeof(uint3)));
             cuda_check(
                 cuMemcpyHtoD(entry.index_buffer, geometry->m_indices.data(),
                              geometry->m_indices.size() * sizeof(uint3)));
+            entry.index_count = geometry->m_indices.size();
 
             gas_build_entries.push_back(entry);
         }
