@@ -97,6 +97,7 @@ class Renderer
         destroy_ias();
         destroy_gas();
 
+        // compile scene graph
         const CompiledScene compiled_scene = scene.compile();
 
         // build GAS
@@ -155,6 +156,101 @@ class Renderer
         }
 
         ias_build_output = optix_create_ias(context, ias_build_entries);
+
+        // create global scene data
+        std::vector<float3> vertices;
+        std::vector<uint3> indices;
+        std::vector<float3> normals;
+        std::vector<float2> texcoords;
+        std::vector<uint> indices_offset;           // key: geometry id
+        std::vector<uint> geometry_ids;             // key: instance id(OptiX)
+        std::vector<Matrix3x4> transforms;          // key: instance id(OptiX)
+        std::vector<Matrix3x4> inverse_transforms;  // key: instance id(OptiX)
+
+        for (int i = 0; i < compiled_scene.geometry_nodes.size(); ++i)
+        {
+            const auto& geometry = compiled_scene.geometry_nodes[i];
+
+            indices_offset.push_back(indices.size());
+            geometry_ids.push_back(i);
+
+            vertices.insert(vertices.end(), geometry->m_vertices.begin(),
+                            geometry->m_vertices.end());
+            indices.insert(indices.end(), geometry->m_indices.begin(),
+                           geometry->m_indices.end());
+            normals.insert(normals.end(), geometry->m_normals.begin(),
+                           geometry->m_normals.end());
+            texcoords.insert(texcoords.end(), geometry->m_texcoords.begin(),
+                             geometry->m_texcoords.end());
+
+            transforms.push_back(
+                create_mat3x4_from_glm(compiled_scene.geometry_transforms[i]));
+            inverse_transforms.push_back(create_mat3x4_from_glm(
+                glm::inverse(compiled_scene.geometry_transforms[i])));
+        }
+
+        for (int i = 0; i < compiled_scene.instance_nodes.size(); ++i)
+        {
+            const auto& instance = compiled_scene.instance_nodes[i];
+
+            // find geometry id
+            for (int j = 0; j < compiled_scene.geometry_nodes.size(); ++j)
+            {
+                if (compiled_scene.geometry_nodes[j] == instance->geometry)
+                {
+                    geometry_ids.push_back(j);
+                    break;
+                }
+            }
+
+            transforms.push_back(
+                create_mat3x4_from_glm(compiled_scene.instance_transforms[i]));
+            inverse_transforms.push_back(create_mat3x4_from_glm(
+                glm::inverse(compiled_scene.instance_transforms[i])));
+        }
+
+        // allocate scene data on device
+        destroy_scene_data();
+
+        cuda_check(
+            cuMemAlloc(&vertices_buffer, vertices.size() * sizeof(float3)));
+        cuda_check(cuMemcpyHtoD(vertices_buffer, vertices.data(),
+                                vertices.size() * sizeof(float3)));
+
+        cuda_check(cuMemAlloc(&indices_buffer, indices.size() * sizeof(uint3)));
+        cuda_check(cuMemcpyHtoD(indices_buffer, indices.data(),
+                                indices.size() * sizeof(uint3)));
+
+        cuda_check(
+            cuMemAlloc(&normals_buffer, normals.size() * sizeof(float3)));
+        cuda_check(cuMemcpyHtoD(normals_buffer, normals.data(),
+                                normals.size() * sizeof(float3)));
+
+        cuda_check(
+            cuMemAlloc(&texcoords_buffer, texcoords.size() * sizeof(float2)));
+        cuda_check(cuMemcpyHtoD(texcoords_buffer, texcoords.data(),
+                                texcoords.size() * sizeof(float2)));
+
+        cuda_check(cuMemAlloc(&indices_offset_buffer,
+                              indices_offset.size() * sizeof(uint)));
+        cuda_check(cuMemcpyHtoD(indices_offset_buffer, indices_offset.data(),
+                                indices_offset.size() * sizeof(uint)));
+
+        cuda_check(cuMemAlloc(&geometry_ids_buffer,
+                              geometry_ids.size() * sizeof(uint)));
+        cuda_check(cuMemcpyHtoD(geometry_ids_buffer, geometry_ids.data(),
+                                geometry_ids.size() * sizeof(uint)));
+
+        cuda_check(cuMemAlloc(&object_to_world_buffer,
+                              transforms.size() * sizeof(Matrix3x4)));
+        cuda_check(cuMemcpyHtoD(object_to_world_buffer, transforms.data(),
+                                transforms.size() * sizeof(Matrix3x4)));
+
+        cuda_check(cuMemAlloc(&world_to_object_buffer,
+                              inverse_transforms.size() * sizeof(Matrix3x4)));
+        cuda_check(cuMemcpyHtoD(world_to_object_buffer,
+                                inverse_transforms.data(),
+                                inverse_transforms.size() * sizeof(Matrix3x4)));
     }
 
     void render(uint32_t width, uint32_t height, const Camera& camera,
@@ -164,13 +260,7 @@ class Renderer
         params.width = width;
         params.height = height;
 
-        params.camera.transform = make_mat3x4(
-            make_float4(camera.m_transform[0][0], camera.m_transform[1][0],
-                        camera.m_transform[2][0], camera.m_transform[3][0]),
-            make_float4(camera.m_transform[0][1], camera.m_transform[1][1],
-                        camera.m_transform[2][1], camera.m_transform[3][1]),
-            make_float4(camera.m_transform[0][2], camera.m_transform[1][2],
-                        camera.m_transform[2][2], camera.m_transform[3][2]));
+        params.camera.transform = create_mat3x4_from_glm(camera.m_transform);
         params.camera.fov = camera.m_fov;
         params.camera.F = camera.m_F;
         params.camera.focus = camera.m_focus;
@@ -178,6 +268,19 @@ class Renderer
         params.render_layer.beauty = reinterpret_cast<float4*>(beauty);
 
         params.ias_handle = ias_build_output.handle;
+
+        params.scene.vertices = reinterpret_cast<float3*>(vertices_buffer);
+        params.scene.indices = reinterpret_cast<uint3*>(indices_buffer);
+        params.scene.normals = reinterpret_cast<float3*>(normals_buffer);
+        params.scene.texcoords = reinterpret_cast<float2*>(texcoords_buffer);
+        params.scene.indices_offsets =
+            reinterpret_cast<uint*>(indices_offset_buffer);
+        params.scene.geometry_ids =
+            reinterpret_cast<uint*>(geometry_ids_buffer);
+        params.scene.object_to_worlds =
+            reinterpret_cast<Matrix3x4*>(object_to_world_buffer);
+        params.scene.world_to_objects =
+            reinterpret_cast<Matrix3x4*>(world_to_object_buffer);
 
         CUdeviceptr params_buffer;
         cuda_check(cuMemAlloc(&params_buffer, sizeof(LaunchParams)));
@@ -218,6 +321,57 @@ class Renderer
         ias_build_output.handle = 0;
     }
 
+    void destroy_scene_data()
+    {
+        if (vertices_buffer != 0)
+        {
+            cuda_check(cuMemFree(vertices_buffer));
+            vertices_buffer = 0;
+        }
+        if (indices_buffer != 0)
+        {
+            cuda_check(cuMemFree(indices_buffer));
+            indices_buffer = 0;
+        }
+        if (normals_buffer != 0)
+        {
+            cuda_check(cuMemFree(normals_buffer));
+            normals_buffer = 0;
+        }
+        if (texcoords_buffer != 0)
+        {
+            cuda_check(cuMemFree(texcoords_buffer));
+            texcoords_buffer = 0;
+        }
+        if (indices_offset_buffer != 0)
+        {
+            cuda_check(cuMemFree(indices_offset_buffer));
+            indices_offset_buffer = 0;
+        }
+        if (geometry_ids_buffer != 0)
+        {
+            cuda_check(cuMemFree(geometry_ids_buffer));
+            geometry_ids_buffer = 0;
+        }
+        if (object_to_world_buffer != 0)
+        {
+            cuda_check(cuMemFree(object_to_world_buffer));
+            object_to_world_buffer = 0;
+        }
+        if (world_to_object_buffer != 0)
+        {
+            cuda_check(cuMemFree(world_to_object_buffer));
+            world_to_object_buffer = 0;
+        }
+    }
+
+    static Matrix3x4 create_mat3x4_from_glm(const glm::mat4& m)
+    {
+        return make_mat3x4(make_float4(m[0][0], m[1][0], m[2][0], m[3][0]),
+                           make_float4(m[0][1], m[1][1], m[2][1], m[3][1]),
+                           make_float4(m[0][2], m[1][2], m[2][2], m[3][2]));
+    }
+
     OptixDeviceContext context;
 
     OptixModule module = nullptr;
@@ -227,6 +381,16 @@ class Renderer
     OptixShaderBindingTable sbt;
     std::vector<GASBuildOutput> gas_build_output;
     IASBuildOutput ias_build_output;
+
+    // global scene data
+    CUdeviceptr vertices_buffer = 0;
+    CUdeviceptr indices_buffer = 0;
+    CUdeviceptr normals_buffer = 0;
+    CUdeviceptr texcoords_buffer = 0;
+    CUdeviceptr indices_offset_buffer = 0;
+    CUdeviceptr geometry_ids_buffer = 0;
+    CUdeviceptr object_to_world_buffer = 0;
+    CUdeviceptr world_to_object_buffer = 0;
 };
 
 }  // namespace fredholm

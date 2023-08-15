@@ -50,7 +50,6 @@ extern "C" __global__ void __raygen__rg()
     float camera_pdf;
     sample_ray_pinhole_camera(params.camera, uv, ray.origin, ray.direction,
                               camera_pdf);
-    // printf("%f, %f, %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
 
     // trace ray
     RayPayload payload;
@@ -70,5 +69,18 @@ extern "C" __global__ void __anyhit__() {}
 extern "C" __global__ void __closesthit__()
 {
     RayPayload* payload_ptr = get_payload_ptr<RayPayload>();
-    payload_ptr->color = make_float3(1.0f, 1.0f, 1.0f);
+
+    const uint prim_id = optixGetPrimitiveIndex();
+    const uint instance_id = optixGetInstanceIndex();
+    const float2 barycentric = optixGetTriangleBarycentrics();
+
+    const uint geom_id = params.scene.geometry_ids[instance_id];
+    const uint indices_offset = params.scene.indices_offsets[geom_id];
+    const uint3 idx = params.scene.indices[indices_offset + prim_id];
+
+    const float3 n0 = params.scene.normals[idx.x];
+    const float3 n1 = params.scene.normals[idx.y];
+    const float3 n2 = params.scene.normals[idx.z];
+
+    payload_ptr->color = make_float3(barycentric.x, barycentric.y, 1.0f);
 }

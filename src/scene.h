@@ -231,7 +231,6 @@ struct GeometryNode : public SceneNode
     std::vector<float3> m_vertices = {};
     std::vector<uint3> m_indices = {};
     std::vector<float3> m_normals = {};
-    std::vector<float3> m_tangents = {};
     std::vector<float2> m_texcoords = {};
 };
 
@@ -247,9 +246,9 @@ struct InstanceNode : public SceneNode
     const GeometryNode* geometry = nullptr;
 };
 
-// used for creating GAS and IAS
 struct CompiledScene
 {
+    // used for creating GAS and IAS
     std::vector<const GeometryNode*> geometry_nodes = {};
     std::vector<glm::mat4> geometry_transforms = {};
     std::vector<const InstanceNode*> instance_nodes = {};

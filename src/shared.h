@@ -239,39 +239,53 @@ struct RenderLayer
     float4* albedo;
 };
 
+struct SceneData
+{
+    float3* vertices;
+    uint3* indices;
+    float3* normals;
+    float2* texcoords;
+    uint* indices_offsets;
+    uint* geometry_ids;
+    Matrix3x4* object_to_worlds;
+    Matrix3x4* world_to_objects;
+};
+
 struct LaunchParams
 {
     RenderLayer render_layer;
-    uint* sample_count;
-    uint seed;
+    // uint* sample_count;
+    // uint seed;
 
     uint width;
     uint height;
-    uint n_samples;
-    uint max_depth;
+    // uint n_samples;
+    // uint max_depth;
 
     CameraParams camera;
 
-    Matrix3x4* object_to_world;
-    Matrix3x4* world_to_object;
+    SceneData scene;
 
-    float3* vertices;
-    float3* normals;
-    float2* texcoords;
+    // Matrix3x4* object_to_world;
+    // Matrix3x4* world_to_object;
 
-    Material* materials;
-    TextureHeader* textures;
+    // float3* vertices;
+    // float3* normals;
+    // float2* texcoords;
 
-    AreaLight* lights;
-    uint n_lights;
+    // Material* materials;
+    // TextureHeader* textures;
 
-    DirectionalLight* directional_light;
+    // AreaLight* lights;
+    // uint n_lights;
 
-    float sky_intensity;
-    float3 bg_color;
-    cudaTextureObject_t ibl;
-    float3 sun_direction;
-    ArHosekSkyModelState* arhosek;
+    // DirectionalLight* directional_light;
+
+    // float sky_intensity;
+    // float3 bg_color;
+    // cudaTextureObject_t ibl;
+    // float3 sun_direction;
+    // ArHosekSkyModelState* arhosek;
 
     OptixTraversableHandle ias_handle;
 };
