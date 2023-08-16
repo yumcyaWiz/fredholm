@@ -279,7 +279,7 @@ static __forceinline__ __device__ float3 ray_origin_offset(const float3& p,
                        fabsf(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
 }
 
-extern "C" __global__ void __raygen__rg()
+extern "C" __global__ void __raygen__()
 {
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
@@ -302,8 +302,10 @@ extern "C" __global__ void __raygen__rg()
         uv.x = -uv.x;
         u = sample_2d(payload.sampler);
         float camera_pdf;
-        sample_ray_thinlens_camera(params.camera, uv, u, payload.origin,
-                                   payload.direction, camera_pdf);
+        // sample_ray_thinlens_camera(params.camera, uv, u, payload.origin,
+        //                            payload.direction, camera_pdf);
+        sample_ray_pinhole_camera(params.camera, uv, payload.origin,
+                                  payload.direction, camera_pdf);
 
         // start ray tracing from the camera
         payload.radiance = make_float3(0);
@@ -356,7 +358,7 @@ extern "C" __global__ void __raygen__rg()
     params.output[image_idx] = make_float4(beauty, 1.0f);
 }
 
-extern "C" __global__ void __miss__radiance()
+extern "C" __global__ void __miss__()
 {
     RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 
@@ -371,7 +373,7 @@ extern "C" __global__ void __miss__radiance()
     payload->done = true;
 }
 
-extern "C" __global__ void __anyhit__radiance()
+extern "C" __global__ void __anyhit__()
 {
     // const HitGroupSbtRecordData* sbt =
     //     reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
@@ -419,7 +421,7 @@ extern "C" __global__ void __anyhit__radiance()
     // }
 }
 
-extern "C" __global__ void __closesthit__radiance()
+extern "C" __global__ void __closesthit__()
 {
     RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 
@@ -441,6 +443,7 @@ extern "C" __global__ void __closesthit__radiance()
                       prim_idx, instance_idx, geom_id, surf_info);
 
     ShadingParams shading_params;
+    shading_params.base_color = make_float3(0.9f);
     // fill_shading_params(material, surf_info, params.textures,
     // shading_params);
 
