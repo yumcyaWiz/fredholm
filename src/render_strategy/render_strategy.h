@@ -1,7 +1,9 @@
 #pragma once
 #include "camera.h"
 #include "optix_util.h"
+#include "scene.h"
 #include "shared.h"
+#include "util.h"
 
 namespace fredholm
 {
@@ -67,13 +69,41 @@ class RenderStrategy
         return m_program_group_sets;
     }
 
-    virtual void render(uint32_t width, uint32_t height,
-                        const CameraParams& camera, const SceneData& scene,
+    virtual void render(uint32_t width, uint32_t height, const Camera& camera,
+                        const SceneDevice& scene,
                         const OptixTraversableHandle& ias_handle,
                         const OptixShaderBindingTable& sbt,
                         const CUdeviceptr& beauty) = 0;
 
    protected:
+    static CameraParams get_camera_params(const Camera& camera)
+    {
+        CameraParams camera_params;
+        camera_params.transform = create_mat3x4_from_glm(camera.m_transform);
+        camera_params.fov = camera.m_fov;
+        camera_params.F = camera.m_F;
+        camera_params.focus = camera.m_focus;
+        return camera_params;
+    }
+
+    static SceneData get_scene_data(const SceneDevice& scene)
+    {
+        SceneData scene_data;
+        scene_data.vertices = reinterpret_cast<float3*>(scene.get_vertices());
+        scene_data.indices = reinterpret_cast<uint3*>(scene.get_indices());
+        scene_data.normals = reinterpret_cast<float3*>(scene.get_normals());
+        scene_data.texcoords = reinterpret_cast<float2*>(scene.get_texcoords());
+        scene_data.indices_offsets =
+            reinterpret_cast<uint*>(scene.get_indices_offset());
+        scene_data.geometry_ids =
+            reinterpret_cast<uint*>(scene.get_geometry_ids());
+        scene_data.object_to_worlds =
+            reinterpret_cast<Matrix3x4*>(scene.get_object_to_worlds());
+        scene_data.world_to_objects =
+            reinterpret_cast<Matrix3x4*>(scene.get_world_to_objects());
+        return scene_data;
+    }
+
     OptixModule m_module = nullptr;
     ProgramGroupSet m_program_group_sets = {};
     OptixPipeline m_pipeline = nullptr;

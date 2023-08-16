@@ -28,8 +28,8 @@ class HelloStrategy : public RenderStrategy
         cuda_check(cuMemAlloc(&m_params_buffer, sizeof(HelloStrategyParams)));
     }
 
-    void render(uint32_t width, uint32_t height, const CameraParams& camera,
-                const SceneData& scene,
+    void render(uint32_t width, uint32_t height, const Camera& camera,
+                const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
                 const OptixShaderBindingTable& sbt,
                 const CUdeviceptr& beauty) override

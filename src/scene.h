@@ -361,6 +361,15 @@ class SceneDevice
    public:
     SceneDevice() {}
 
+    CUdeviceptr get_vertices() const { return vertices_buffer; }
+    CUdeviceptr get_indices() const { return indices_buffer; }
+    CUdeviceptr get_normals() const { return normals_buffer; }
+    CUdeviceptr get_texcoords() const { return texcoords_buffer; }
+    CUdeviceptr get_indices_offset() const { return indices_offset_buffer; }
+    CUdeviceptr get_geometry_ids() const { return geometry_ids_buffer; }
+    CUdeviceptr get_object_to_worlds() const { return object_to_world_buffer; }
+    CUdeviceptr get_world_to_objects() const { return world_to_object_buffer; }
+
     void send(const OptixDeviceContext& context, const SceneGraph& scene_graph)
     {
         // compile scene graph
@@ -521,22 +530,6 @@ class SceneDevice
         cuda_check(cuMemcpyHtoD(world_to_object_buffer,
                                 inverse_transforms.data(),
                                 inverse_transforms.size() * sizeof(Matrix3x4)));
-    }
-
-    SceneData get_scene_data() const
-    {
-        SceneData ret;
-        ret.vertices = reinterpret_cast<float3*>(vertices_buffer);
-        ret.indices = reinterpret_cast<uint3*>(indices_buffer);
-        ret.normals = reinterpret_cast<float3*>(normals_buffer);
-        ret.texcoords = reinterpret_cast<float2*>(texcoords_buffer);
-        ret.indices_offsets = reinterpret_cast<uint*>(indices_offset_buffer);
-        ret.geometry_ids = reinterpret_cast<uint*>(geometry_ids_buffer);
-        ret.object_to_worlds =
-            reinterpret_cast<Matrix3x4*>(object_to_world_buffer);
-        ret.world_to_objects =
-            reinterpret_cast<Matrix3x4*>(world_to_object_buffer);
-        return ret;
     }
 
     OptixTraversableHandle get_ias_handle() const

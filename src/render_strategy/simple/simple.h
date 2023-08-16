@@ -26,8 +26,8 @@ class SimpleStrategy : public RenderStrategy
             optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
     }
 
-    void render(uint32_t width, uint32_t height, const CameraParams& camera,
-                const SceneData& scene,
+    void render(uint32_t width, uint32_t height, const Camera& camera,
+                const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
                 const OptixShaderBindingTable& sbt,
                 const CUdeviceptr& beauty) override
@@ -35,8 +35,8 @@ class SimpleStrategy : public RenderStrategy
         SimpleStrategyParams params;
         params.width = width;
         params.height = height;
-        params.camera = camera;
-        params.scene = scene;
+        params.camera = get_camera_params(camera);
+        params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
         params.output = reinterpret_cast<float4*>(beauty);
 

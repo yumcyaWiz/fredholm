@@ -39,15 +39,7 @@ class Renderer
     {
         if (m_render_strategy)
         {
-            CameraParams camera_params;
-            camera_params.transform =
-                create_mat3x4_from_glm(camera.m_transform);
-            camera_params.fov = camera.m_fov;
-            camera_params.F = camera.m_F;
-            camera_params.focus = camera.m_focus;
-
-            m_render_strategy->render(width, height, camera_params,
-                                      scene.get_scene_data(),
+            m_render_strategy->render(width, height, camera, scene,
                                       scene.get_ias_handle(), sbt, beauty);
         }
     }
