@@ -39,6 +39,7 @@ add_subdirectory("externals/")
 add_library(optix_kernel OBJECT
     "src/render_strategy/hello/hello.cu"
     "src/render_strategy/simple/simple.cu"
+    "src/render_strategy/pt/pt.cu"
 )
 set_target_properties(optix_kernel PROPERTIES
     CUDA_PTX_COMPILATION ON
