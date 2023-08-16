@@ -187,6 +187,7 @@ struct DirectionalLight
     float angle = 0;  // angle size
 };
 
+// TODO: move this under render_strategy/common
 struct SurfaceInfo
 {
     float t;             // ray tmax
@@ -200,6 +201,7 @@ struct SurfaceInfo
     bool is_entering;
 };
 
+// TODO: move this under render_strategy/common
 struct ShadingParams
 {
     float diffuse = 1.0f;
@@ -251,6 +253,7 @@ struct SceneData
     Matrix3x4* world_to_objects;
 };
 
+// TODO: remove this
 struct LaunchParams
 {
     RenderLayer render_layer;

@@ -32,6 +32,8 @@ class PtStrategy : public RenderStrategy
                 const OptixShaderBindingTable& sbt,
                 const CUdeviceptr& beauty) override
     {
+        // TODO: remove malloc from this function, maybe it's good to
+        // initialize in the constructor
         cuda_check(
             cuMemAlloc(&sample_count, width * height * sizeof(uint32_t)));
         cuda_check(cuMemsetD32(sample_count, 0, width * height));
