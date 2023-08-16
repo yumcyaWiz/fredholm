@@ -21,37 +21,45 @@ class RenderStrategy
             m_params_buffer = 0;
         }
 
-        for (const auto& raygen_program_group :
+        if (m_pipeline != nullptr)
+        {
+            optix_check(optixPipelineDestroy(m_pipeline));
+            m_pipeline = nullptr;
+        }
+
+        for (auto& raygen_program_group :
              m_program_group_sets.raygen_program_groups)
         {
             if (raygen_program_group != nullptr)
             {
                 optix_check(optixProgramGroupDestroy(raygen_program_group));
+                raygen_program_group = nullptr;
             }
         }
-        for (const auto& miss_program_group :
+        for (auto& miss_program_group :
              m_program_group_sets.miss_program_groups)
         {
             if (miss_program_group != nullptr)
             {
                 optix_check(optixProgramGroupDestroy(miss_program_group));
+                miss_program_group = nullptr;
             }
         }
-        for (const auto& hitgroup_program_group :
+        for (auto& hitgroup_program_group :
              m_program_group_sets.hitgroup_program_groups)
         {
             if (hitgroup_program_group != nullptr)
             {
                 optix_check(optixProgramGroupDestroy(hitgroup_program_group));
+                hitgroup_program_group = nullptr;
             }
         }
 
-        if (m_pipeline != nullptr)
+        if (m_module != nullptr)
         {
-            optix_check(optixPipelineDestroy(m_pipeline));
+            optix_check(optixModuleDestroy(m_module));
+            m_module = nullptr;
         }
-
-        if (m_module != nullptr) { optix_check(optixModuleDestroy(m_module)); }
     }
 
     const ProgramGroupSet& get_program_group_sets() const
