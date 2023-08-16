@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "cuda_util.h"
-#endif
 
 namespace fredholm
 {
@@ -42,7 +41,6 @@ using RayGenSbtRecord = SbtRecord<RayGenSbtRecordData>;
 using MissSbtRecord = SbtRecord<MissSbtRecordData>;
 using HitGroupSbtRecord = SbtRecord<HitGroupSbtRecordData>;
 
-#ifndef __CUDACC__
 struct SbtRecordSet
 {
     CUdeviceptr raygen_records = 0;
@@ -555,6 +553,6 @@ inline IASBuildOutput optix_create_ias(
     return IASBuildOutput{instance_buffer, output_buffer, ias_handle};
 }
 
-#endif
-
 }  // namespace fredholm
+
+#endif
