@@ -1,7 +1,6 @@
 #include <optix.h>
 
 #include "optix/camera.cu"
-#include "optix/util.cu"
 #include "render_strategy/common.cu"
 #include "render_strategy/simple/simple_shared.h"
 #include "shared.h"
