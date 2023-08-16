@@ -342,9 +342,8 @@ extern "C" __global__ void __closesthit__()
         payload->throughput *= f * abs_cos_theta(wi) / pdf;
 
         // advance ray
-        const bool is_transmitted = dot(wi_world, surf_info.n_g) < 0;
-        payload->origin = ray_origin_offset(
-            surf_info.x, is_transmitted ? -surf_info.n_g : surf_info.n_g);
+        payload->origin =
+            ray_origin_offset(surf_info.x, surf_info.n_g, wi_world);
         payload->direction = wi_world;
     }
 }

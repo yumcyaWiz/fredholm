@@ -46,19 +46,23 @@ static __forceinline__ __device__ Payload* get_payload_ptr()
 
 // Ray Tracing Gems Chapter 6
 static __forceinline__ __device__ float3 ray_origin_offset(const float3& p,
-                                                           const float3& n)
+                                                           const float3& n,
+                                                           const float3& wi)
 {
+    // flip normal
+    const float3 t = copysignf(1.0f, dot(wi, n)) * n;
+
     constexpr float origin = 1.0f / 32.0f;
     constexpr float float_scale = 1.0f / 65536.0f;
     constexpr float int_scale = 256.0f;
-    const int3 of_i = make_int3(int_scale * n);
+    const int3 of_i = make_int3(int_scale * t);
     const float3 p_i = make_float3(
         __int_as_float(__float_as_int(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
         __int_as_float(__float_as_int(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
         __int_as_float(__float_as_int(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
-    return make_float3(fabsf(p.x) < origin ? p.x + float_scale * n.x : p_i.x,
-                       fabsf(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
-                       fabsf(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
+    return make_float3(fabsf(p.x) < origin ? p.x + float_scale * t.x : p_i.x,
+                       fabsf(p.y) < origin ? p.y + float_scale * t.y : p_i.y,
+                       fabsf(p.z) < origin ? p.z + float_scale * t.z : p_i.z);
 }
 
 // TODO: need more nice way to suppress firefly
