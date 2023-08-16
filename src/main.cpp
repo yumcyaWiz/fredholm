@@ -49,7 +49,9 @@ int main()
 
     fredholm::SceneGraph scene;
     scene.load_obj("CornellBox-Original.obj");
-    renderer.set_scene(scene);
+
+    fredholm::SceneDevice scene_device;
+    scene_device.send(renderer.get_optix_context(), scene);
 
     fredholm::SimpleStrategy strategy(renderer.get_optix_context());
     renderer.set_render_strategy(&strategy);
@@ -58,7 +60,8 @@ int main()
     constexpr uint32_t width = 512;
     constexpr uint32_t height = 512;
     fredholm::CUDABuffer<float4> beauty_d(width * height);
-    renderer.render(width, height, camera, beauty_d.get_device_ptr());
+    renderer.render(width, height, camera, scene_device,
+                    beauty_d.get_device_ptr());
     renderer.synchronize();
 
     // save image
