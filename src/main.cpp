@@ -51,33 +51,35 @@ int main()
     OptixDeviceContext context =
         fredholm::optix_create_context(device.get_context(), debug);
 
-    // init renderer
-    fredholm::Renderer renderer;
+    {
+        // init renderer
+        fredholm::Renderer renderer;
 
-    fredholm::Camera camera(glm::vec3(0, 1, 2));
+        fredholm::Camera camera(glm::vec3(0, 1, 2));
 
-    fredholm::SceneGraph scene;
-    scene.load_obj("CornellBox-Original.obj");
+        fredholm::SceneGraph scene;
+        scene.load_obj("CornellBox-Original.obj");
 
-    fredholm::SceneDevice scene_device;
-    scene_device.send(context, scene);
+        fredholm::SceneDevice scene_device;
+        scene_device.send(context, scene);
 
-    // fredholm::HelloStrategy strategy(context, debug);
-    fredholm::SimpleStrategy strategy(context, debug);
-    renderer.set_render_strategy(&strategy);
+        // fredholm::HelloStrategy strategy(context, debug);
+        fredholm::SimpleStrategy strategy(context, debug);
+        renderer.set_render_strategy(&strategy);
 
-    // render
-    constexpr uint32_t width = 512;
-    constexpr uint32_t height = 512;
-    fredholm::CUDABuffer<float4> beauty_d(width * height);
-    renderer.render(width, height, camera, scene_device,
-                    beauty_d.get_device_ptr());
-    renderer.synchronize();
+        // render
+        constexpr uint32_t width = 512;
+        constexpr uint32_t height = 512;
+        fredholm::CUDABuffer<float4> beauty_d(width * height);
+        renderer.render(width, height, camera, scene_device,
+                        beauty_d.get_device_ptr());
+        renderer.synchronize();
 
-    // save image
-    std::vector<float4> beauty(width * height);
-    beauty_d.copy_d_to_h(beauty.data());
-    save_png("output.png", width, height, beauty.data());
+        // save image
+        std::vector<float4> beauty(width * height);
+        beauty_d.copy_d_to_h(beauty.data());
+        save_png("output.png", width, height, beauty.data());
+    }
 
     fredholm::optix_check(optixDeviceContextDestroy(context));
 
