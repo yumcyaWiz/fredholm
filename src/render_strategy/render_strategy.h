@@ -10,6 +10,8 @@ namespace fredholm
 
 // TODO: add parameters specific to each strategy
 // TODO: add GUI to change each parameters
+
+// TODO: change AOV based on strategy
 class RenderStrategy
 {
    public:
