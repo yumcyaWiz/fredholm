@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "cuda_util.h"
+#include "render_strategy/hello/hello.h"
 #include "render_strategy/simple/simple.h"
 #include "renderer.h"
 #include "scene.h"
@@ -61,6 +62,7 @@ int main()
     fredholm::SceneDevice scene_device;
     scene_device.send(context, scene);
 
+    // fredholm::HelloStrategy strategy(context, debug);
     fredholm::SimpleStrategy strategy(context, debug);
     renderer.set_render_strategy(&strategy);
 

@@ -37,6 +37,7 @@ add_subdirectory("externals/")
 
 # optix kernel
 add_library(optix_kernel OBJECT
+    "src/render_strategy/hello/hello.cu"
     "src/render_strategy/simple/simple.cu"
 )
 set_target_properties(optix_kernel PROPERTIES
