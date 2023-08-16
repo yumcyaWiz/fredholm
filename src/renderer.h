@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "cuda_util.h"
 #include "optix_util.h"
+#include "render_strategy/render_strategy.h"
 #include "scene.h"
 #include "shared.h"
 
@@ -21,43 +22,6 @@ class Renderer
         constexpr bool debug = true;
 #endif
         context = optix_create_context(cu_context, debug);
-
-        module = optix_create_module(context, "test2.ptx", debug);
-
-        std::vector<ProgramGroupEntry> program_group_entries;
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "rg", module});
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_MISS, "", module});
-        program_group_entries.push_back(
-            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "", module});
-
-        // program_group_entries.push_back(
-        //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "radiance", module});
-        // program_group_entries.push_back(
-        //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "shadow", module});
-        // program_group_entries.push_back(
-        //     {OPTIX_PROGRAM_GROUP_KIND_MISS, "light", module});
-
-        // program_group_entries.push_back(
-        //     {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "radiance", module});
-        // program_group_entries.push_back(
-        //     {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "shadow", module});
-        // program_group_entries.push_back(
-        //     {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "light", module});
-
-        program_group_set =
-            optix_create_program_group(context, program_group_entries);
-
-        constexpr uint32_t max_trace_depth = 2;
-        constexpr uint32_t max_traversal_depth = 2;
-        pipeline =
-            optix_create_pipeline(context, program_group_set, max_trace_depth,
-                                  max_traversal_depth, debug);
-
-        sbt_record_set = optix_create_sbt_records(program_group_set);
-
-        sbt = optix_create_sbt(sbt_record_set);
     }
 
     ~Renderer()
@@ -69,29 +33,13 @@ class Renderer
         cuda_check(cuMemFree(sbt_record_set.miss_records));
         cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
 
-        for (const auto& raygen_program_group :
-             program_group_set.raygen_program_groups)
-        {
-            optix_check(optixProgramGroupDestroy(raygen_program_group));
-        }
-        for (const auto& miss_program_group :
-             program_group_set.miss_program_groups)
-        {
-            optix_check(optixProgramGroupDestroy(miss_program_group));
-        }
-        for (const auto& hitgroup_program_group :
-             program_group_set.hitgroup_program_groups)
-        {
-            optix_check(optixProgramGroupDestroy(hitgroup_program_group));
-        }
-
-        optix_check(optixPipelineDestroy(pipeline));
-
-        optix_check(optixModuleDestroy(module));
-
         optix_check(optixDeviceContextDestroy(context));
     }
 
+    // TODO: maybe optix context could be placed outside renderer?
+    OptixDeviceContext get_optix_context() const { return context; }
+
+    // TODO: move these inside SceneDevice?
     void set_scene(const SceneGraph& scene)
     {
         destroy_ias();
@@ -253,41 +201,45 @@ class Renderer
                                 inverse_transforms.size() * sizeof(Matrix3x4)));
     }
 
+    void set_render_strategy(RenderStrategy* strategy)
+    {
+        m_render_strategy = strategy;
+
+        sbt_record_set = optix_create_sbt_records(
+            m_render_strategy->get_program_group_sets());
+
+        sbt = optix_create_sbt(sbt_record_set);
+    }
+
     void render(uint32_t width, uint32_t height, const Camera& camera,
                 const CUdeviceptr& beauty)
     {
-        LaunchParams params;
-        params.width = width;
-        params.height = height;
+        if (m_render_strategy)
+        {
+            CameraParams camera_params;
+            camera_params.transform =
+                create_mat3x4_from_glm(camera.m_transform);
+            camera_params.fov = camera.m_fov;
+            camera_params.F = camera.m_F;
+            camera_params.focus = camera.m_focus;
 
-        params.camera.transform = create_mat3x4_from_glm(camera.m_transform);
-        params.camera.fov = camera.m_fov;
-        params.camera.F = camera.m_F;
-        params.camera.focus = camera.m_focus;
+            SceneData scene_data;
+            scene_data.vertices = reinterpret_cast<float3*>(vertices_buffer);
+            scene_data.indices = reinterpret_cast<uint3*>(indices_buffer);
+            scene_data.normals = reinterpret_cast<float3*>(normals_buffer);
+            scene_data.texcoords = reinterpret_cast<float2*>(texcoords_buffer);
+            scene_data.indices_offsets =
+                reinterpret_cast<uint*>(indices_offset_buffer);
+            scene_data.geometry_ids =
+                reinterpret_cast<uint*>(geometry_ids_buffer);
+            scene_data.object_to_worlds =
+                reinterpret_cast<Matrix3x4*>(object_to_world_buffer);
+            scene_data.world_to_objects =
+                reinterpret_cast<Matrix3x4*>(world_to_object_buffer);
 
-        params.render_layer.beauty = reinterpret_cast<float4*>(beauty);
-
-        params.ias_handle = ias_build_output.handle;
-
-        params.scene.vertices = reinterpret_cast<float3*>(vertices_buffer);
-        params.scene.indices = reinterpret_cast<uint3*>(indices_buffer);
-        params.scene.normals = reinterpret_cast<float3*>(normals_buffer);
-        params.scene.texcoords = reinterpret_cast<float2*>(texcoords_buffer);
-        params.scene.indices_offsets =
-            reinterpret_cast<uint*>(indices_offset_buffer);
-        params.scene.geometry_ids =
-            reinterpret_cast<uint*>(geometry_ids_buffer);
-        params.scene.object_to_worlds =
-            reinterpret_cast<Matrix3x4*>(object_to_world_buffer);
-        params.scene.world_to_objects =
-            reinterpret_cast<Matrix3x4*>(world_to_object_buffer);
-
-        CUdeviceptr params_buffer;
-        cuda_check(cuMemAlloc(&params_buffer, sizeof(LaunchParams)));
-        cuda_check(cuMemcpyHtoD(params_buffer, &params, sizeof(LaunchParams)));
-
-        optix_check(optixLaunch(pipeline, 0, params_buffer,
-                                sizeof(LaunchParams), &sbt, width, height, 1));
+            m_render_strategy->render(width, height, camera_params, scene_data,
+                                      ias_build_output.handle, sbt, beauty);
+        }
     }
 
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
@@ -382,6 +334,7 @@ class Renderer
     std::vector<GASBuildOutput> gas_build_output;
     IASBuildOutput ias_build_output;
 
+    // TODO: move these inside SceneDevice?
     // global scene data
     CUdeviceptr vertices_buffer = 0;
     CUdeviceptr indices_buffer = 0;
@@ -391,6 +344,8 @@ class Renderer
     CUdeviceptr geometry_ids_buffer = 0;
     CUdeviceptr object_to_world_buffer = 0;
     CUdeviceptr world_to_object_buffer = 0;
+
+    RenderStrategy* m_render_strategy = nullptr;
 };
 
 }  // namespace fredholm

@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "cuda_util.h"
+#include "render_strategy/simple/simple.h"
 #include "renderer.h"
 #include "scene.h"
 #include "stb_image_write.h"
@@ -42,13 +43,16 @@ int main()
     optixInit();
 
     // init renderer
+    fredholm::Renderer renderer(device.get_context());
+
     fredholm::Camera camera(glm::vec3(0, 1, 2));
 
     fredholm::SceneGraph scene;
     scene.load_obj("CornellBox-Original.obj");
-
-    fredholm::Renderer renderer(device.get_context());
     renderer.set_scene(scene);
+
+    fredholm::SimpleStrategy strategy(renderer.get_optix_context());
+    renderer.set_render_strategy(&strategy);
 
     // render
     constexpr uint32_t width = 512;
