@@ -15,27 +15,14 @@ namespace fredholm
 class Renderer
 {
    public:
-    Renderer(CUcontext cu_context)
-    {
-#ifdef NDEBUG
-        constexpr bool debug = false;
-#else
-        constexpr bool debug = true;
-#endif
-        context = optix_create_context(cu_context, debug);
-    }
+    Renderer() {}
 
     ~Renderer()
     {
         cuda_check(cuMemFree(sbt_record_set.raygen_records));
         cuda_check(cuMemFree(sbt_record_set.miss_records));
         cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
-
-        optix_check(optixDeviceContextDestroy(context));
     }
-
-    // TODO: maybe optix context could be placed outside renderer?
-    OptixDeviceContext get_optix_context() const { return context; }
 
     void set_render_strategy(RenderStrategy* strategy)
     {
@@ -68,8 +55,6 @@ class Renderer
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
 
    private:
-    OptixDeviceContext context;
-
     SbtRecordSet sbt_record_set;
     OptixShaderBindingTable sbt;
 

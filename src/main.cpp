@@ -39,11 +39,19 @@ int main()
     fredholm::cuda_check(cuInit(0));
     fredholm::CUDADevice device(0);
 
+#ifndef NDEBUG
+    constexpr bool debug = true;
+#else
+    constexpr bool debug = false;
+#endif
+
     // init OptiX
     optixInit();
+    OptixDeviceContext context =
+        fredholm::optix_create_context(device.get_context(), debug);
 
     // init renderer
-    fredholm::Renderer renderer(device.get_context());
+    fredholm::Renderer renderer;
 
     fredholm::Camera camera(glm::vec3(0, 1, 2));
 
@@ -51,9 +59,9 @@ int main()
     scene.load_obj("CornellBox-Original.obj");
 
     fredholm::SceneDevice scene_device;
-    scene_device.send(renderer.get_optix_context(), scene);
+    scene_device.send(context, scene);
 
-    fredholm::SimpleStrategy strategy(renderer.get_optix_context());
+    fredholm::SimpleStrategy strategy(context, debug);
     renderer.set_render_strategy(&strategy);
 
     // render
@@ -68,6 +76,8 @@ int main()
     std::vector<float4> beauty(width * height);
     beauty_d.copy_d_to_h(beauty.data());
     save_png("output.png", width, height, beauty.data());
+
+    fredholm::optix_check(optixDeviceContextDestroy(context));
 
     return 0;
 }
