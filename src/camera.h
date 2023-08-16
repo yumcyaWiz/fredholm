@@ -19,8 +19,6 @@ enum class CameraMovement
     DOWN,
 };
 
-// TODO: add compiled camera(for device code)
-
 struct Camera
 {
     glm::mat4 m_transform;
