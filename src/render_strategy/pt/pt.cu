@@ -44,9 +44,9 @@ static __forceinline__ __device__ void trace_radiance(
 
 static __forceinline__ __device__ bool has_emission(const Material& material)
 {
-    // return (material.emission_color.x > 0 || material.emission_color.y > 0 ||
-    //         material.emission_color.z > 0 ||
-    //         material.emission_texture_id != -1);
+    return (material.emission_color.x > 0 || material.emission_color.y > 0 ||
+            material.emission_color.z > 0 ||
+            material.emission_texture_id != -1);
 }
 
 static __forceinline__ __device__ float3 get_emission(const Material& material,
@@ -58,6 +58,7 @@ static __forceinline__ __device__ float3 get_emission(const Material& material,
     //                                    .texture_object,
     //                                texcoord.x, texcoord.y))
     //            : material.emission_color;
+    return material.emission_color;
 }
 
 static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
@@ -315,13 +316,13 @@ extern "C" __global__ void __closesthit__()
     // }
 
     // Le
-    // if (has_emission(material))
-    // {
-    //     payload->radiance +=
-    //         payload->throughput * get_emission(material, surf_info.texcoord);
-    //     payload->done = true;
-    //     return;
-    // }
+    if (has_emission(material))
+    {
+        payload->radiance +=
+            payload->throughput * get_emission(material, surf_info.texcoord);
+        payload->done = true;
+        return;
+    }
 
     // init BSDF
     const float3 wo =
