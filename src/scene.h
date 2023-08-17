@@ -623,6 +623,8 @@ class SceneDevice
         std::vector<uint3> indices;
         std::vector<float3> normals;
         std::vector<float2> texcoords;
+        std::vector<Material> materials;
+        std::vector<uint> material_ids;
         std::vector<uint> indices_offset;           // key: geometry id
         std::vector<uint> geometry_ids;             // key: instance id(OptiX)
         std::vector<Matrix3x4> transforms;          // key: instance id(OptiX)
@@ -643,6 +645,11 @@ class SceneDevice
                            geometry->m_normals.end());
             texcoords.insert(texcoords.end(), geometry->m_texcoords.begin(),
                              geometry->m_texcoords.end());
+            materials.insert(materials.end(), geometry->m_materials.begin(),
+                             geometry->m_materials.end());
+            material_ids.insert(material_ids.end(),
+                                geometry->m_material_ids.begin(),
+                                geometry->m_material_ids.end());
 
             transforms.push_back(
                 create_mat3x4_from_glm(compiled_scene.geometry_transforms[i]));
@@ -691,6 +698,16 @@ class SceneDevice
             cuMemAlloc(&texcoords_buffer, texcoords.size() * sizeof(float2)));
         cuda_check(cuMemcpyHtoD(texcoords_buffer, texcoords.data(),
                                 texcoords.size() * sizeof(float2)));
+
+        cuda_check(
+            cuMemAlloc(&materials_buffer, materials.size() * sizeof(Material)));
+        cuda_check(cuMemcpyHtoD(materials_buffer, materials.data(),
+                                materials.size() * sizeof(Material)));
+
+        cuda_check(cuMemAlloc(&material_ids_buffer,
+                              material_ids.size() * sizeof(uint)));
+        cuda_check(cuMemcpyHtoD(material_ids_buffer, material_ids.data(),
+                                material_ids.size() * sizeof(uint)));
 
         cuda_check(cuMemAlloc(&indices_offset_buffer,
                               indices_offset.size() * sizeof(uint)));
@@ -770,6 +787,16 @@ class SceneDevice
             cuda_check(cuMemFree(texcoords_buffer));
             texcoords_buffer = 0;
         }
+        if (materials_buffer != 0)
+        {
+            cuda_check(cuMemFree(materials_buffer));
+            materials_buffer = 0;
+        }
+        if (material_ids_buffer != 0)
+        {
+            cuda_check(cuMemFree(material_ids_buffer));
+            material_ids_buffer = 0;
+        }
         if (indices_offset_buffer != 0)
         {
             cuda_check(cuMemFree(indices_offset_buffer));
@@ -799,6 +826,8 @@ class SceneDevice
     CUdeviceptr indices_buffer = 0;
     CUdeviceptr normals_buffer = 0;
     CUdeviceptr texcoords_buffer = 0;
+    CUdeviceptr materials_buffer = 0;
+    CUdeviceptr material_ids_buffer = 0;
     CUdeviceptr indices_offset_buffer = 0;
     CUdeviceptr geometry_ids_buffer = 0;
     CUdeviceptr object_to_world_buffer = 0;
