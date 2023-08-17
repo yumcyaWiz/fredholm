@@ -28,12 +28,14 @@ class Renderer
     {
         m_render_strategy = strategy;
 
-        // TODO: maybe this could be placed in render strategy?
         sbt_record_set = optix_create_sbt_records(
             m_render_strategy->get_program_group_sets());
         sbt = optix_create_sbt(sbt_record_set);
     }
 
+    // TODO: renderer should have width and height as a member variable?
+    // TODO: renderer should have AOVs as a member variable?
+    // TODO: rendere should manage camera and scene?
     void render(uint32_t width, uint32_t height, const Camera& camera,
                 const SceneDevice& scene, const CUdeviceptr& beauty)
     {
@@ -47,6 +49,7 @@ class Renderer
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
 
    private:
+    // TODO: this could be placed in render strategy?
     SbtRecordSet sbt_record_set;
     OptixShaderBindingTable sbt;
 
