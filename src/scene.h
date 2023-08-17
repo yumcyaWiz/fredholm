@@ -380,6 +380,9 @@ struct GeometryNode : public SceneNode
                     indices.push_back(unique_vertex_indices[vertex]);
                 }
 
+                const int material_id = shapes[s].mesh.material_ids[f];
+                m_material_ids.push_back(material_id);
+
                 index_offset += fv;
             }
         }
@@ -403,6 +406,7 @@ struct GeometryNode : public SceneNode
         spdlog::info("loaded obj file {}", filepath.generic_string());
         spdlog::info("# of vertices: {}", m_vertices.size());
         spdlog::info("# of faces: {}", m_indices.size());
+        spdlog::info("# of materials: {}", m_materials.size());
     }
 
     std::vector<float3> m_vertices = {};
@@ -410,6 +414,7 @@ struct GeometryNode : public SceneNode
     std::vector<float3> m_normals = {};
     std::vector<float2> m_texcoords = {};
     std::vector<Material> m_materials = {};
+    std::vector<uint> m_material_ids = {};  // per face material ids
 };
 
 // always leaf node
