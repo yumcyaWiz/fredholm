@@ -70,8 +70,8 @@ int main()
         renderer.set_render_strategy(&strategy);
 
         // render
-        constexpr uint32_t width = 512;
-        constexpr uint32_t height = 512;
+        constexpr uint32_t width = 1920;
+        constexpr uint32_t height = 1080;
         fredholm::CUDABuffer<float4> beauty_d(width * height);
         renderer.render(width, height, camera, scene_device,
                         beauty_d.get_device_ptr());

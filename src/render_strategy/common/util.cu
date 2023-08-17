@@ -71,6 +71,15 @@ static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
     return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
+static __forceinline__ __device__ Material get_material(const SceneData& scene,
+                                                        uint prim_id,
+                                                        uint geom_id)
+{
+    const uint indices_offset = scene.indices_offsets[geom_id];
+    const uint material_id = scene.material_ids[indices_offset + prim_id];
+    return scene.materials[material_id];
+}
+
 static __forceinline__ __device__ void fill_surface_info(
     const float3& ray_origin, const float3& ray_direction, float ray_tmax,
     const float2& barycentric, const SceneData& scene, uint prim_idx,

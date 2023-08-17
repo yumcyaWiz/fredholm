@@ -254,9 +254,7 @@ extern "C" __global__ void __closesthit__()
     const uint instance_idx = optixGetInstanceIndex();
     const uint geom_id = params.scene.geometry_ids[instance_idx];
 
-    // get material info
-    // const uint material_id = sbt->material_ids[prim_idx];
-    // const Material& material = params.materials[material_id];
+    const Material material = get_material(params.scene, prim_idx, geom_id);
 
     const float3 ray_origin = optixGetWorldRayOrigin();
     const float3 ray_direction = optixGetWorldRayDirection();
@@ -268,7 +266,7 @@ extern "C" __global__ void __closesthit__()
                       params.scene, prim_idx, instance_idx, geom_id, surf_info);
 
     ShadingParams shading_params;
-    shading_params.base_color = make_float3(0.9f);
+    shading_params.base_color = material.base_color;
     // fill_shading_params(material, surf_info, params.textures,
     // shading_params);
 

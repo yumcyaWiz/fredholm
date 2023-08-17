@@ -62,8 +62,8 @@ class PtStrategy : public RenderStrategy
     }
 
    private:
-    uint32_t n_samples = 100;
-    uint32_t max_depth = 10;
+    uint32_t n_samples = 512;
+    uint32_t max_depth = 100;
     uint32_t seed = 1;
     CUdeviceptr sample_count = 0;
 };

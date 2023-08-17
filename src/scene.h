@@ -547,6 +547,8 @@ class SceneDevice
     CUdeviceptr get_indices() const { return indices_buffer; }
     CUdeviceptr get_normals() const { return normals_buffer; }
     CUdeviceptr get_texcoords() const { return texcoords_buffer; }
+    CUdeviceptr get_materials() const { return materials_buffer; }
+    CUdeviceptr get_material_ids() const { return material_ids_buffer; }
     CUdeviceptr get_indices_offset() const { return indices_offset_buffer; }
     CUdeviceptr get_geometry_ids() const { return geometry_ids_buffer; }
     CUdeviceptr get_object_to_worlds() const { return object_to_world_buffer; }

@@ -241,12 +241,15 @@ struct RenderLayer
     float4* albedo;
 };
 
+// TODO: maybe this could be removed and use SceneDevice instead?
 struct SceneData
 {
     float3* vertices;
     uint3* indices;
     float3* normals;
     float2* texcoords;
+    Material* materials;
+    uint* material_ids;
     uint* indices_offsets;
     uint* geometry_ids;
     Matrix3x4* object_to_worlds;

@@ -95,6 +95,10 @@ class RenderStrategy
         scene_data.indices = reinterpret_cast<uint3*>(scene.get_indices());
         scene_data.normals = reinterpret_cast<float3*>(scene.get_normals());
         scene_data.texcoords = reinterpret_cast<float2*>(scene.get_texcoords());
+        scene_data.materials =
+            reinterpret_cast<Material*>(scene.get_materials());
+        scene_data.material_ids =
+            reinterpret_cast<uint*>(scene.get_material_ids());
         scene_data.indices_offsets =
             reinterpret_cast<uint*>(scene.get_indices_offset());
         scene_data.geometry_ids =
