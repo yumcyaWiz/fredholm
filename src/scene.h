@@ -115,6 +115,182 @@ struct GeometryNode : public SceneNode
 
         const auto& attrib = reader.GetAttrib();
         const auto& shapes = reader.GetShapes();
+        const auto& tinyobj_materials = reader.GetMaterials();
+
+        const auto parse_float = [](const std::string& str)
+        { return std::stof(str); };
+        const auto parse_float3 = [](const std::string& str)
+        {
+            // split string by space
+            std::vector<std::string> tokens;
+            std::stringstream ss(str);
+            std::string buf;
+            while (std::getline(ss, buf, ' '))
+            {
+                if (!buf.empty()) { tokens.emplace_back(buf); }
+            }
+
+            if (tokens.size() != 3)
+            {
+                spdlog::error("invalid vec3 string");
+                std::exit(EXIT_FAILURE);
+            }
+
+            // string to float conversion
+            return make_float3(std::stof(tokens[0]), std::stof(tokens[1]),
+                               std::stof(tokens[2]));
+        };
+
+        // load materials
+        for (int i = 0; i < tinyobj_materials.size(); ++i)
+        {
+            const auto& m = tinyobj_materials[i];
+
+            Material mat;
+
+            // diffuse
+            if (m.unknown_parameter.count("diffuse"))
+            {
+                mat.diffuse = parse_float(m.unknown_parameter.at("diffuse"));
+            }
+
+            // diffuse roughness
+            if (m.unknown_parameter.count("diffuse_roughness"))
+            {
+                mat.diffuse_roughness =
+                    parse_float(m.unknown_parameter.at("diffuse_roughness"));
+            }
+
+            // base color
+            mat.base_color =
+                make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
+
+            // base color(texture)
+            if (!m.diffuse_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            // specular color
+            mat.specular_color =
+                make_float3(m.specular[0], m.specular[1], m.specular[2]);
+
+            // specular color(texture)
+            if (!m.specular_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            // specular roughness
+            if (m.roughness > 0.0f) { mat.specular_roughness = m.roughness; }
+
+            // specular roughness(texture)
+            if (!m.roughness_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            // metalness
+            mat.metalness = m.metallic;
+
+            // metalness(texture)
+            if (!m.metallic_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            // coat
+            if (m.clearcoat_thickness > 0.0f)
+            {
+                mat.coat = m.clearcoat_thickness;
+            }
+
+            // coat roughness
+            if (m.clearcoat_roughness > 0.0f)
+            {
+                mat.coat_roughness = m.clearcoat_roughness;
+            }
+
+            // transmission
+            mat.transmission = std::max(1.0f - m.dissolve, 0.0f);
+
+            // transmission color
+            if (m.transmittance[0] > 0.0f || m.transmittance[0] > 0.0f ||
+                m.transmittance[2] > 0.0f)
+            {
+                mat.transmission_color = make_float3(
+                    m.transmittance[0], m.transmittance[1], m.transmittance[2]);
+            }
+
+            // sheen
+            if (m.unknown_parameter.count("sheen"))
+            {
+                mat.sheen = parse_float(m.unknown_parameter.at("sheen"));
+            }
+
+            // sheen color
+            if (m.unknown_parameter.count("sheen_color"))
+            {
+                mat.sheen_color =
+                    parse_float3(m.unknown_parameter.at("sheen_color"));
+            }
+
+            // sheen roughness
+            if (m.unknown_parameter.count("sheen_roughness"))
+            {
+                mat.sheen_roughness =
+                    parse_float(m.unknown_parameter.at("sheen_roughness"));
+            }
+
+            // subsurface
+            if (m.unknown_parameter.count("subsurface"))
+            {
+                mat.subsurface =
+                    parse_float(m.unknown_parameter.at("subsurface"));
+            }
+
+            // subsurface color
+            if (m.unknown_parameter.count("subsurface_color"))
+            {
+                mat.subsurface_color =
+                    parse_float3(m.unknown_parameter.at("subsurface_color"));
+            }
+
+            // thin walled
+            if (m.unknown_parameter.count("thin_walled"))
+            {
+                mat.thin_walled =
+                    parse_float(m.unknown_parameter.at("thin_walled"));
+            }
+
+            // emission
+            if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0)
+            {
+                mat.emission = 1.0f;
+                mat.emission_color =
+                    make_float3(m.emission[0], m.emission[1], m.emission[2]);
+            }
+
+            // height map texture
+            if (!m.bump_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            // normal map texture
+            if (!m.normal_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            // alpha texture
+            if (!m.alpha_texname.empty())
+            {
+                // TODO: implement
+            }
+
+            m_materials.push_back(mat);
+        }
 
         std::vector<Vertex> unique_vertices = {};
         std::unordered_map<Vertex, uint32_t> unique_vertex_indices = {};
@@ -233,6 +409,7 @@ struct GeometryNode : public SceneNode
     std::vector<uint3> m_indices = {};
     std::vector<float3> m_normals = {};
     std::vector<float2> m_texcoords = {};
+    std::vector<Material> m_materials = {};
 };
 
 // always leaf node
