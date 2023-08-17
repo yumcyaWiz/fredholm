@@ -10,6 +10,7 @@
 #include "helper_math.h"
 #include "shared.h"
 #include "spdlog/spdlog.h"
+#include "stb_image.h"
 #include "tiny_obj_loader.h"
 #include "util.h"
 
@@ -48,6 +49,57 @@ struct hash<fredholm::Vertex>
 
 namespace fredholm
 {
+
+enum class ColorSpace
+{
+    SRGB,
+    LINEAR,
+};
+
+class Texture
+{
+   public:
+    Texture() {}
+    Texture(const std::filesystem::path& filepath,
+            const ColorSpace& color_space)
+        : color_space(color_space)
+    {
+        load(filepath);
+    }
+
+   private:
+    void load(const std::filesystem::path& filepath)
+    {
+        int w, h, c;
+        stbi_set_flip_vertically_on_load(true);
+        unsigned char* img =
+            stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
+        if (!img)
+        {
+            throw std::runtime_error(std::format("failed to load texture {}\n",
+                                                 filepath.generic_string()));
+        }
+
+        width = w;
+        height = h;
+
+        data.resize(width * height);
+        for (int i = 0; i < width * height; ++i)
+        {
+            data[i].x = img[4 * i + 0];
+            data[i].y = img[4 * i + 1];
+            data[i].z = img[4 * i + 2];
+            data[i].w = img[4 * i + 3];
+        }
+
+        stbi_image_free(img);
+    }
+
+    uint32_t width = 0;
+    uint32_t height = 0;
+    std::vector<uchar4> data = {};
+    ColorSpace color_space = ColorSpace::SRGB;
+};
 
 enum class SceneNodeType
 {
@@ -415,6 +467,7 @@ struct GeometryNode : public SceneNode
     std::vector<float2> m_texcoords = {};
     std::vector<Material> m_materials = {};
     std::vector<uint> m_material_ids = {};  // per face material ids
+    std::vector<Texture> m_textures = {};
 };
 
 // always leaf node

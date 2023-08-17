@@ -71,6 +71,7 @@ static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
     return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
+// TODO: remove double fetch of indices_offset
 static __forceinline__ __device__ Material get_material(const SceneData& scene,
                                                         uint prim_id,
                                                         uint geom_id)
