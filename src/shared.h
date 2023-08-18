@@ -367,46 +367,6 @@ struct SceneData
     Matrix3x4* world_to_objects;
 };
 
-// TODO: remove this
-struct LaunchParams
-{
-    RenderLayer render_layer;
-    // uint* sample_count;
-    // uint seed;
-
-    uint width;
-    uint height;
-    // uint n_samples;
-    // uint max_depth;
-
-    CameraParams camera;
-
-    SceneData scene;
-
-    // Matrix3x4* object_to_world;
-    // Matrix3x4* world_to_object;
-
-    // float3* vertices;
-    // float3* normals;
-    // float2* texcoords;
-
-    // Material* materials;
-    // TextureHeader* textures;
-
-    // AreaLight* lights;
-    // uint n_lights;
-
-    // DirectionalLight* directional_light;
-
-    // float sky_intensity;
-    // float3 bg_color;
-    // cudaTextureObject_t ibl;
-    // float3 sun_direction;
-    // ArHosekSkyModelState* arhosek;
-
-    OptixTraversableHandle ias_handle;
-};
-
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
 static CUDA_INLINE CUDA_HOST_DEVICE uint pcg32_random_r(PCGState* rng)
