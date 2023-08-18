@@ -264,8 +264,8 @@ extern "C" __global__ void __closesthit__()
     const float2 barycentric = optixGetTriangleBarycentrics();
 
     SurfaceInfo surf_info(ray_origin, ray_direction, ray_tmax, barycentric,
-                          params.scene, prim_idx, indices_offset, instance_idx,
-                          geom_id);
+                          params.scene, material, prim_idx, indices_offset,
+                          instance_idx, geom_id);
 
     ShadingParams shading_params(material, surf_info.texcoord,
                                  params.scene.textures);

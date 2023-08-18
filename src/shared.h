@@ -264,7 +264,8 @@ struct SurfaceInfo
     CUDA_INLINE CUDA_DEVICE SurfaceInfo(const float3& origin,
                                         const float3& direction, float tmax,
                                         const float2& barycentric,
-                                        const SceneData& scene, uint prim_idx,
+                                        const SceneData& scene,
+                                        const Material& material, uint prim_idx,
                                         uint indices_offset, uint instance_idx,
                                         uint geom_id)
     {
@@ -310,6 +311,8 @@ struct SurfaceInfo
 
         // compute tangent and bitangent vector
         orthonormal_basis(n_s, tangent, bitangent);
+
+        normal_mapping(scene.textures, material);
     }
 
    private:
