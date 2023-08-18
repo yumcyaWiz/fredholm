@@ -172,6 +172,19 @@ struct TextureHeader
     uint width;
     uint height;
     CUdeviceptr data;
+
+    CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const
+    {
+        const int i = clamp(static_cast<int>(uv.x * width), 0,
+                            static_cast<int>(width - 1));
+        const int j = clamp(static_cast<int>(uv.y * height), 0,
+                            static_cast<int>(height - 1));
+
+        const uint4* ptr = reinterpret_cast<const uint4*>(data);
+        const uint4 v = ptr[j * width + i];
+        constexpr float c = 1.0f / 255.0f;
+        return make_float4(c * v.x, c * v.y, c * v.z, c * v.w);
+    }
 };
 
 struct AreaLight
