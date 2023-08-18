@@ -173,6 +173,7 @@ struct TextureHeader
     uint height;
     CUdeviceptr data;
 
+    // TODO: implement interpolation
     CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const
     {
         const int i = clamp(static_cast<int>(uv.x * width), 0,
@@ -243,6 +244,101 @@ struct ShadingParams
     float3 subsurface_color = make_float3(1.0f, 1.0f, 1.0f);
 
     float thin_walled = 0.0f;
+
+    CUDA_DEVICE ShadingParams(const Material& material, const SurfaceInfo& info,
+                              const TextureHeader* textures)
+    {
+        // diffuse
+        diffuse = material.diffuse;
+
+        // diffuse roughness
+        diffuse_roughness = material.diffuse_roughness;
+
+        // diffuse color
+        base_color = material.base_color;
+        if (material.base_color_texture_id >= 0)
+        {
+            base_color = make_float3(
+                textures[material.base_color_texture_id].sample(info.texcoord));
+        }
+
+        // specular
+        specular = material.specular;
+
+        // specular color
+        specular_color = material.specular_color;
+        if (material.specular_color_texture_id >= 0)
+        {
+            specular_color =
+                make_float3(textures[material.specular_color_texture_id].sample(
+                    info.texcoord));
+        }
+
+        // specular roughness
+        specular_roughness = material.specular_roughness;
+        if (material.specular_roughness_texture_id >= 0)
+        {
+            specular_roughness =
+                textures[material.specular_roughness_texture_id]
+                    .sample(info.texcoord)
+                    .x;
+        }
+
+        // metalness
+        metalness = material.metalness;
+        if (material.metalness_texture_id >= 0)
+        {
+            metalness =
+                textures[material.metalness_texture_id].sample(info.texcoord).x;
+        }
+
+        // metallic roughness
+        if (material.metallic_roughness_texture_id >= 0)
+        {
+            const float4 mr =
+                textures[material.metallic_roughness_texture_id].sample(
+                    info.texcoord);
+            specular_roughness = clamp(mr.y, 0.01f, 1.0f);
+            metalness = clamp(mr.z, 0.0f, 1.0f);
+        }
+
+        // coat
+        coat = material.coat;
+        if (material.coat_texture_id >= 0)
+        {
+            coat = textures[material.coat_texture_id].sample(info.texcoord).x;
+        }
+
+        // coat roughness
+        coat_roughness = material.coat_roughness;
+        if (material.coat_roughness_texture_id >= 0)
+        {
+            coat_roughness = textures[material.coat_roughness_texture_id]
+                                 .sample(info.texcoord)
+                                 .x;
+        }
+
+        // transmission
+        transmission = material.transmission;
+
+        // transmission color
+        transmission_color = material.transmission_color;
+
+        // sheen
+        sheen = material.sheen;
+
+        // sheen roughness
+        sheen_roughness = material.sheen_roughness;
+
+        // subsurface
+        subsurface = material.subsurface;
+
+        // subsurface color
+        subsurface_color = material.subsurface_color;
+
+        // thin walled
+        thin_walled = material.thin_walled;
+    }
 };
 
 struct RenderLayer
@@ -263,6 +359,7 @@ struct SceneData
     float3* normals;
     float2* texcoords;
     Material* materials;
+    TextureHeader* textures;
     uint* material_ids;
     uint* indices_offsets;
     uint* geometry_ids;

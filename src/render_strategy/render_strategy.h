@@ -99,6 +99,8 @@ class RenderStrategy
             reinterpret_cast<Material*>(scene.get_materials());
         scene_data.material_ids =
             reinterpret_cast<uint*>(scene.get_material_ids());
+        scene_data.textures =
+            reinterpret_cast<TextureHeader*>(scene.get_textures());
         scene_data.indices_offsets =
             reinterpret_cast<uint*>(scene.get_indices_offset());
         scene_data.geometry_ids =

@@ -266,8 +266,7 @@ extern "C" __global__ void __closesthit__()
     fill_surface_info(ray_origin, ray_direction, ray_tmax, barycentric,
                       params.scene, prim_idx, instance_idx, geom_id, surf_info);
 
-    ShadingParams shading_params;
-    shading_params.base_color = material.base_color;
+    ShadingParams shading_params(material, surf_info, params.scene.textures);
     // fill_shading_params(material, surf_info, params.textures,
     // shading_params);
 
