@@ -41,8 +41,8 @@ int main()
         scene_device.send(context, scene);
 
         // fredholm::HelloStrategy strategy(context, debug);
-        // fredholm::SimpleStrategy strategy(context, debug);
-        fredholm::PtStrategy strategy(context, debug);
+        fredholm::SimpleStrategy strategy(context, debug);
+        // fredholm::PtStrategy strategy(context, debug);
         renderer.set_render_strategy(&strategy);
 
         // render
