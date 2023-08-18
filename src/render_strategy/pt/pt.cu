@@ -267,51 +267,8 @@ extern "C" __global__ void __closesthit__()
                           params.scene, prim_idx, indices_offset, instance_idx,
                           geom_id);
 
-    ShadingParams shading_params(material, surf_info, params.scene.textures);
-
-    float3 tangent = surf_info.tangent;
-    float3 normal = surf_info.n_s;
-    float3 bitangent = surf_info.bitangent;
-
-    // bump mapping(with height map)
-    // if (material.heightmap_texture_id >= 0)
-    // {
-    //     const TextureHeader& heightmap =
-    //         params.textures[material.heightmap_texture_id];
-    //     const float du = 1.0f / heightmap.size.x;
-    //     const float dv = 1.0f / heightmap.size.y;
-    //     const float v =
-    //         tex2D<float4>(heightmap.texture_object, surf_info.texcoord.x,
-    //                       surf_info.texcoord.y)
-    //             .x;
-    //     const float dfdu =
-    //         (tex2D<float4>(heightmap.texture_object, surf_info.texcoord.x +
-    //         du,
-    //                        surf_info.texcoord.y)
-    //              .x -
-    //          v);
-    //     const float dfdv =
-    //         (tex2D<float4>(heightmap.texture_object, surf_info.texcoord.x,
-    //                        surf_info.texcoord.y + dv)
-    //              .x -
-    //          v);
-    //     tangent = normalize(surf_info.tangent + dfdu * surf_info.n_s);
-    //     bitangent = normalize(surf_info.bitangent + dfdv * surf_info.n_s);
-    //     normal = normalize(cross(tangent, bitangent));
-    // }
-
-    // normal mapping
-    // if (material.normalmap_texture_id >= 0)
-    // {
-    //     float3 value = make_float3(tex2D<float4>(
-    //         params.textures[material.normalmap_texture_id].texture_object,
-    //         surf_info.texcoord.x, surf_info.texcoord.y));
-    //     value = 2.0f * value - 1.0f;
-    //     normal = normalize(local_to_world(value, surf_info.tangent,
-    //                                       surf_info.bitangent,
-    //                                       surf_info.n_s));
-    //     orthonormal_basis(normal, tangent, bitangent);
-    // }
+    ShadingParams shading_params(material, surf_info.texcoord,
+                                 params.scene.textures);
 
     // Le
     if (has_emission(material))
@@ -323,8 +280,8 @@ extern "C" __global__ void __closesthit__()
     }
 
     // init BSDF
-    const float3 wo =
-        world_to_local(-ray_direction, tangent, normal, bitangent);
+    const float3 wo = world_to_local(-ray_direction, surf_info.tangent,
+                                     surf_info.n_s, surf_info.bitangent);
     const BSDF bsdf = BSDF(wo, shading_params, surf_info.is_entering);
 
     // generate next ray direction
@@ -333,7 +290,8 @@ extern "C" __global__ void __closesthit__()
         float pdf;
         const float3 wi = bsdf.sample(wo, sample_1d(payload->sampler),
                                       sample_2d(payload->sampler), f, pdf);
-        const float3 wi_world = local_to_world(wi, tangent, normal, bitangent);
+        const float3 wi_world = local_to_world(
+            wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
 
         // update throughput
         payload->throughput *= f * abs_cos_theta(wi) / pdf;

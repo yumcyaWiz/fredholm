@@ -81,6 +81,20 @@ CUDA_INLINE CUDA_HOST_DEVICE void orthonormal_basis(const float3& normal,
     bitangent = make_float3(b, sign + normal.y * normal.y * a, -normal.y);
 }
 
+CUDA_INLINE CUDA_DEVICE float3 world_to_local(const float3& v, const float3& t,
+                                              const float3& n, const float3& b)
+{
+    return make_float3(dot(v, t), dot(v, n), dot(v, b));
+}
+
+CUDA_INLINE CUDA_DEVICE float3 local_to_world(const float3& v, const float3& t,
+                                              const float3& n, const float3& b)
+{
+    return make_float3(v.x * t.x + v.y * n.x + v.z * b.x,
+                       v.x * t.y + v.y * n.y + v.z * b.y,
+                       v.x * t.z + v.y * n.z + v.z * b.z);
+}
+
 enum class RayType : unsigned int
 {
     RAY_TYPE_RADIANCE = 0,
@@ -245,13 +259,14 @@ struct SurfaceInfo
     float3 bitangent = make_float3(0, 0, 0);  // bitangent vector in world space
     bool is_entering = true;
 
-    CUDA_DEVICE SurfaceInfo() {}
+    CUDA_INLINE CUDA_DEVICE SurfaceInfo() {}
 
-    CUDA_DEVICE SurfaceInfo(const float3& origin, const float3& direction,
-                            float tmax, const float2& barycentric,
-                            const SceneData& scene, uint prim_idx,
-                            uint indices_offset, uint instance_idx,
-                            uint geom_id)
+    CUDA_INLINE CUDA_DEVICE SurfaceInfo(const float3& origin,
+                                        const float3& direction, float tmax,
+                                        const float2& barycentric,
+                                        const SceneData& scene, uint prim_idx,
+                                        uint indices_offset, uint instance_idx,
+                                        uint geom_id)
     {
         this->t = tmax;
         this->barycentric = barycentric;
@@ -297,6 +312,40 @@ struct SurfaceInfo
 
         orthonormal_basis(n_s, tangent, bitangent);
     }
+
+   private:
+    CUDA_INLINE CUDA_DEVICE void bump_mapping(const TextureHeader* textures,
+                                              const Material& material)
+    {
+        if (material.heightmap_texture_id >= 0)
+        {
+            const TextureHeader& heightmap =
+                textures[material.heightmap_texture_id];
+            const float du = 1.0f / heightmap.width;
+            const float dv = 1.0f / heightmap.height;
+            const float v = heightmap.sample(texcoord).x;
+            const float dfdu =
+                heightmap.sample(texcoord + make_float2(du, 0)).x - v;
+            const float dfdv =
+                heightmap.sample(texcoord + make_float2(0, dv)).x - v;
+            tangent = normalize(tangent + dfdu * n_s);
+            bitangent = normalize(bitangent + dfdv * n_s);
+            n_s = normalize(cross(tangent, bitangent));
+        }
+    }
+
+    CUDA_INLINE CUDA_DEVICE void normal_mapping(const TextureHeader* textures,
+                                                const Material& material)
+    {
+        if (material.normalmap_texture_id >= 0)
+        {
+            float3 v = make_float3(
+                textures[material.normalmap_texture_id].sample(texcoord));
+            v = 2.0f * v - 1.0f;
+            n_s = normalize(local_to_world(v, tangent, bitangent, n_s));
+            orthonormal_basis(n_s, tangent, bitangent);
+        }
+    }
 };
 
 // TODO: move this under render_strategy/common
@@ -328,7 +377,7 @@ struct ShadingParams
 
     float thin_walled = 0.0f;
 
-    CUDA_DEVICE ShadingParams(const Material& material, const SurfaceInfo& info,
+    CUDA_DEVICE ShadingParams(const Material& material, const float2& texcoord,
                               const TextureHeader* textures)
     {
         // diffuse
@@ -342,7 +391,7 @@ struct ShadingParams
         if (material.base_color_texture_id >= 0)
         {
             base_color = make_float3(
-                textures[material.base_color_texture_id].sample(info.texcoord));
+                textures[material.base_color_texture_id].sample(texcoord));
         }
 
         // specular
@@ -352,9 +401,8 @@ struct ShadingParams
         specular_color = material.specular_color;
         if (material.specular_color_texture_id >= 0)
         {
-            specular_color =
-                make_float3(textures[material.specular_color_texture_id].sample(
-                    info.texcoord));
+            specular_color = make_float3(
+                textures[material.specular_color_texture_id].sample(texcoord));
         }
 
         // specular roughness
@@ -363,7 +411,7 @@ struct ShadingParams
         {
             specular_roughness =
                 textures[material.specular_roughness_texture_id]
-                    .sample(info.texcoord)
+                    .sample(texcoord)
                     .x;
         }
 
@@ -372,7 +420,7 @@ struct ShadingParams
         if (material.metalness_texture_id >= 0)
         {
             metalness =
-                textures[material.metalness_texture_id].sample(info.texcoord).x;
+                textures[material.metalness_texture_id].sample(texcoord).x;
         }
 
         // metallic roughness
@@ -380,7 +428,7 @@ struct ShadingParams
         {
             const float4 mr =
                 textures[material.metallic_roughness_texture_id].sample(
-                    info.texcoord);
+                    texcoord);
             specular_roughness = clamp(mr.y, 0.01f, 1.0f);
             metalness = clamp(mr.z, 0.0f, 1.0f);
         }
@@ -389,16 +437,15 @@ struct ShadingParams
         coat = material.coat;
         if (material.coat_texture_id >= 0)
         {
-            coat = textures[material.coat_texture_id].sample(info.texcoord).x;
+            coat = textures[material.coat_texture_id].sample(texcoord).x;
         }
 
         // coat roughness
         coat_roughness = material.coat_roughness;
         if (material.coat_roughness_texture_id >= 0)
         {
-            coat_roughness = textures[material.coat_roughness_texture_id]
-                                 .sample(info.texcoord)
-                                 .x;
+            coat_roughness =
+                textures[material.coat_roughness_texture_id].sample(texcoord).x;
         }
 
         // transmission
