@@ -4,6 +4,7 @@
 #include "lut.cu"
 #include "math.cu"
 #include "shared.h"
+#include "util.cu"
 
 class BSDF
 {
