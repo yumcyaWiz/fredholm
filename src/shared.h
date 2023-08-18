@@ -272,7 +272,6 @@ struct SurfaceInfo
         this->barycentric = barycentric;
 
         const uint3 idx = scene.indices[indices_offset + prim_idx];
-
         const Matrix3x4& object_to_world = scene.object_to_worlds[instance_idx];
         const Matrix3x4& world_to_object = scene.world_to_objects[instance_idx];
 
@@ -282,26 +281,25 @@ struct SurfaceInfo
             transform_position(object_to_world, scene.vertices[idx.y]);
         const float3 v2 =
             transform_position(object_to_world, scene.vertices[idx.z]);
-
         // surface based robust hit position, Ray Tracing Gems Chapter 6
         x = (1.0f - barycentric.x - barycentric.y) * v0 + barycentric.x * v1 +
             barycentric.y * v2;
         n_g = normalize(cross(v1 - v0, v2 - v0));
 
+        // shading normal
         const float3 n0 =
             transform_normal(world_to_object, scene.normals[idx.x]);
         const float3 n1 =
             transform_normal(world_to_object, scene.normals[idx.y]);
         const float3 n2 =
             transform_normal(world_to_object, scene.normals[idx.z]);
-
         n_s = normalize((1.0f - barycentric.x - barycentric.y) * n0 +
                         barycentric.x * n1 + barycentric.y * n2);
 
+        // texcoord
         const float2 tex0 = scene.texcoords[idx.x];
         const float2 tex1 = scene.texcoords[idx.y];
         const float2 tex2 = scene.texcoords[idx.z];
-
         texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                    barycentric.x * tex1 + barycentric.y * tex2;
 
@@ -310,6 +308,7 @@ struct SurfaceInfo
         n_s = is_entering ? n_s : -n_s;
         n_g = is_entering ? n_g : -n_g;
 
+        // compute tangent and bitangent vector
         orthonormal_basis(n_s, tangent, bitangent);
     }
 
