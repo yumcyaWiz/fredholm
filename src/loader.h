@@ -74,6 +74,7 @@ class SceneLoader
         std::vector<float2> m_texcoords = {};
         std::vector<Material> m_materials = {};
         std::vector<uint> m_material_ids = {};
+        std::vector<Texture> m_textures = {};
 
         tinyobj::ObjReaderConfig reader_config;
         reader_config.triangulate = true;
@@ -97,6 +98,25 @@ class SceneLoader
         const auto& attrib = reader.GetAttrib();
         const auto& shapes = reader.GetShapes();
         const auto& tinyobj_materials = reader.GetMaterials();
+
+        // load material and textures
+        // key: texture filepath, value: texture id in m_textures
+        std::unordered_map<std::string, unsigned int> unique_textures = {};
+
+        const auto load_texture =
+            [&](const std::filesystem::path& parent_filepath,
+                const std::filesystem::path& filepath,
+                const ColorSpace& color_space)
+        {
+            if (unique_textures.count(filepath) == 0)
+            {
+                // load texture id
+                unique_textures[filepath] = m_textures.size();
+                // load texture
+                m_textures.push_back(
+                    Texture(parent_filepath / filepath, color_space));
+            }
+        };
 
         const auto parse_float = [](const std::string& str)
         { return std::stof(str); };
@@ -149,7 +169,7 @@ class SceneLoader
             // base color(texture)
             if (!m.diffuse_texname.empty())
             {
-                // TODO: implement
+                mat.base_color_texture_id = unique_textures[m.diffuse_texname];
             }
 
             // specular color
@@ -159,7 +179,8 @@ class SceneLoader
             // specular color(texture)
             if (!m.specular_texname.empty())
             {
-                // TODO: implement
+                mat.specular_color_texture_id =
+                    unique_textures[m.specular_texname];
             }
 
             // specular roughness
@@ -168,7 +189,8 @@ class SceneLoader
             // specular roughness(texture)
             if (!m.roughness_texname.empty())
             {
-                // TODO: implement
+                mat.specular_roughness_texture_id =
+                    unique_textures[m.roughness_texname];
             }
 
             // metalness
@@ -177,7 +199,7 @@ class SceneLoader
             // metalness(texture)
             if (!m.metallic_texname.empty())
             {
-                // TODO: implement
+                mat.metalness_texture_id = unique_textures[m.metallic_texname];
             }
 
             // coat
@@ -255,19 +277,19 @@ class SceneLoader
             // height map texture
             if (!m.bump_texname.empty())
             {
-                // TODO: implement
+                mat.heightmap_texture_id = unique_textures[m.bump_texname];
             }
 
             // normal map texture
             if (!m.normal_texname.empty())
             {
-                // TODO: implement
+                mat.normalmap_texture_id = unique_textures[m.normal_texname];
             }
 
             // alpha texture
             if (!m.alpha_texname.empty())
             {
-                // TODO: implement
+                mat.alpha_texture_id = unique_textures[m.alpha_texname];
             }
 
             m_materials.push_back(mat);
