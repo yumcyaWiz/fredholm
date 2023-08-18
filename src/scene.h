@@ -34,6 +34,8 @@ class Texture
         // load(filepath);
     }
 
+    std::filesystem::path get_filepath() const { return filepath; }
+
    private:
     // void load(const std::filesystem::path& filepath)
     // {
@@ -126,13 +128,15 @@ class GeometryNode : public SceneNode
                  const std::vector<float3>& normals,
                  const std::vector<float2>& texcoords,
                  const std::vector<Material>& materials,
-                 const std::vector<uint>& material_ids)
+                 const std::vector<uint>& material_ids,
+                 const std::vector<Texture>& textures)
         : m_vertices(vertices),
           m_indices(indices),
           m_normals(normals),
           m_texcoords(texcoords),
           m_materials(materials),
-          m_material_ids(material_ids)
+          m_material_ids(material_ids),
+          m_textures(textures)
     {
         name = "GeometryNode";
         type = SceneNodeType::GEOMETRY;
@@ -144,6 +148,7 @@ class GeometryNode : public SceneNode
     const std::vector<float2>& get_texcoords() const { return m_texcoords; }
     const std::vector<Material>& get_materials() const { return m_materials; }
     const std::vector<uint>& get_material_ids() const { return m_material_ids; }
+    const std::vector<Texture>& get_textures() const { return m_textures; }
 
    private:
     std::vector<float3> m_vertices = {};
@@ -152,6 +157,7 @@ class GeometryNode : public SceneNode
     std::vector<float2> m_texcoords = {};
     std::vector<Material> m_materials = {};
     std::vector<uint> m_material_ids = {};  // per face material ids
+    std::vector<Texture> m_textures = {};
 };
 
 // always leaf node
@@ -395,6 +401,7 @@ class SceneDevice
                                 geometry->get_material_ids().begin(),
                                 geometry->get_material_ids().end());
 
+            // load transforms
             transforms.push_back(
                 create_mat3x4_from_glm(compiled_scene.geometry_transforms[i]));
             inverse_transforms.push_back(create_mat3x4_from_glm(
@@ -419,6 +426,38 @@ class SceneDevice
                 create_mat3x4_from_glm(compiled_scene.instance_transforms[i]));
             inverse_transforms.push_back(create_mat3x4_from_glm(
                 glm::inverse(compiled_scene.instance_transforms[i])));
+        }
+
+        // load textures on device
+        std::vector<TextureHeader> texture_headers;
+        for (const auto& geometry : compiled_scene.geometry_nodes)
+        {
+            for (const auto& texture : geometry->get_textures())
+            {
+                TextureHeader header;
+
+                // load texture on host
+                int w, h, c;
+                stbi_set_flip_vertically_on_load(true);
+                unsigned char* img = stbi_load(texture.get_filepath().c_str(),
+                                               &w, &h, &c, STBI_rgb_alpha);
+                if (c != 4)
+                {
+                    throw std::runtime_error(
+                        std::format("texture {} is not RGBA\n",
+                                    texture.get_filepath().generic_string()));
+                }
+                header.width = w;
+                header.height = h;
+
+                // load texture on device
+                cuda_check(cuMemAlloc(&header.data, w * h * sizeof(uint4)));
+                cuda_check(
+                    cuMemcpyHtoD(header.data, img, w * h * sizeof(uint4)));
+                stbi_image_free(img);
+
+                texture_headers.push_back(header);
+            }
         }
 
         // allocate scene data on device
@@ -452,6 +491,16 @@ class SceneDevice
                               material_ids.size() * sizeof(uint)));
         cuda_check(cuMemcpyHtoD(material_ids_buffer, material_ids.data(),
                                 material_ids.size() * sizeof(uint)));
+
+        if (texture_headers.size() > 0)
+        {
+            cuda_check(cuMemAlloc(&textures_buffer, texture_headers.size() *
+                                                        sizeof(TextureHeader)));
+            cuda_check(
+                cuMemcpyHtoD(textures_buffer, texture_headers.data(),
+                             texture_headers.size() * sizeof(TextureHeader)));
+            n_textures = texture_headers.size();
+        }
 
         cuda_check(cuMemAlloc(&indices_offset_buffer,
                               indices_offset.size() * sizeof(uint)));
@@ -511,6 +560,24 @@ class SceneDevice
 
     void destroy_scene_data()
     {
+        if (textures_buffer != 0)
+        {
+            for (int i = 0; i < n_textures; ++i)
+            {
+                TextureHeader* header =
+                    reinterpret_cast<TextureHeader*>(textures_buffer) + i;
+                if (header->data != 0)
+                {
+                    cuda_check(cuMemFree(header->data));
+                    header->data = 0;
+                }
+            }
+            n_textures = 0;
+
+            cuda_check(cuMemFree(textures_buffer));
+            textures_buffer = 0;
+        }
+
         if (vertices_buffer != 0)
         {
             cuda_check(cuMemFree(vertices_buffer));
@@ -571,6 +638,8 @@ class SceneDevice
     CUdeviceptr normals_buffer = 0;
     CUdeviceptr texcoords_buffer = 0;
     CUdeviceptr materials_buffer = 0;
+    CUdeviceptr textures_buffer = 0;
+    uint32_t n_textures = 0;
     CUdeviceptr material_ids_buffer = 0;
     CUdeviceptr indices_offset_buffer = 0;
     CUdeviceptr geometry_ids_buffer = 0;

@@ -410,10 +410,12 @@ class SceneLoader
         spdlog::info("# of vertices: {}", m_vertices.size());
         spdlog::info("# of faces: {}", m_indices.size());
         spdlog::info("# of materials: {}", m_materials.size());
+        spdlog::info("# of textures: {}", m_textures.size());
 
         return GeometryNode(std::move(m_vertices), std::move(m_indices),
                             std::move(m_normals), std::move(m_texcoords),
-                            std::move(m_materials), std::move(m_material_ids));
+                            std::move(m_materials), std::move(m_material_ids),
+                            std::move(m_textures));
     }
 };
 

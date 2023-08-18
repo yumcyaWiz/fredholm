@@ -171,7 +171,7 @@ struct TextureHeader
 {
     uint width;
     uint height;
-    uint* data;
+    CUdeviceptr data;
 };
 
 struct AreaLight
