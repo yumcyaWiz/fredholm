@@ -78,6 +78,7 @@ class RenderStrategy
                         const CUdeviceptr& beauty) = 0;
 
    protected:
+    // this should be defined on Camera
     static CameraParams get_camera_params(const Camera& camera)
     {
         CameraParams camera_params;
@@ -88,6 +89,7 @@ class RenderStrategy
         return camera_params;
     }
 
+    // TODO: this should be defined on SceneDevice
     static SceneData get_scene_data(const SceneDevice& scene)
     {
         SceneData scene_data;

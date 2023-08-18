@@ -31,40 +31,11 @@ class Texture
             const ColorSpace& color_space)
         : filepath(filepath), color_space(color_space)
     {
-        // load(filepath);
     }
 
     std::filesystem::path get_filepath() const { return filepath; }
 
    private:
-    // void load(const std::filesystem::path& filepath)
-    // {
-    //     int w, h, c;
-    //     stbi_set_flip_vertically_on_load(true);
-    //     unsigned char* img =
-    //         stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
-    //     if (!img)
-    //     {
-    //         throw std::runtime_error(std::format("failed to load texture
-    //         {}\n",
-    //                                              filepath.generic_string()));
-    //     }
-
-    //     width = w;
-    //     height = h;
-
-    //     data.resize(width * height);
-    //     for (int i = 0; i < width * height; ++i)
-    //     {
-    //         data[i].x = img[4 * i + 0];
-    //         data[i].y = img[4 * i + 1];
-    //         data[i].z = img[4 * i + 2];
-    //         data[i].w = img[4 * i + 3];
-    //     }
-
-    //     stbi_image_free(img);
-    // }
-
     std::filesystem::path filepath = {};
     ColorSpace color_space = ColorSpace::SRGB;
 };
