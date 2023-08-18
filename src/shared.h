@@ -169,8 +169,9 @@ struct Material
 
 struct TextureHeader
 {
-    uint2 size;
-    cudaTextureObject_t texture_object;
+    uint width;
+    uint height;
+    uint* data;
 };
 
 struct AreaLight

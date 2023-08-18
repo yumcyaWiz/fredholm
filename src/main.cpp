@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "cuda_util.h"
+#include "loader.h"
 #include "render_strategy/hello/hello.h"
 #include "render_strategy/pt/pt.h"
 #include "render_strategy/simple/simple.h"
@@ -59,7 +60,7 @@ int main()
         fredholm::Camera camera(glm::vec3(0, 1, 2));
 
         fredholm::SceneGraph scene;
-        scene.load_obj("CornellBox-Original.obj");
+        fredholm::SceneLoader::load_obj("CornellBox-Original.obj", scene);
 
         fredholm::SceneDevice scene_device;
         scene_device.send(context, scene);

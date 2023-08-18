@@ -130,100 +130,101 @@ static __forceinline__ __device__ ShadingParams fill_shading_params(
     const Material& material, const SurfaceInfo& surf_info,
     const TextureHeader* textures, ShadingParams& shading_params)
 {
-    // diffuse
-    shading_params.diffuse = material.diffuse;
+    // // diffuse
+    // shading_params.diffuse = material.diffuse;
 
-    // diffuse roughness
-    shading_params.diffuse_roughness = material.diffuse_roughness;
+    // // diffuse roughness
+    // shading_params.diffuse_roughness = material.diffuse_roughness;
 
-    // base color
-    shading_params.base_color =
-        material.base_color_texture_id >= 0
-            ? make_float3(tex2D<float4>(
-                  textures[material.base_color_texture_id].texture_object,
-                  surf_info.texcoord.x, surf_info.texcoord.y))
-            : material.base_color;
+    // // base color
+    // shading_params.base_color =
+    //     material.base_color_texture_id >= 0
+    //         ? make_float3(tex2D<float4>(
+    //               textures[material.base_color_texture_id].texture_object,
+    //               surf_info.texcoord.x, surf_info.texcoord.y))
+    //         : material.base_color;
 
-    // specular
-    shading_params.specular = material.specular;
+    // // specular
+    // shading_params.specular = material.specular;
 
-    // specular color
-    shading_params.specular_color =
-        material.specular_color_texture_id >= 0
-            ? make_float3(tex2D<float4>(
-                  textures[material.specular_color_texture_id].texture_object,
-                  surf_info.texcoord.x, surf_info.texcoord.y))
-            : material.specular_color;
+    // // specular color
+    // shading_params.specular_color =
+    //     material.specular_color_texture_id >= 0
+    //         ? make_float3(tex2D<float4>(
+    //               textures[material.specular_color_texture_id].texture_object,
+    //               surf_info.texcoord.x, surf_info.texcoord.y))
+    //         : material.specular_color;
 
-    // specular roughness
-    shading_params.specular_roughness = clamp(
-        material.specular_roughness_texture_id >= 0
-            ? tex2D<float4>(textures[material.specular_roughness_texture_id]
-                                .texture_object,
-                            surf_info.texcoord.x, surf_info.texcoord.y)
-                  .x
-            : material.specular_roughness,
-        0.01f, 1.0f);
+    // // specular roughness
+    // shading_params.specular_roughness = clamp(
+    //     material.specular_roughness_texture_id >= 0
+    //         ? tex2D<float4>(textures[material.specular_roughness_texture_id]
+    //                             .texture_object,
+    //                         surf_info.texcoord.x, surf_info.texcoord.y)
+    //               .x
+    //         : material.specular_roughness,
+    //     0.01f, 1.0f);
 
-    // metalness
-    shading_params.metalness =
-        material.metalness_texture_id >= 0
-            ? tex2D<float4>(
-                  textures[material.metalness_texture_id].texture_object,
-                  surf_info.texcoord.x, surf_info.texcoord.y)
-                  .x
-            : material.metalness;
+    // // metalness
+    // shading_params.metalness =
+    //     material.metalness_texture_id >= 0
+    //         ? tex2D<float4>(
+    //               textures[material.metalness_texture_id].texture_object,
+    //               surf_info.texcoord.x, surf_info.texcoord.y)
+    //               .x
+    //         : material.metalness;
 
-    // metallic roughness
-    if (material.metallic_roughness_texture_id >= 0)
-    {
-        float4 mr = tex2D<float4>(
-            textures[material.metallic_roughness_texture_id].texture_object,
-            surf_info.texcoord.x, surf_info.texcoord.y);
-        shading_params.specular_roughness = clamp(mr.y, 0.01f, 1.0f);
-        shading_params.metalness = clamp(mr.z, 0.0f, 1.0f);
-    }
+    // // metallic roughness
+    // if (material.metallic_roughness_texture_id >= 0)
+    // {
+    //     float4 mr = tex2D<float4>(
+    //         textures[material.metallic_roughness_texture_id].texture_object,
+    //         surf_info.texcoord.x, surf_info.texcoord.y);
+    //     shading_params.specular_roughness = clamp(mr.y, 0.01f, 1.0f);
+    //     shading_params.metalness = clamp(mr.z, 0.0f, 1.0f);
+    // }
 
-    // coat
-    shading_params.coat = clamp(
-        material.coat_texture_id >= 0
-            ? tex2D<float4>(textures[material.coat_texture_id].texture_object,
-                            surf_info.texcoord.x, surf_info.texcoord.y)
-                  .x
-            : material.coat,
-        0.0f, 1.0f);
+    // // coat
+    // shading_params.coat = clamp(
+    //     material.coat_texture_id >= 0
+    //         ?
+    //         tex2D<float4>(textures[material.coat_texture_id].texture_object,
+    //                         surf_info.texcoord.x, surf_info.texcoord.y)
+    //               .x
+    //         : material.coat,
+    //     0.0f, 1.0f);
 
-    // coat roughness
-    shading_params.coat_roughness = clamp(
-        material.coat_roughness_texture_id >= 0
-            ? tex2D<float4>(
-                  textures[material.coat_roughness_texture_id].texture_object,
-                  surf_info.texcoord.x, surf_info.texcoord.y)
-                  .y
-            : material.coat_roughness,
-        0.0f, 1.0f);
+    // // coat roughness
+    // shading_params.coat_roughness = clamp(
+    //     material.coat_roughness_texture_id >= 0
+    //         ? tex2D<float4>(
+    //               textures[material.coat_roughness_texture_id].texture_object,
+    //               surf_info.texcoord.x, surf_info.texcoord.y)
+    //               .y
+    //         : material.coat_roughness,
+    //     0.0f, 1.0f);
 
-    // transmission
-    shading_params.transmission = material.transmission;
+    // // transmission
+    // shading_params.transmission = material.transmission;
 
-    // transmission color
-    shading_params.transmission_color = material.transmission_color;
+    // // transmission color
+    // shading_params.transmission_color = material.transmission_color;
 
-    // sheen
-    shading_params.sheen = material.sheen;
+    // // sheen
+    // shading_params.sheen = material.sheen;
 
-    // sheen color
-    shading_params.sheen_color = material.sheen_color;
+    // // sheen color
+    // shading_params.sheen_color = material.sheen_color;
 
-    // sheen roughness
-    shading_params.sheen_roughness = material.sheen_roughness;
+    // // sheen roughness
+    // shading_params.sheen_roughness = material.sheen_roughness;
 
-    // subsurface
-    shading_params.subsurface = material.subsurface;
+    // // subsurface
+    // shading_params.subsurface = material.subsurface;
 
-    // subsurface color
-    shading_params.subsurface_color = material.subsurface_color;
+    // // subsurface color
+    // shading_params.subsurface_color = material.subsurface_color;
 
-    // thin walled
-    shading_params.thin_walled = material.thin_walled;
+    // // thin walled
+    // shading_params.thin_walled = material.thin_walled;
 }

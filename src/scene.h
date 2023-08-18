@@ -16,39 +16,6 @@
 
 namespace fredholm
 {
-// https://vulkan-tutorial.com/Loading_models
-// vertex deduplication
-struct Vertex
-{
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 texcoord;
-
-    bool operator==(const Vertex& other) const
-    {
-        return position == other.position && normal == other.normal &&
-               texcoord == other.texcoord;
-    }
-};
-}  // namespace fredholm
-
-namespace std
-{
-template <>
-struct hash<fredholm::Vertex>
-{
-    size_t operator()(fredholm::Vertex const& vertex) const
-    {
-        return ((hash<glm::vec3>()(vertex.position) ^
-                 (hash<glm::vec3>()(vertex.normal) << 1)) >>
-                1) ^
-               (hash<glm::vec2>()(vertex.texcoord) << 1);
-    }
-};
-}  // namespace std
-
-namespace fredholm
-{
 
 enum class ColorSpace
 {
@@ -109,365 +76,83 @@ enum class SceneNodeType
     INSTANCE,
 };
 
-struct SceneNode
+class SceneNode
 {
+   public:
+    std::string get_name() const { return name; }
+    SceneNodeType get_type() const { return type; }
+    std::vector<SceneNode*> get_children() const { return children; }
+
     void add_children(SceneNode* node) { children.push_back(node); }
 
+   protected:
     std::string name = "SceneNode";
     SceneNodeType type = SceneNodeType::NONE;
     std::vector<SceneNode*> children = {};
 };
 
 // always internal node
-struct TransformNode : public SceneNode
+class TransformNode : public SceneNode
 {
+   public:
     TransformNode()
     {
         name = "TransformNode";
         type = SceneNodeType::TRANSFORM;
     }
 
+    glm::mat4 get_transform() const { return transform; }
+
     void set_transform(const glm::mat4& transform)
     {
         this->transform = transform;
     }
 
+   private:
     glm::mat4 transform = glm::mat4(1.0f);
 };
 
 // always leaf node
-struct GeometryNode : public SceneNode
+class GeometryNode : public SceneNode
 {
+   public:
     GeometryNode()
     {
         name = "GeometryNode";
         type = SceneNodeType::GEOMETRY;
     }
 
-    void load_obj(const std::filesystem::path& filepath)
+    GeometryNode(const std::vector<float3>& vertices,
+                 const std::vector<uint3>& indices,
+                 const std::vector<float3>& normals,
+                 const std::vector<float2>& texcoords,
+                 const std::vector<Material>& materials,
+                 const std::vector<uint>& material_ids)
+        : m_vertices(vertices),
+          m_indices(indices),
+          m_normals(normals),
+          m_texcoords(texcoords),
+          m_materials(materials),
+          m_material_ids(material_ids)
     {
-        tinyobj::ObjReaderConfig reader_config;
-        reader_config.triangulate = true;
-
-        tinyobj::ObjReader reader;
-        if (!reader.ParseFromFile(filepath.generic_string(), reader_config))
-        {
-            if (!reader.Error().empty())
-            {
-                spdlog::error("tinyobjloader: {}", reader.Error());
-            }
-            throw std::runtime_error(std::format("failed to load obj file {}\n",
-                                                 filepath.generic_string()));
-        }
-
-        if (!reader.Warning().empty())
-        {
-            spdlog::warn("tinyobjloader: {}", reader.Warning());
-        }
-
-        const auto& attrib = reader.GetAttrib();
-        const auto& shapes = reader.GetShapes();
-        const auto& tinyobj_materials = reader.GetMaterials();
-
-        const auto parse_float = [](const std::string& str)
-        { return std::stof(str); };
-        const auto parse_float3 = [](const std::string& str)
-        {
-            // split string by space
-            std::vector<std::string> tokens;
-            std::stringstream ss(str);
-            std::string buf;
-            while (std::getline(ss, buf, ' '))
-            {
-                if (!buf.empty()) { tokens.emplace_back(buf); }
-            }
-
-            if (tokens.size() != 3)
-            {
-                spdlog::error("invalid vec3 string");
-                std::exit(EXIT_FAILURE);
-            }
-
-            // string to float conversion
-            return make_float3(std::stof(tokens[0]), std::stof(tokens[1]),
-                               std::stof(tokens[2]));
-        };
-
-        // load materials
-        for (int i = 0; i < tinyobj_materials.size(); ++i)
-        {
-            const auto& m = tinyobj_materials[i];
-
-            Material mat;
-
-            // diffuse
-            if (m.unknown_parameter.count("diffuse"))
-            {
-                mat.diffuse = parse_float(m.unknown_parameter.at("diffuse"));
-            }
-
-            // diffuse roughness
-            if (m.unknown_parameter.count("diffuse_roughness"))
-            {
-                mat.diffuse_roughness =
-                    parse_float(m.unknown_parameter.at("diffuse_roughness"));
-            }
-
-            // base color
-            mat.base_color =
-                make_float3(m.diffuse[0], m.diffuse[1], m.diffuse[2]);
-
-            // base color(texture)
-            if (!m.diffuse_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            // specular color
-            mat.specular_color =
-                make_float3(m.specular[0], m.specular[1], m.specular[2]);
-
-            // specular color(texture)
-            if (!m.specular_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            // specular roughness
-            if (m.roughness > 0.0f) { mat.specular_roughness = m.roughness; }
-
-            // specular roughness(texture)
-            if (!m.roughness_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            // metalness
-            mat.metalness = m.metallic;
-
-            // metalness(texture)
-            if (!m.metallic_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            // coat
-            if (m.clearcoat_thickness > 0.0f)
-            {
-                mat.coat = m.clearcoat_thickness;
-            }
-
-            // coat roughness
-            if (m.clearcoat_roughness > 0.0f)
-            {
-                mat.coat_roughness = m.clearcoat_roughness;
-            }
-
-            // transmission
-            mat.transmission = std::max(1.0f - m.dissolve, 0.0f);
-
-            // transmission color
-            if (m.transmittance[0] > 0.0f || m.transmittance[0] > 0.0f ||
-                m.transmittance[2] > 0.0f)
-            {
-                mat.transmission_color = make_float3(
-                    m.transmittance[0], m.transmittance[1], m.transmittance[2]);
-            }
-
-            // sheen
-            if (m.unknown_parameter.count("sheen"))
-            {
-                mat.sheen = parse_float(m.unknown_parameter.at("sheen"));
-            }
-
-            // sheen color
-            if (m.unknown_parameter.count("sheen_color"))
-            {
-                mat.sheen_color =
-                    parse_float3(m.unknown_parameter.at("sheen_color"));
-            }
-
-            // sheen roughness
-            if (m.unknown_parameter.count("sheen_roughness"))
-            {
-                mat.sheen_roughness =
-                    parse_float(m.unknown_parameter.at("sheen_roughness"));
-            }
-
-            // subsurface
-            if (m.unknown_parameter.count("subsurface"))
-            {
-                mat.subsurface =
-                    parse_float(m.unknown_parameter.at("subsurface"));
-            }
-
-            // subsurface color
-            if (m.unknown_parameter.count("subsurface_color"))
-            {
-                mat.subsurface_color =
-                    parse_float3(m.unknown_parameter.at("subsurface_color"));
-            }
-
-            // thin walled
-            if (m.unknown_parameter.count("thin_walled"))
-            {
-                mat.thin_walled =
-                    parse_float(m.unknown_parameter.at("thin_walled"));
-            }
-
-            // emission
-            if (m.emission[0] > 0 || m.emission[1] > 0 || m.emission[2] > 0)
-            {
-                mat.emission = 1.0f;
-                mat.emission_color =
-                    make_float3(m.emission[0], m.emission[1], m.emission[2]);
-            }
-
-            // height map texture
-            if (!m.bump_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            // normal map texture
-            if (!m.normal_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            // alpha texture
-            if (!m.alpha_texname.empty())
-            {
-                // TODO: implement
-            }
-
-            m_materials.push_back(mat);
-        }
-
-        std::vector<Vertex> unique_vertices = {};
-        std::unordered_map<Vertex, uint32_t> unique_vertex_indices = {};
-        std::vector<uint32_t> indices = {};
-
-        for (size_t s = 0; s < shapes.size(); ++s)
-        {
-            size_t index_offset = 0;
-
-            for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); ++f)
-            {
-                const size_t fv = shapes[s].mesh.num_face_vertices[f];
-                if (fv != 3)
-                {
-                    throw std::runtime_error(
-                        "non-triangle faces are not supported");
-                }
-
-                std::vector<glm::vec3> vertices_temp;
-                std::vector<glm::vec3> normals_temp;
-                std::vector<glm::vec2> texcoords_temp;
-
-                for (size_t v = 0; v < 3; ++v)
-                {
-                    const tinyobj::index_t idx =
-                        shapes[s].mesh.indices[index_offset + v];
-
-                    // vertex position
-                    const glm::vec3 vertex = {
-                        attrib.vertices[3 * idx.vertex_index + 0],
-                        attrib.vertices[3 * idx.vertex_index + 1],
-                        attrib.vertices[3 * idx.vertex_index + 2]};
-                    vertices_temp.push_back(vertex);
-
-                    // vertex normal
-                    if (idx.normal_index >= 0)
-                    {
-                        const glm::vec3 normal = {
-                            attrib.normals[3 * idx.normal_index + 0],
-                            attrib.normals[3 * idx.normal_index + 1],
-                            attrib.normals[3 * idx.normal_index + 2]};
-                        normals_temp.push_back(normal);
-                    }
-
-                    // vertex texcoord
-                    if (idx.texcoord_index >= 0)
-                    {
-                        const glm::vec2 texcoord = {
-                            attrib.texcoords[2 * idx.texcoord_index + 0],
-                            attrib.texcoords[2 * idx.texcoord_index + 1]};
-                        texcoords_temp.push_back(texcoord);
-                    }
-                }
-
-                // if vertex normal is empty, use face normal instead
-                if (normals_temp.size() == 0)
-                {
-                    const glm::vec3 normal = glm::normalize(
-                        glm::cross(vertices_temp[1] - vertices_temp[0],
-                                   vertices_temp[2] - vertices_temp[0]));
-                    normals_temp.push_back(normal);
-                    normals_temp.push_back(normal);
-                    normals_temp.push_back(normal);
-                }
-
-                // if texcoord is empty, use barycentric coordinates instead
-                if (texcoords_temp.size() == 0)
-                {
-                    texcoords_temp.push_back(glm::vec2(0, 0));
-                    texcoords_temp.push_back(glm::vec2(1, 0));
-                    texcoords_temp.push_back(glm::vec2(0, 1));
-                }
-
-                for (size_t v = 0; v < 3; ++v)
-                {
-                    Vertex vertex = {};
-                    vertex.position = vertices_temp[v];
-                    vertex.normal = normals_temp[v];
-                    vertex.texcoord = texcoords_temp[v];
-
-                    if (unique_vertex_indices.count(vertex) == 0)
-                    {
-                        unique_vertex_indices[vertex] =
-                            static_cast<uint32_t>(unique_vertices.size());
-                        unique_vertices.push_back(vertex);
-                    }
-                    indices.push_back(unique_vertex_indices[vertex]);
-                }
-
-                const int material_id = shapes[s].mesh.material_ids[f];
-                m_material_ids.push_back(material_id);
-
-                index_offset += fv;
-            }
-        }
-
-        for (const auto& vertex : unique_vertices)
-        {
-            m_vertices.push_back(make_float3(
-                vertex.position.x, vertex.position.y, vertex.position.z));
-            m_normals.push_back(
-                make_float3(vertex.normal.x, vertex.normal.y, vertex.normal.z));
-            m_texcoords.push_back(
-                make_float2(vertex.texcoord.x, vertex.texcoord.y));
-        }
-
-        for (size_t i = 0; i < indices.size(); i += 3)
-        {
-            m_indices.push_back(
-                make_uint3(indices[i], indices[i + 1], indices[i + 2]));
-        }
-
-        spdlog::info("loaded obj file {}", filepath.generic_string());
-        spdlog::info("# of vertices: {}", m_vertices.size());
-        spdlog::info("# of faces: {}", m_indices.size());
-        spdlog::info("# of materials: {}", m_materials.size());
+        name = "GeometryNode";
+        type = SceneNodeType::GEOMETRY;
     }
 
+    const std::vector<float3>& get_vertices() const { return m_vertices; }
+    const std::vector<uint3>& get_indices() const { return m_indices; }
+    const std::vector<float3>& get_normals() const { return m_normals; }
+    const std::vector<float2>& get_texcoords() const { return m_texcoords; }
+    const std::vector<Material>& get_materials() const { return m_materials; }
+    const std::vector<uint>& get_material_ids() const { return m_material_ids; }
+
+   private:
     std::vector<float3> m_vertices = {};
     std::vector<uint3> m_indices = {};
     std::vector<float3> m_normals = {};
     std::vector<float2> m_texcoords = {};
     std::vector<Material> m_materials = {};
     std::vector<uint> m_material_ids = {};  // per face material ids
-    std::vector<Texture> m_textures = {};
 };
 
 // always leaf node
@@ -482,9 +167,10 @@ struct InstanceNode : public SceneNode
     const GeometryNode* geometry = nullptr;
 };
 
+// used for creating GAS and IAS
+// TODO: maybe this can be placed inside SceneDevice?
 struct CompiledScene
 {
-    // used for creating GAS and IAS
     std::vector<const GeometryNode*> geometry_nodes = {};
     std::vector<glm::mat4> geometry_transforms = {};
     std::vector<const InstanceNode*> instance_nodes = {};
@@ -498,15 +184,18 @@ class SceneGraph
 
     ~SceneGraph() { destroy(root); }
 
-    void load_obj(const std::filesystem::path& filepath)
+    bool is_empty() const { return root == nullptr; }
+
+    void clear()
     {
-        GeometryNode* geometry = new GeometryNode;
-        geometry->load_obj(filepath);
+        destroy(root);
+        root = nullptr;
+    }
 
-        TransformNode* transform = new TransformNode;
-        transform->children.push_back(geometry);
-
-        root = transform;
+    void set_root(SceneNode* node)
+    {
+        clear();
+        root = node;
     }
 
     CompiledScene compile() const
@@ -523,7 +212,7 @@ class SceneGraph
     {
         if (node == nullptr) return;
 
-        for (auto child : node->children) { destroy(child); }
+        for (auto child : node->get_children()) { destroy(child); }
         delete node;
     }
 
@@ -532,7 +221,7 @@ class SceneGraph
     {
         if (node == nullptr) return;
 
-        switch (node->type)
+        switch (node->get_type())
         {
             case SceneNodeType::TRANSFORM:
             {
@@ -540,9 +229,9 @@ class SceneGraph
                     static_cast<const TransformNode*>(node);
 
                 const glm::mat4 transform_new =
-                    transform * transform_node->transform;
+                    transform * transform_node->get_transform();
 
-                for (const auto& child : transform_node->children)
+                for (const auto& child : transform_node->get_children())
                 {
                     compile(child, transform_new, compiled_scene);
                 }
@@ -579,9 +268,9 @@ class SceneGraph
 
         std::cout << prefix;
         std::cout << "├── ";
-        std::cout << node->name << std::endl;
+        std::cout << node->get_name() << std::endl;
 
-        for (const auto& child : node->children)
+        for (const auto& child : node->get_children())
         {
             print_tree(child, prefix + "│   ");
         }
@@ -622,18 +311,19 @@ class SceneDevice
 
             cuda_check(
                 cuMemAlloc(&entry.vertex_buffer,
-                           geometry->m_vertices.size() * sizeof(float3)));
-            cuda_check(
-                cuMemcpyHtoD(entry.vertex_buffer, geometry->m_vertices.data(),
-                             geometry->m_vertices.size() * sizeof(float3)));
-            entry.vertex_count = geometry->m_vertices.size();
+                           geometry->get_vertices().size() * sizeof(float3)));
+            cuda_check(cuMemcpyHtoD(
+                entry.vertex_buffer, geometry->get_vertices().data(),
+                geometry->get_vertices().size() * sizeof(float3)));
+            entry.vertex_count = geometry->get_vertices().size();
 
-            cuda_check(cuMemAlloc(&entry.index_buffer,
-                                  geometry->m_indices.size() * sizeof(uint3)));
             cuda_check(
-                cuMemcpyHtoD(entry.index_buffer, geometry->m_indices.data(),
-                             geometry->m_indices.size() * sizeof(uint3)));
-            entry.index_count = geometry->m_indices.size();
+                cuMemAlloc(&entry.index_buffer,
+                           geometry->get_indices().size() * sizeof(uint3)));
+            cuda_check(
+                cuMemcpyHtoD(entry.index_buffer, geometry->get_indices().data(),
+                             geometry->get_indices().size() * sizeof(uint3)));
+            entry.index_count = geometry->get_indices().size();
 
             gas_build_entries.push_back(entry);
         }
@@ -692,19 +382,19 @@ class SceneDevice
             indices_offset.push_back(indices.size());
             geometry_ids.push_back(i);
 
-            vertices.insert(vertices.end(), geometry->m_vertices.begin(),
-                            geometry->m_vertices.end());
-            indices.insert(indices.end(), geometry->m_indices.begin(),
-                           geometry->m_indices.end());
-            normals.insert(normals.end(), geometry->m_normals.begin(),
-                           geometry->m_normals.end());
-            texcoords.insert(texcoords.end(), geometry->m_texcoords.begin(),
-                             geometry->m_texcoords.end());
-            materials.insert(materials.end(), geometry->m_materials.begin(),
-                             geometry->m_materials.end());
+            vertices.insert(vertices.end(), geometry->get_vertices().begin(),
+                            geometry->get_vertices().end());
+            indices.insert(indices.end(), geometry->get_indices().begin(),
+                           geometry->get_indices().end());
+            normals.insert(normals.end(), geometry->get_normals().begin(),
+                           geometry->get_normals().end());
+            texcoords.insert(texcoords.end(), geometry->get_texcoords().begin(),
+                             geometry->get_texcoords().end());
+            materials.insert(materials.end(), geometry->get_materials().begin(),
+                             geometry->get_materials().end());
             material_ids.insert(material_ids.end(),
-                                geometry->m_material_ids.begin(),
-                                geometry->m_material_ids.end());
+                                geometry->get_material_ids().begin(),
+                                geometry->get_material_ids().end());
 
             transforms.push_back(
                 create_mat3x4_from_glm(compiled_scene.geometry_transforms[i]));
