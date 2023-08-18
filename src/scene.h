@@ -413,19 +413,19 @@ class SceneDevice
                 stbi_set_flip_vertically_on_load(true);
                 unsigned char* img = stbi_load(texture.get_filepath().c_str(),
                                                &w, &h, &c, STBI_rgb_alpha);
-                if (c != 4)
+                if (img == nullptr)
                 {
                     throw std::runtime_error(
-                        std::format("texture {} is not RGBA\n",
-                                    texture.get_filepath().generic_string()));
+                        std::format("failed to load texture: {}",
+                                    texture.get_filepath().c_str()));
                 }
                 header.width = w;
                 header.height = h;
 
                 // load texture on device
-                cuda_check(cuMemAlloc(&header.data, w * h * sizeof(uint4)));
+                cuda_check(cuMemAlloc(&header.data, w * h * sizeof(uchar4)));
                 cuda_check(
-                    cuMemcpyHtoD(header.data, img, w * h * sizeof(uint4)));
+                    cuMemcpyHtoD(header.data, img, w * h * sizeof(uchar4)));
                 stbi_image_free(img);
 
                 texture_headers.push_back(header);

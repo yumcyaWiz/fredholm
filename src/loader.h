@@ -169,6 +169,9 @@ class SceneLoader
             // base color(texture)
             if (!m.diffuse_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.diffuse_texname,
+                             ColorSpace::SRGB);
+
                 mat.base_color_texture_id = unique_textures[m.diffuse_texname];
             }
 
@@ -179,6 +182,9 @@ class SceneLoader
             // specular color(texture)
             if (!m.specular_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.specular_texname,
+                             ColorSpace::LINEAR);
+
                 mat.specular_color_texture_id =
                     unique_textures[m.specular_texname];
             }
@@ -189,6 +195,9 @@ class SceneLoader
             // specular roughness(texture)
             if (!m.roughness_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.roughness_texname,
+                             ColorSpace::LINEAR);
+
                 mat.specular_roughness_texture_id =
                     unique_textures[m.roughness_texname];
             }
@@ -199,6 +208,9 @@ class SceneLoader
             // metalness(texture)
             if (!m.metallic_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.metallic_texname,
+                             ColorSpace::LINEAR);
+
                 mat.metalness_texture_id = unique_textures[m.metallic_texname];
             }
 
@@ -277,18 +289,27 @@ class SceneLoader
             // height map texture
             if (!m.bump_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.bump_texname,
+                             ColorSpace::LINEAR);
+
                 mat.heightmap_texture_id = unique_textures[m.bump_texname];
             }
 
             // normal map texture
             if (!m.normal_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.normal_texname,
+                             ColorSpace::LINEAR);
+
                 mat.normalmap_texture_id = unique_textures[m.normal_texname];
             }
 
             // alpha texture
             if (!m.alpha_texname.empty())
             {
+                load_texture(filepath.parent_path(), m.alpha_texname,
+                             ColorSpace::LINEAR);
+
                 mat.alpha_texture_id = unique_textures[m.alpha_texname];
             }
 
