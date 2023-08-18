@@ -2,20 +2,6 @@
 
 #include "helper_math.h"
 
-// Duff, T., Burgess, J., Christensen, P., Hery, C., Kensler, A., Liani, M., &
-// Villemin, R. (2017). Building an orthonormal basis, revisited. JCGT, 6(1).
-static __forceinline__ __device__ void orthonormal_basis(const float3& normal,
-                                                         float3& tangent,
-                                                         float3& bitangent)
-{
-    float sign = copysignf(1.0f, normal.z);
-    const float a = -1.0f / (sign + normal.z);
-    const float b = normal.x * normal.y * a;
-    tangent = make_float3(1.0f + sign * normal.x * normal.x * a, sign * b,
-                          -sign * normal.x);
-    bitangent = make_float3(b, sign + normal.y * normal.y * a, -normal.y);
-}
-
 static __forceinline__ __device__ float3 world_to_local(const float3& v,
                                                         const float3& t,
                                                         const float3& n,

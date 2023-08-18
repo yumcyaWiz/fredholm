@@ -254,6 +254,7 @@ extern "C" __global__ void __closesthit__()
     const uint prim_idx = optixGetPrimitiveIndex();
     const uint instance_idx = optixGetInstanceIndex();
     const uint geom_id = params.scene.geometry_ids[instance_idx];
+    const uint indices_offset = params.scene.indices_offsets[geom_id];
 
     const Material material = get_material(params.scene, prim_idx, geom_id);
 
@@ -262,13 +263,11 @@ extern "C" __global__ void __closesthit__()
     const float ray_tmax = optixGetRayTmax();
     const float2 barycentric = optixGetTriangleBarycentrics();
 
-    SurfaceInfo surf_info;
-    fill_surface_info(ray_origin, ray_direction, ray_tmax, barycentric,
-                      params.scene, prim_idx, instance_idx, geom_id, surf_info);
+    SurfaceInfo surf_info(ray_origin, ray_direction, ray_tmax, barycentric,
+                          params.scene, prim_idx, indices_offset, instance_idx,
+                          geom_id);
 
     ShadingParams shading_params(material, surf_info, params.scene.textures);
-    // fill_shading_params(material, surf_info, params.textures,
-    // shading_params);
 
     float3 tangent = surf_info.tangent;
     float3 normal = surf_info.n_s;

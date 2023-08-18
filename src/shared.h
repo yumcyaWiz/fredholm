@@ -67,6 +67,20 @@ CUDA_INLINE CUDA_HOST_DEVICE float3 transform_normal(const Matrix3x4& m,
     return make_float3(dot(c0, t), dot(c1, t), dot(c2, t));
 }
 
+// Duff, T., Burgess, J., Christensen, P., Hery, C., Kensler, A., Liani, M., &
+// Villemin, R. (2017). Building an orthonormal basis, revisited. JCGT, 6(1).
+CUDA_INLINE CUDA_HOST_DEVICE void orthonormal_basis(const float3& normal,
+                                                    float3& tangent,
+                                                    float3& bitangent)
+{
+    float sign = copysignf(1.0f, normal.z);
+    const float a = -1.0f / (sign + normal.z);
+    const float b = normal.x * normal.y * a;
+    tangent = make_float3(1.0f + sign * normal.x * normal.x * a, sign * b,
+                          -sign * normal.x);
+    bitangent = make_float3(b, sign + normal.y * normal.y * a, -normal.y);
+}
+
 enum class RayType : unsigned int
 {
     RAY_TYPE_RADIANCE = 0,
@@ -202,18 +216,87 @@ struct DirectionalLight
     float angle = 0;  // angle size
 };
 
+// TODO: maybe this could be removed and use SceneDevice instead?
+struct SceneData
+{
+    float3* vertices;
+    uint3* indices;
+    float3* normals;
+    float2* texcoords;
+    Material* materials;
+    TextureHeader* textures;
+    uint* material_ids;
+    uint* indices_offsets;
+    uint* geometry_ids;
+    Matrix3x4* object_to_worlds;
+    Matrix3x4* world_to_objects;
+};
+
 // TODO: move this under render_strategy/common
 struct SurfaceInfo
 {
-    float t;             // ray tmax
-    float3 x;            // shading position
-    float3 n_g;          // geometric normal in world space
-    float3 n_s;          // shading normal in world space
-    float2 barycentric;  // barycentric coordinate
-    float2 texcoord;     // texture coordinate
-    float3 tangent;      // tangent vector in world space
-    float3 bitangent;    // bitangent vector in world space
-    bool is_entering;
+    float t = 0.0f;                           // ray tmax
+    float3 x = make_float3(0, 0, 0);          // shading position
+    float3 n_g = make_float3(0, 0, 0);        // geometric normal in world space
+    float3 n_s = make_float3(0, 0, 0);        // shading normal in world space
+    float2 barycentric = make_float2(0, 0);   // barycentric coordinate
+    float2 texcoord = make_float2(0, 0);      // texture coordinate
+    float3 tangent = make_float3(0, 0, 0);    // tangent vector in world space
+    float3 bitangent = make_float3(0, 0, 0);  // bitangent vector in world space
+    bool is_entering = true;
+
+    CUDA_DEVICE SurfaceInfo() {}
+
+    CUDA_DEVICE SurfaceInfo(const float3& origin, const float3& direction,
+                            float tmax, const float2& barycentric,
+                            const SceneData& scene, uint prim_idx,
+                            uint indices_offset, uint instance_idx,
+                            uint geom_id)
+    {
+        this->t = tmax;
+        this->barycentric = barycentric;
+
+        const uint3 idx = scene.indices[indices_offset + prim_idx];
+
+        const Matrix3x4& object_to_world = scene.object_to_worlds[instance_idx];
+        const Matrix3x4& world_to_object = scene.world_to_objects[instance_idx];
+
+        const float3 v0 =
+            transform_position(object_to_world, scene.vertices[idx.x]);
+        const float3 v1 =
+            transform_position(object_to_world, scene.vertices[idx.y]);
+        const float3 v2 =
+            transform_position(object_to_world, scene.vertices[idx.z]);
+
+        // surface based robust hit position, Ray Tracing Gems Chapter 6
+        x = (1.0f - barycentric.x - barycentric.y) * v0 + barycentric.x * v1 +
+            barycentric.y * v2;
+        n_g = normalize(cross(v1 - v0, v2 - v0));
+
+        const float3 n0 =
+            transform_normal(world_to_object, scene.normals[idx.x]);
+        const float3 n1 =
+            transform_normal(world_to_object, scene.normals[idx.y]);
+        const float3 n2 =
+            transform_normal(world_to_object, scene.normals[idx.z]);
+
+        n_s = normalize((1.0f - barycentric.x - barycentric.y) * n0 +
+                        barycentric.x * n1 + barycentric.y * n2);
+
+        const float2 tex0 = scene.texcoords[idx.x];
+        const float2 tex1 = scene.texcoords[idx.y];
+        const float2 tex2 = scene.texcoords[idx.z];
+
+        texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                   barycentric.x * tex1 + barycentric.y * tex2;
+
+        // flip normal
+        is_entering = dot(-direction, n_g) > 0;
+        n_s = is_entering ? n_s : -n_s;
+        n_g = is_entering ? n_g : -n_g;
+
+        orthonormal_basis(n_s, tangent, bitangent);
+    }
 };
 
 // TODO: move this under render_strategy/common
@@ -349,22 +432,6 @@ struct RenderLayer
     float4* normal;
     float4* texcoord;
     float4* albedo;
-};
-
-// TODO: maybe this could be removed and use SceneDevice instead?
-struct SceneData
-{
-    float3* vertices;
-    uint3* indices;
-    float3* normals;
-    float2* texcoords;
-    Material* materials;
-    TextureHeader* textures;
-    uint* material_ids;
-    uint* indices_offsets;
-    uint* geometry_ids;
-    Matrix3x4* object_to_worlds;
-    Matrix3x4* world_to_objects;
 };
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
