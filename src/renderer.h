@@ -28,13 +28,6 @@ enum class RenderStrategyType
     N_RENDER_STRATEGIES,
 };
 
-enum class AOVType
-{
-    FINAL = 0,
-    BEAUTY = 1,
-    N_AOV_TYPES
-};
-
 class RenderStrategyFactory
 {
    public:
@@ -83,10 +76,8 @@ class Renderer
         {
             case AOVType::FINAL:
                 return *final;
-            case AOVType::BEAUTY:
-                return m_render_strategy->get_aov("beauty");
             default:
-                throw std::runtime_error("Unknown AOV type");
+                return m_render_strategy->get_aov(type);
         }
     }
 
@@ -142,17 +133,7 @@ class Renderer
     void render(const Camera& camera, const SceneDevice& scene)
     {
         m_render_strategy->render(camera, scene, scene.get_ias_handle(), sbt);
-    }
-
-    void post_process()
-    {
-        const uint2 resolution =
-            m_render_strategy->get_option<uint2>("resolution");
-        m_post_process->run(
-            resolution.x, resolution.y,
-            reinterpret_cast<float4*>(
-                m_render_strategy->get_aov("beauty").get_device_ptr()),
-            reinterpret_cast<float4*>(final->get_device_ptr()));
+        post_process();
     }
 
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
@@ -163,7 +144,7 @@ class Renderer
             m_render_strategy->get_option<uint2>("resolution");
 
         std::vector<float4> beauty_h(resolution.x * resolution.y);
-        m_render_strategy->get_aov("beauty").copy_d_to_h(beauty_h.data());
+        m_render_strategy->get_aov(AOVType::FINAL).copy_d_to_h(beauty_h.data());
         write_image(filepath, resolution.x, resolution.y, beauty_h.data());
     }
 
@@ -176,6 +157,17 @@ class Renderer
             m_render_strategy->get_option<bool>("use_gl_interop");
         final = std::make_unique<CUDABuffer<float4>>(
             resolution.x * resolution.y, use_gl_interop);
+    }
+
+    void post_process()
+    {
+        const uint2 resolution =
+            m_render_strategy->get_option<uint2>("resolution");
+        m_post_process->run(
+            resolution.x, resolution.y,
+            reinterpret_cast<float4*>(
+                m_render_strategy->get_aov(AOVType::BEAUTY).get_device_ptr()),
+            reinterpret_cast<float4*>(final->get_device_ptr()));
     }
 
     OptixDeviceContext context = nullptr;

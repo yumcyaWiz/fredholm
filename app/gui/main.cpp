@@ -170,7 +170,6 @@ class App
             {
                 // render
                 renderer->render(camera, *scene_device);
-                renderer->post_process();
                 renderer->synchronize();
 
                 // show image

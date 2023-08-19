@@ -9,6 +9,13 @@
 namespace fredholm
 {
 
+enum class AOVType
+{
+    FINAL = 0,
+    BEAUTY = 1,
+    N_AOV_TYPES
+};
+
 struct RenderOptions
 {
     uint2 resolution = make_uint2(512, 512);
@@ -20,9 +27,11 @@ struct RenderOptions
     uint32_t n_spp = 1;
     uint32_t max_depth = 100;
 
+    // TODO: use enum class instead of string
     template <typename T>
     T get_option(const std::string& name) const;
 
+    // TODO: use enum class instead of string
     template <typename T>
     void set_option(const std::string& name, const T& value);
 
@@ -72,17 +81,6 @@ struct RenderOptions
         else if (name == "max_depth") { max_depth = value; }
         else { throw std::runtime_error("Unknown option name"); }
     }
-};
-
-struct RenderLayers
-{
-    // float4 buffer
-    CUdeviceptr beauty = 0;
-    CUdeviceptr position = 0;
-    CUdeviceptr normal = 0;
-    CUdeviceptr texcoord = 0;
-    CUdeviceptr albedo = 0;
-    CUdeviceptr material_id = 0;
 };
 
 // TODO: change AOV based on strategy
@@ -159,10 +157,15 @@ class RenderStrategy
         clear_render();
     }
 
-    const CUDABuffer<float4>& get_aov(const std::string& name) const
+    const CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
-        if (name == "beauty") { return *beauty; }
-        else { throw std::runtime_error("Unknown AOV name"); }
+        switch (type)
+        {
+            case AOVType::BEAUTY:
+                return *beauty;
+            default:
+                throw std::runtime_error("Unknown AOV type");
+        }
     }
 
     // TODO: separate init and clear
