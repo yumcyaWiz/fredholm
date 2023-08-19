@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <source_location>
+#include <vector>
 
 #include "gl_util.h"
 #include "helper_math.h"
@@ -58,7 +59,11 @@ class CUDABuffer
 
         if (use_gl_interop)
         {
+            // create gl buffer
             gl_buffer = std::make_unique<GLBuffer>();
+            std::vector<T> data(size);
+            memset(data.data(), 0, size * sizeof(T));
+            gl_buffer->setData(data.data(), size, GL_STATIC_DRAW);
 
             cuda_check(
                 cuGraphicsGLRegisterBuffer(&resource, gl_buffer->getName(),
