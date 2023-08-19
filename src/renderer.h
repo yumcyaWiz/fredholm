@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "cuda_util.h"
+#include "gl_util.h"
 #include "io.h"
 #include "optix_util.h"
 #include "render_strategy/render_strategy.h"
@@ -15,24 +16,42 @@ namespace fredholm
 
 class Renderer
 {
-   public:
-    Renderer(uint32_t width, uint32_t height) : width(width), height(height)
+   private:
+    struct RenderOptions
     {
-        cuda_check(cuMemAlloc(&beauty, width * height * sizeof(float4)));
-        cuda_check(cuMemsetD32(beauty, 0, width * height));
+        uint32_t width = 512;
+        uint32_t height = 512;
+
+        bool use_gl_interop = false;
+    };
+
+   public:
+    Renderer()
+    {
+        beauty = std::make_unique<CUDABuffer<float4>>(options.width *
+                                                      options.height);
     }
 
     ~Renderer()
     {
-        if (beauty != 0)
-        {
-            cuda_check(cuMemFree(beauty));
-            beauty = 0;
-        }
+        if (beauty) { beauty.reset(); }
 
         cuda_check(cuMemFree(sbt_record_set.raygen_records));
         cuda_check(cuMemFree(sbt_record_set.miss_records));
         cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
+    }
+
+    template <typename T>
+    T get_option(const std::string& name) const
+    {
+        // TODO: implement
+        return T();
+    }
+
+    template <typename T>
+    void set_option(const std::string& name, const T& value)
+    {
+        // TODO: implement
     }
 
     void set_render_strategy(RenderStrategy* strategy)
@@ -49,8 +68,12 @@ class Renderer
     {
         if (m_render_strategy)
         {
-            m_render_strategy->render(width, height, camera, scene,
-                                      scene.get_ias_handle(), sbt, beauty);
+            RenderLayers layers = {};
+            layers.beauty = beauty->get_device_ptr();
+
+            m_render_strategy->render(options.width, options.height, camera,
+                                      scene, scene.get_ias_handle(), sbt,
+                                      layers);
         }
     }
 
@@ -58,17 +81,15 @@ class Renderer
 
     void save_image(const std::filesystem::path& filepath) const
     {
-        std::vector<float4> beauty_h(width * height);
-        cuda_check(cuMemcpyDtoH(beauty_h.data(), beauty,
-                                width * height * sizeof(float4)));
-        write_image(filepath, width, height, beauty_h.data());
+        std::vector<float4> beauty_h(options.width * options.height);
+        beauty->copy_d_to_h(beauty_h.data());
+        write_image(filepath, options.width, options.height, beauty_h.data());
     }
 
    private:
-    uint32_t width = 0;
-    uint32_t height = 0;
+    RenderOptions options;
 
-    CUdeviceptr beauty = 0;
+    std::unique_ptr<CUDABuffer<float4>> beauty = nullptr;
 
     // TODO: this could be placed in render strategy?
     SbtRecordSet sbt_record_set;

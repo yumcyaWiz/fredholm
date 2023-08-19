@@ -8,6 +8,17 @@
 namespace fredholm
 {
 
+struct RenderLayers
+{
+    // float4 buffer
+    CUdeviceptr beauty = 0;
+    CUdeviceptr position = 0;
+    CUdeviceptr normal = 0;
+    CUdeviceptr texcoord = 0;
+    CUdeviceptr albedo = 0;
+    CUdeviceptr material_id = 0;
+};
+
 // TODO: add parameters specific to each strategy
 // TODO: add GUI to change each parameters
 
@@ -75,7 +86,7 @@ class RenderStrategy
                         const SceneDevice& scene,
                         const OptixTraversableHandle& ias_handle,
                         const OptixShaderBindingTable& sbt,
-                        const CUdeviceptr& beauty) = 0;
+                        const RenderLayers& layers) = 0;
 
    protected:
     // this should be defined on Camera

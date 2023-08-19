@@ -32,12 +32,12 @@ class HelloStrategy : public RenderStrategy
                 const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
                 const OptixShaderBindingTable& sbt,
-                const CUdeviceptr& beauty) override
+                const RenderLayers& layers) override
     {
         HelloStrategyParams params;
         params.width = width;
         params.height = height;
-        params.output = reinterpret_cast<float4*>(beauty);
+        params.output = reinterpret_cast<float4*>(layers.beauty);
 
         cuda_check(cuMemcpyHtoD(m_params_buffer, &params,
                                 sizeof(HelloStrategyParams)));

@@ -67,6 +67,8 @@ class CUDABuffer
 
     CUdeviceptr get_device_ptr() { return dptr; }
 
+    void clear() { cuda_check(cuMemsetD32(dptr, 0, size)); }
+
     void copy_h_to_d(const T *hptr) const
     {
         cuda_check(cuMemcpyHtoD(dptr, hptr, sizeof(T) * size));
@@ -115,6 +117,8 @@ class CUDAGLBuffer
     }
 
     const CUdeviceptr &get_device_ptr() const { return dptr; }
+
+    void clear() { cuda_check(cuMemsetD32(dptr, 0, size)); }
 
     void copy_h_to_d(const T *hptr) const
     {

@@ -30,7 +30,7 @@ class SimpleStrategy : public RenderStrategy
                 const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
                 const OptixShaderBindingTable& sbt,
-                const CUdeviceptr& beauty) override
+                const RenderLayers& layers) override
     {
         SimpleStrategyParams params;
         params.width = width;
@@ -38,7 +38,7 @@ class SimpleStrategy : public RenderStrategy
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
-        params.output = reinterpret_cast<float4*>(beauty);
+        params.output = reinterpret_cast<float4*>(layers.beauty);
 
         cuda_check(cuMemAlloc(&m_params_buffer, sizeof(SimpleStrategyParams)));
         cuda_check(cuMemcpyHtoD(m_params_buffer, &params,

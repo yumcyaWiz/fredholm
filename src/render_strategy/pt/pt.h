@@ -30,7 +30,7 @@ class PtStrategy : public RenderStrategy
                 const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
                 const OptixShaderBindingTable& sbt,
-                const CUdeviceptr& beauty) override
+                const RenderLayers& layers) override
     {
         // TODO: remove malloc from this function, maybe it's good to
         // initialize in the constructor
@@ -48,7 +48,7 @@ class PtStrategy : public RenderStrategy
         params.max_depth = max_depth;
         params.seed = seed;
         params.sample_count = reinterpret_cast<uint*>(sample_count);
-        params.output = reinterpret_cast<float4*>(beauty);
+        params.output = reinterpret_cast<float4*>(layers.beauty);
 
         cuda_check(cuMemAlloc(&m_params_buffer, sizeof(PtStrategyParams)));
         cuda_check(

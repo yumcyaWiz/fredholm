@@ -28,9 +28,7 @@ int main()
 
     {
         // init renderer
-        constexpr uint32_t width = 1920;
-        constexpr uint32_t height = 1080;
-        fredholm::Renderer renderer(width, height);
+        fredholm::Renderer renderer;
 
         fredholm::Camera camera(glm::vec3(0, 1, 2));
 
@@ -41,8 +39,8 @@ int main()
         scene_device.send(context, scene);
 
         // fredholm::HelloStrategy strategy(context, debug);
-        fredholm::SimpleStrategy strategy(context, debug);
-        // fredholm::PtStrategy strategy(context, debug);
+        // fredholm::SimpleStrategy strategy(context, debug);
+        fredholm::PtStrategy strategy(context, debug);
         renderer.set_render_strategy(&strategy);
 
         // render
