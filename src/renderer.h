@@ -93,10 +93,16 @@ class Renderer
     {
         m_render_strategy =
             RenderStrategyFactory::create(type, options, context, debug);
+        m_render_strategy_type = type;
 
         sbt_record_set = optix_create_sbt_records(
             m_render_strategy->get_program_group_sets());
         sbt = optix_create_sbt(sbt_record_set);
+    }
+
+    void set_render_strategy(const RenderStrategyType& type)
+    {
+        set_render_strategy(type, m_render_strategy->get_options());
     }
 
     void runImGui()

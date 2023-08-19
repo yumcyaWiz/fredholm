@@ -144,6 +144,8 @@ class RenderStrategy
         return m_program_group_sets;
     }
 
+    const RenderOptions& get_options() const { return options; }
+
     template <typename T>
     T get_option(const std::string& name) const
     {

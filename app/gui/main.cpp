@@ -220,6 +220,7 @@ class App
         scene_device = std::make_unique<fredholm::SceneDevice>();
         scene_device->send(context, scene);
 
+        fredholm::RenderOptions options;
         options.use_gl_interop = true;
         renderer->set_render_strategy(fredholm::RenderStrategyType::PT,
                                       options);
@@ -331,8 +332,7 @@ class App
                                  "Hello\0Simple\0PT\0\0"))
                 {
                     renderer->set_render_strategy(
-                        fredholm::RenderStrategyType(selected_render_strategy),
-                        options);
+                        fredholm::RenderStrategyType(selected_render_strategy));
                 }
 
                 renderer->runImGui();
@@ -369,7 +369,6 @@ class App
     fredholm::Camera camera;
     fredholm::SceneGraph scene;
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
-    fredholm::RenderOptions options;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
 
     std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
