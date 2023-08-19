@@ -344,7 +344,7 @@ class GLPipeline
         other.pipeline = 0;
     }
 
-    ~GLPipeline();
+    ~GLPipeline() { release(); }
 
     GLPipeline& operator=(const GLPipeline& other) = delete;
 
@@ -369,12 +369,12 @@ class GLPipeline
 
     void loadGeometryShader(const std::filesystem::path& filepath)
     {
-        attachFragmentShader(Shader::createFragmentShader(filepath));
+        attachGeometryShader(Shader::createGeometryShader(filepath));
     }
 
     void loadFragmentShader(const std::filesystem::path& filepath)
     {
-        attachGeometryShader(Shader::createGeometryShader(filepath));
+        attachFragmentShader(Shader::createFragmentShader(filepath));
     }
 
     void loadComputeShader(const std::filesystem::path& filepath)
