@@ -153,6 +153,8 @@ struct CompiledScene
     std::vector<glm::mat4> instance_transforms = {};
 };
 
+// TODO: add envmap
+// TODO: add lights
 class SceneGraph
 {
    public:
