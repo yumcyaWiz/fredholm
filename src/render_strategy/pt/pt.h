@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm>
+
 #include "cuda_util.h"
 #include "imgui.h"
 #include "render_strategy/pt/pt_shared.h"
@@ -48,15 +50,24 @@ class PtStrategy : public RenderStrategy
 
     void runImGui() override
     {
-        ImGui::ProgressBar(static_cast<float>(sample_count) / n_samples);
-        ImGui::Text("%d / %d spp", sample_count, n_samples);
-        if (ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples)))
+        ImGui::ProgressBar(static_cast<float>(sample_count) /
+                           options.n_samples);
+        ImGui::Text("%d / %d spp", sample_count, options.n_samples);
+        if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&options.n_spp)))
         {
+            options.n_spp = std::min(options.n_spp, options.n_samples);
             clear_render();
         }
-        if (ImGui::SliderInt("max_depth", reinterpret_cast<int*>(&max_depth), 1,
-                             100))
+        if (ImGui::InputInt("n_samples",
+                            reinterpret_cast<int*>(&options.n_samples)))
         {
+            options.n_samples = std::max(options.n_samples, 1u);
+            clear_render();
+        }
+        if (ImGui::InputInt("max_depth",
+                            reinterpret_cast<int*>(&options.max_depth)))
+        {
+            options.max_depth = std::max(options.max_depth, 1u);
             clear_render();
         }
     }
@@ -65,7 +76,7 @@ class PtStrategy : public RenderStrategy
                 const OptixTraversableHandle& ias_handle,
                 const OptixShaderBindingTable& sbt) override
     {
-        if (sample_count >= n_samples) return;
+        if (sample_count >= options.n_samples) return;
 
         PtStrategyParams params;
         params.width = options.width;
@@ -73,8 +84,8 @@ class PtStrategy : public RenderStrategy
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
-        params.n_samples = 1;
-        params.max_depth = max_depth;
+        params.n_samples = options.n_spp;
+        params.max_depth = options.max_depth;
         params.seed = seed;
         params.sample_count = sample_count;
         params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
@@ -84,12 +95,10 @@ class PtStrategy : public RenderStrategy
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(PtStrategyParams), &sbt, options.width,
                                 options.height, 1));
-        sample_count += 1;
+        sample_count += options.n_spp;
     }
 
    private:
-    uint32_t n_samples = 512;
-    uint32_t max_depth = 100;
     uint32_t seed = 1;
     uint32_t sample_count = 0;
 

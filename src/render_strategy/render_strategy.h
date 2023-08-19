@@ -15,12 +15,20 @@ struct RenderOptions
 
     bool use_gl_interop = false;
 
+    // TODO: hide these options inside path tracing strategy
+    uint32_t n_samples = 512;
+    uint32_t n_spp = 1;
+    uint32_t max_depth = 100;
+
     template <typename T>
     T get_option(const std::string& name) const
     {
         if (name == "width") { return width; }
         else if (name == "height") { return height; }
         else if (name == "use_gl_interop") { return use_gl_interop; }
+        else if (name == "n_samples") { return n_samples; }
+        else if (name == "n_spp") { return n_spp; }
+        else if (name == "max_depth") { return max_depth; }
         else { throw std::runtime_error("Unknown option name"); }
     }
 };

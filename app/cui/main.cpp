@@ -39,8 +39,7 @@ int main()
         scene_device.send(context, scene);
 
         fredholm::RenderOptions options;
-        options.width = 512;
-        options.height = 512;
+        options.n_spp = 512;
         // fredholm::HelloStrategy strategy(context, debug);
         // fredholm::SimpleStrategy strategy(context, debug);
         fredholm::PtStrategy strategy(options, context, debug);
