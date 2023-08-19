@@ -1,5 +1,6 @@
 #pragma once
 #include "camera.h"
+#include "helper_math.h"
 #include "optix_util.h"
 #include "scene.h"
 #include "shared.h"
@@ -10,8 +11,7 @@ namespace fredholm
 
 struct RenderOptions
 {
-    uint32_t width = 512;
-    uint32_t height = 512;
+    uint2 resolution = make_uint2(512, 512);
 
     bool use_gl_interop = false;
 
@@ -21,14 +21,55 @@ struct RenderOptions
     uint32_t max_depth = 100;
 
     template <typename T>
-    T get_option(const std::string& name) const
+    T get_option(const std::string& name) const;
+
+    template <typename T>
+    void set_option(const std::string& name, const T& value);
+
+   private:
+    template <>
+    uint2 get_option(const std::string& name) const
     {
-        if (name == "width") { return width; }
-        else if (name == "height") { return height; }
-        else if (name == "use_gl_interop") { return use_gl_interop; }
-        else if (name == "n_samples") { return n_samples; }
+        if (name == "resolution") { return resolution; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+
+    template <>
+    bool get_option(const std::string& name) const
+    {
+        if (name == "use_gl_interop") { return use_gl_interop; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+
+    template <>
+    uint32_t get_option(const std::string& name) const
+    {
+        if (name == "n_samples") { return n_samples; }
         else if (name == "n_spp") { return n_spp; }
         else if (name == "max_depth") { return max_depth; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+
+    template <>
+    void set_option(const std::string& name, const uint2& value)
+    {
+        if (name == "resolution") { resolution = value; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+
+    template <>
+    void set_option(const std::string& name, const bool& value)
+    {
+        if (name == "use_gl_interop") { use_gl_interop = value; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+
+    template <>
+    void set_option(const std::string& name, const uint32_t& value)
+    {
+        if (name == "n_samples") { n_samples = value; }
+        else if (name == "n_spp") { n_spp = value; }
+        else if (name == "max_depth") { max_depth = value; }
         else { throw std::runtime_error("Unknown option name"); }
     }
 };
@@ -109,15 +150,24 @@ class RenderStrategy
         return options.get_option<T>(name);
     }
 
+    template <typename T>
+    void set_option(const std::string& name, const T& value)
+    {
+        options.set_option<T>(name, value);
+        clear_render();
+    }
+
     const CUDABuffer<float4>& get_aov(const std::string& name) const
     {
         if (name == "beauty") { return *beauty; }
         else { throw std::runtime_error("Unknown AOV name"); }
     }
 
+    // TODO: separate init and clear
     virtual void clear_render() { init_render_layers(); }
 
-    // TODO: add common GUI elements in this function(template method pattern)
+    // TODO: add common GUI elements in this function(template method
+    // pattern)
     virtual void runImGui() {}
 
     virtual void render(const Camera& camera, const SceneDevice& scene,
@@ -128,7 +178,8 @@ class RenderStrategy
     void init_render_layers()
     {
         beauty = std::make_unique<CUDABuffer<float4>>(
-            options.width * options.height, options.use_gl_interop);
+            options.resolution.x * options.resolution.y,
+            options.use_gl_interop);
     }
 
     // this should be defined on Camera

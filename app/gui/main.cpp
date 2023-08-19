@@ -131,16 +131,16 @@ class App
                 renderer->synchronize();
 
                 // show image
-                const uint32_t width = renderer->get_option<uint32_t>("width");
-                const uint32_t height =
-                    renderer->get_option<uint32_t>("height");
+                const uint2 resolution =
+                    renderer->get_option<uint2>("resolution");
                 const fredholm::GLBuffer& beauty =
                     renderer->get_aov("beauty").get_gl_buffer();
 
-                pipeline->setUniform("resolution", glm::vec2(width, height));
+                pipeline->setUniform("resolution",
+                                     glm::vec2(resolution.x, resolution.y));
                 beauty.bindToShaderStorageBuffer(0);
 
-                glViewport(0, 0, width, height);
+                glViewport(0, 0, resolution.x, resolution.y);
                 quad->draw(*pipeline);
             }
 

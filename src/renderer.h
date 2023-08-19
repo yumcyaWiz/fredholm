@@ -77,6 +77,12 @@ class Renderer
         return m_render_strategy->get_option<T>(name);
     }
 
+    template <typename T>
+    void set_option(const std::string& name, const T& value)
+    {
+        m_render_strategy->set_option<T>(name, value);
+    }
+
     RenderStrategyType get_render_strategy_type() const
     {
         return m_render_strategy_type;
@@ -113,13 +119,12 @@ class Renderer
 
     void save_image(const std::filesystem::path& filepath) const
     {
-        const uint32_t width = m_render_strategy->get_option<uint32_t>("width");
-        const uint32_t height =
-            m_render_strategy->get_option<uint32_t>("height");
+        const uint2 resolution =
+            m_render_strategy->get_option<uint2>("resolution");
 
-        std::vector<float4> beauty_h(width * height);
+        std::vector<float4> beauty_h(resolution.x * resolution.y);
         m_render_strategy->get_aov("beauty").copy_d_to_h(beauty_h.data());
-        write_image(filepath, width, height, beauty_h.data());
+        write_image(filepath, resolution.x, resolution.y, beauty_h.data());
     }
 
    private:

@@ -44,8 +44,8 @@ class SimpleStrategy : public RenderStrategy
                 const OptixShaderBindingTable& sbt) override
     {
         SimpleStrategyParams params;
-        params.width = options.width;
-        params.height = options.height;
+        params.width = options.resolution.x;
+        params.height = options.resolution.y;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
@@ -55,7 +55,7 @@ class SimpleStrategy : public RenderStrategy
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(SimpleStrategyParams), &sbt,
-                                options.width, options.height, 1));
+                                options.resolution.x, options.resolution.y, 1));
     }
 
    private:

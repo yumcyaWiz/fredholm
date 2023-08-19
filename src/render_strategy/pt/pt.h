@@ -81,8 +81,8 @@ class PtStrategy : public RenderStrategy
         if (sample_count >= options.n_samples) return;
 
         PtStrategyParams params;
-        params.width = options.width;
-        params.height = options.height;
+        params.width = options.resolution.x;
+        params.height = options.resolution.y;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
@@ -95,8 +95,8 @@ class PtStrategy : public RenderStrategy
             cuMemcpyHtoD(params_buffer, &params, sizeof(PtStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(PtStrategyParams), &sbt, options.width,
-                                options.height, 1));
+                                sizeof(PtStrategyParams), &sbt,
+                                options.resolution.x, options.resolution.y, 1));
         sample_count += options.n_spp;
     }
 

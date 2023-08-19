@@ -44,15 +44,15 @@ class HelloStrategy : public RenderStrategy
                 const OptixShaderBindingTable& sbt) override
     {
         HelloStrategyParams params;
-        params.width = options.width;
-        params.height = options.height;
+        params.width = options.resolution.x;
+        params.height = options.resolution.y;
         params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(HelloStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(HelloStrategyParams), &sbt,
-                                options.width, options.height, 1));
+                                options.resolution.x, options.resolution.y, 1));
     }
 
    private:
