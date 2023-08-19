@@ -25,7 +25,16 @@ class HelloStrategy : public RenderStrategy
         m_pipeline =
             optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
 
-        cuda_check(cuMemAlloc(&m_params_buffer, sizeof(HelloStrategyParams)));
+        cuda_check(cuMemAlloc(&params_buffer, sizeof(HelloStrategyParams)));
+    }
+
+    ~HelloStrategy()
+    {
+        if (params_buffer != 0)
+        {
+            cuda_check(cuMemFree(params_buffer));
+            params_buffer = 0;
+        }
     }
 
     void render(uint32_t width, uint32_t height, const Camera& camera,
@@ -38,14 +47,16 @@ class HelloStrategy : public RenderStrategy
         params.width = width;
         params.height = height;
         params.output = reinterpret_cast<float4*>(layers.beauty);
+        cuda_check(
+            cuMemcpyHtoD(params_buffer, &params, sizeof(HelloStrategyParams)));
 
-        cuda_check(cuMemcpyHtoD(m_params_buffer, &params,
-                                sizeof(HelloStrategyParams)));
-
-        optix_check(optixLaunch(m_pipeline, 0, m_params_buffer,
+        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(HelloStrategyParams), &sbt, width,
                                 height, 1));
     }
+
+   private:
+    CUdeviceptr params_buffer = 0;
 };
 
 }  // namespace fredholm

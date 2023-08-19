@@ -25,6 +25,17 @@ class PtStrategy : public RenderStrategy
 
         m_pipeline =
             optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
+
+        cuda_check(cuMemAlloc(&params_buffer, sizeof(PtStrategyParams)));
+    }
+
+    ~PtStrategy()
+    {
+        if (params_buffer != 0)
+        {
+            cuda_check(cuMemFree(params_buffer));
+            params_buffer = 0;
+        }
     }
 
     void runImGui() override
@@ -57,12 +68,10 @@ class PtStrategy : public RenderStrategy
         params.seed = seed;
         params.sample_count = sample_count;
         params.output = reinterpret_cast<float4*>(layers.beauty);
-
-        cuda_check(cuMemAlloc(&m_params_buffer, sizeof(PtStrategyParams)));
         cuda_check(
-            cuMemcpyHtoD(m_params_buffer, &params, sizeof(PtStrategyParams)));
+            cuMemcpyHtoD(params_buffer, &params, sizeof(PtStrategyParams)));
 
-        optix_check(optixLaunch(m_pipeline, 0, m_params_buffer,
+        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(PtStrategyParams), &sbt, width, height,
                                 1));
         sample_count += 1;
@@ -73,6 +82,8 @@ class PtStrategy : public RenderStrategy
     uint32_t max_depth = 100;
     uint32_t seed = 1;
     uint32_t sample_count = 0;
+
+    CUdeviceptr params_buffer = 0;
 };
 
 }  // namespace fredholm

@@ -29,12 +29,6 @@ class RenderStrategy
 
     virtual ~RenderStrategy()
     {
-        if (m_params_buffer != 0)
-        {
-            cuda_check(cuMemFree(m_params_buffer));
-            m_params_buffer = 0;
-        }
-
         if (m_pipeline != nullptr)
         {
             optix_check(optixPipelineDestroy(m_pipeline));
@@ -129,8 +123,6 @@ class RenderStrategy
     OptixModule m_module = nullptr;
     ProgramGroupSet m_program_group_sets = {};
     OptixPipeline m_pipeline = nullptr;
-
-    CUdeviceptr m_params_buffer = 0;
 };
 
 }  // namespace fredholm

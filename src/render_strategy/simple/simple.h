@@ -24,6 +24,17 @@ class SimpleStrategy : public RenderStrategy
 
         m_pipeline =
             optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
+
+        cuda_check(cuMemAlloc(&params_buffer, sizeof(SimpleStrategyParams)));
+    }
+
+    ~SimpleStrategy()
+    {
+        if (params_buffer != 0)
+        {
+            cuda_check(cuMemFree(params_buffer));
+            params_buffer = 0;
+        }
     }
 
     void render(uint32_t width, uint32_t height, const Camera& camera,
@@ -39,15 +50,16 @@ class SimpleStrategy : public RenderStrategy
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
         params.output = reinterpret_cast<float4*>(layers.beauty);
+        cuda_check(
+            cuMemcpyHtoD(params_buffer, &params, sizeof(SimpleStrategyParams)));
 
-        cuda_check(cuMemAlloc(&m_params_buffer, sizeof(SimpleStrategyParams)));
-        cuda_check(cuMemcpyHtoD(m_params_buffer, &params,
-                                sizeof(SimpleStrategyParams)));
-
-        optix_check(optixLaunch(m_pipeline, 0, m_params_buffer,
+        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(SimpleStrategyParams), &sbt, width,
                                 height, 1));
     }
+
+   private:
+    CUdeviceptr params_buffer = 0;
 };
 
 }  // namespace fredholm
