@@ -19,8 +19,9 @@ enum class CameraMovement
     DOWN,
 };
 
-struct Camera
+class Camera
 {
+   private:
     glm::mat4 m_transform;
 
     float m_fov;
@@ -37,6 +38,7 @@ struct Camera
     float m_phi;
     float m_theta;
 
+   public:
     Camera()
         : m_fov(0.5f * M_PI),
           m_F(8.0f),
@@ -67,6 +69,14 @@ struct Camera
         m_transform = glm::inverse(
             glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
+
+    glm::mat4 get_transform() const { return m_transform; }
+
+    float get_fov() const { return m_fov; }
+
+    float get_F() const { return m_F; }
+
+    float get_focus() const { return m_focus; }
 
     void move(const CameraMovement& direction, float dt)
     {

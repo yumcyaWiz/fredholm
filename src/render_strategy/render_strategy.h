@@ -186,10 +186,11 @@ class RenderStrategy
     static CameraParams get_camera_params(const Camera& camera)
     {
         CameraParams camera_params;
-        camera_params.transform = create_mat3x4_from_glm(camera.m_transform);
-        camera_params.fov = camera.m_fov;
-        camera_params.F = camera.m_F;
-        camera_params.focus = camera.m_focus;
+        camera_params.transform =
+            create_mat3x4_from_glm(camera.get_transform());
+        camera_params.fov = camera.get_fov();
+        camera_params.F = camera.get_F();
+        camera_params.focus = camera.get_focus();
         return camera_params;
     }
 
