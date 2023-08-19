@@ -9,7 +9,9 @@ namespace fredholm
 class SimpleStrategy : public RenderStrategy
 {
    public:
-    SimpleStrategy(const OptixDeviceContext& context, bool debug = false)
+    SimpleStrategy(const RenderOptions& options,
+                   const OptixDeviceContext& context, bool debug = false)
+        : RenderStrategy(options)
     {
         m_module = optix_create_module(context, "simple.ptx", debug);
 
@@ -37,25 +39,23 @@ class SimpleStrategy : public RenderStrategy
         }
     }
 
-    void render(uint32_t width, uint32_t height, const Camera& camera,
-                const SceneDevice& scene,
+    void render(const Camera& camera, const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
-                const OptixShaderBindingTable& sbt,
-                const RenderLayers& layers) override
+                const OptixShaderBindingTable& sbt) override
     {
         SimpleStrategyParams params;
-        params.width = width;
-        params.height = height;
+        params.width = options.width;
+        params.height = options.height;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
-        params.output = reinterpret_cast<float4*>(layers.beauty);
+        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(SimpleStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(SimpleStrategyParams), &sbt, width,
-                                height, 1));
+                                sizeof(SimpleStrategyParams), &sbt,
+                                options.width, options.height, 1));
     }
 
    private:

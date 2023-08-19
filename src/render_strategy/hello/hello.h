@@ -10,7 +10,9 @@ namespace fredholm
 class HelloStrategy : public RenderStrategy
 {
    public:
-    HelloStrategy(const OptixDeviceContext& context, bool debug = false)
+    HelloStrategy(const RenderOptions& options,
+                  const OptixDeviceContext& context, bool debug = false)
+        : RenderStrategy(options)
     {
         m_module = optix_create_module(context, "hello.ptx", debug);
 
@@ -37,22 +39,20 @@ class HelloStrategy : public RenderStrategy
         }
     }
 
-    void render(uint32_t width, uint32_t height, const Camera& camera,
-                const SceneDevice& scene,
+    void render(const Camera& camera, const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
-                const OptixShaderBindingTable& sbt,
-                const RenderLayers& layers) override
+                const OptixShaderBindingTable& sbt) override
     {
         HelloStrategyParams params;
-        params.width = width;
-        params.height = height;
-        params.output = reinterpret_cast<float4*>(layers.beauty);
+        params.width = options.width;
+        params.height = options.height;
+        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(HelloStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(HelloStrategyParams), &sbt, width,
-                                height, 1));
+                                sizeof(HelloStrategyParams), &sbt,
+                                options.width, options.height, 1));
     }
 
    private:

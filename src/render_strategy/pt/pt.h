@@ -10,7 +10,9 @@ namespace fredholm
 class PtStrategy : public RenderStrategy
 {
    public:
-    PtStrategy(const OptixDeviceContext& context, bool debug = false)
+    PtStrategy(const RenderOptions& options, const OptixDeviceContext& context,
+               bool debug = false)
+        : RenderStrategy(options)
     {
         m_module = optix_create_module(context, "pt.ptx", debug);
 
@@ -38,28 +40,36 @@ class PtStrategy : public RenderStrategy
         }
     }
 
+    void clear_render() override
+    {
+        init_render_layers();
+        sample_count = 0;
+    }
+
     void runImGui() override
     {
         ImGui::ProgressBar(static_cast<float>(sample_count) / n_samples);
         ImGui::Text("%d / %d spp", sample_count, n_samples);
-        ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples));
-        ImGui::SliderInt("max_depth", reinterpret_cast<int*>(&max_depth), 1,
-                         100);
+        if (ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples)))
+        {
+            clear_render();
+        }
+        if (ImGui::SliderInt("max_depth", reinterpret_cast<int*>(&max_depth), 1,
+                             100))
+        {
+            clear_render();
+        }
     }
 
-    void render(uint32_t width, uint32_t height, const Camera& camera,
-                const SceneDevice& scene,
+    void render(const Camera& camera, const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle,
-                const OptixShaderBindingTable& sbt,
-                const RenderLayers& layers) override
+                const OptixShaderBindingTable& sbt) override
     {
         if (sample_count >= n_samples) return;
 
-        // TODO: remove malloc from this function, maybe it's good to
-        // initialize in the constructor
         PtStrategyParams params;
-        params.width = width;
-        params.height = height;
+        params.width = options.width;
+        params.height = options.height;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
@@ -67,13 +77,13 @@ class PtStrategy : public RenderStrategy
         params.max_depth = max_depth;
         params.seed = seed;
         params.sample_count = sample_count;
-        params.output = reinterpret_cast<float4*>(layers.beauty);
+        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(PtStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(PtStrategyParams), &sbt, width, height,
-                                1));
+                                sizeof(PtStrategyParams), &sbt, options.width,
+                                options.height, 1));
         sample_count += 1;
     }
 

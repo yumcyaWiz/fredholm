@@ -8,6 +8,23 @@
 namespace fredholm
 {
 
+struct RenderOptions
+{
+    uint32_t width = 512;
+    uint32_t height = 512;
+
+    bool use_gl_interop = false;
+
+    template <typename T>
+    T get_option(const std::string& name) const
+    {
+        if (name == "width") { return width; }
+        else if (name == "height") { return height; }
+        else if (name == "use_gl_interop") { return use_gl_interop; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+};
+
 struct RenderLayers
 {
     // float4 buffer
@@ -19,16 +36,19 @@ struct RenderLayers
     CUdeviceptr material_id = 0;
 };
 
-// TODO: add parameters specific to each strategy
-
 // TODO: change AOV based on strategy
 class RenderStrategy
 {
    public:
-    RenderStrategy() = default;
+    RenderStrategy(const RenderOptions& options) : options(options)
+    {
+        init_render_layers();
+    }
 
     virtual ~RenderStrategy()
     {
+        if (beauty) { beauty.reset(); }
+
         if (m_pipeline != nullptr)
         {
             optix_check(optixPipelineDestroy(m_pipeline));
@@ -75,15 +95,33 @@ class RenderStrategy
         return m_program_group_sets;
     }
 
+    template <typename T>
+    T get_option(const std::string& name) const
+    {
+        return options.get_option<T>(name);
+    }
+
+    const CUDABuffer<float4>& get_aov(const std::string& name) const
+    {
+        if (name == "beauty") { return *beauty; }
+        else { throw std::runtime_error("Unknown AOV name"); }
+    }
+
+    virtual void clear_render() = 0;
+
     virtual void runImGui() = 0;
 
-    virtual void render(uint32_t width, uint32_t height, const Camera& camera,
-                        const SceneDevice& scene,
+    virtual void render(const Camera& camera, const SceneDevice& scene,
                         const OptixTraversableHandle& ias_handle,
-                        const OptixShaderBindingTable& sbt,
-                        const RenderLayers& layers) = 0;
+                        const OptixShaderBindingTable& sbt) = 0;
 
    protected:
+    void init_render_layers()
+    {
+        beauty = std::make_unique<CUDABuffer<float4>>(
+            options.width * options.height, options.use_gl_interop);
+    }
+
     // this should be defined on Camera
     static CameraParams get_camera_params(const Camera& camera)
     {
@@ -123,6 +161,9 @@ class RenderStrategy
     OptixModule m_module = nullptr;
     ProgramGroupSet m_program_group_sets = {};
     OptixPipeline m_pipeline = nullptr;
+
+    RenderOptions options = {};
+    std::unique_ptr<CUDABuffer<float4>> beauty = nullptr;
 };
 
 }  // namespace fredholm
