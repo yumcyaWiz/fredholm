@@ -50,9 +50,9 @@ class PtStrategy : public RenderStrategy
 
     void runImGui() override
     {
-        ImGui::ProgressBar(static_cast<float>(sample_count) /
-                           options.n_samples);
         ImGui::Text("%d / %d spp", sample_count, options.n_samples);
+        if (ImGui::Button("clear")) { clear_render(); }
+
         if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&options.n_spp)))
         {
             options.n_spp = std::min(options.n_spp, options.n_samples);
