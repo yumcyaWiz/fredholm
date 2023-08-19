@@ -246,16 +246,6 @@ struct SceneData
     Matrix3x4* world_to_objects;
 };
 
-struct RenderLayer
-{
-    float4* beauty;
-    float4* position;
-    float* depth;
-    float4* normal;
-    float4* texcoord;
-    float4* albedo;
-};
-
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
 static CUDA_INLINE CUDA_HOST_DEVICE uint pcg32_random_r(PCGState* rng)
