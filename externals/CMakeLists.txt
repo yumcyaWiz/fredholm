@@ -58,3 +58,7 @@ target_link_libraries(tinygltf PUBLIC
 # argparse
 add_library(argparse INTERFACE)
 target_include_directories(argparse SYSTEM INTERFACE "argparse/include")
+
+# GLSL-Shader-Includes
+add_library(glsl-shader-includes INTERFACE)
+target_include_directories(glsl-shader-includes SYSTEM INTERFACE GLSL-Shader-Includes)

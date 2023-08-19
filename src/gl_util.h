@@ -1,7 +1,15 @@
 #pragma once
 #ifndef __CUDACC__
+#include <filesystem>
+#include <string>
+#include <variant>
+#include <vector>
 
+#include "Shadinclude.hpp"
 #include "glad/gl.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "spdlog/spdlog.h"
 
 namespace fredholm
 {
@@ -131,6 +139,268 @@ class GLVertexArrayObject
     {
         if (array) { glDeleteVertexArrays(1, &array); }
     }
+};
+
+class GLPipeline
+{
+   private:
+    class Shader
+    {
+       private:
+        GLuint program;
+
+        static GLuint createShaderProgram(GLenum type,
+                                          const std::filesystem::path& filepath)
+        {
+            const std::string shader_source = Shadinclude::load(filepath);
+            const char* shader_source_c = shader_source.c_str();
+            GLuint program = glCreateShaderProgramv(type, 1, &shader_source_c);
+            return program;
+        }
+
+        static void checkCompileError(GLuint program)
+        {
+            int success = 0;
+            glGetProgramiv(program, GL_LINK_STATUS, &success);
+            if (success == GL_FALSE)
+            {
+                spdlog::error("failed to link program {:x}", program);
+
+                GLint logSize = 0;
+                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logSize);
+                std::vector<GLchar> errorLog(logSize);
+                glGetProgramInfoLog(program, logSize, &logSize, &errorLog[0]);
+                std::string errorLogStr(errorLog.begin(), errorLog.end());
+                spdlog::error("{}", errorLogStr);
+            }
+        }
+
+       public:
+        Shader() : program(0) {}
+
+        void extracted(GLenum& type, const std::filesystem::path& filepath);
+
+        Shader(GLenum type, const std::filesystem::path& filepath)
+        {
+            program = createShaderProgram(type, filepath);
+            checkCompileError(program);
+        }
+
+        ~Shader() { release(); }
+
+        Shader(const Shader& other) = delete;
+
+        Shader(Shader&& other) : program(other.program) { other.program = 0; }
+
+        Shader& operator=(const Shader& other) = delete;
+
+        Shader& operator=(Shader&& other)
+        {
+            if (this != &other)
+            {
+                release();
+
+                program = other.program;
+
+                other.program = 0;
+            }
+
+            return *this;
+        }
+
+        operator bool() const { return this->program != 0; }
+
+        void release()
+        {
+            if (program) { glDeleteProgram(program); }
+        }
+
+        GLuint getProgram() const { return program; }
+
+        void setUniform(
+            const std::string& uniform_name,
+            const std::variant<bool, GLint, GLuint, GLfloat, glm::vec2,
+                               glm::vec3, glm::mat4>& value) const
+        {
+            // get location of uniform variable
+            const GLint location =
+                glGetUniformLocation(program, uniform_name.c_str());
+
+            // set value
+            struct Visitor
+            {
+                GLuint program;
+                GLint location;
+                Visitor(GLuint program, GLint location)
+                    : program(program), location(location)
+                {
+                }
+
+                void operator()(bool value)
+                {
+                    glProgramUniform1i(program, location, value);
+                }
+                void operator()(GLint value)
+                {
+                    glProgramUniform1i(program, location, value);
+                }
+                void operator()(GLuint value)
+                {
+                    glProgramUniform1ui(program, location, value);
+                }
+                void operator()(GLfloat value)
+                {
+                    glProgramUniform1f(program, location, value);
+                }
+                void operator()(const glm::vec2& value)
+                {
+                    glProgramUniform2fv(program, location, 1,
+                                        glm::value_ptr(value));
+                }
+                void operator()(const glm::vec3& value)
+                {
+                    glProgramUniform3fv(program, location, 1,
+                                        glm::value_ptr(value));
+                }
+                void operator()(const glm::mat4& value)
+                {
+                    glProgramUniformMatrix4fv(program, location, 1, GL_FALSE,
+                                              glm::value_ptr(value));
+                }
+            };
+            std::visit(Visitor{program, location}, value);
+        }
+
+        static Shader createVertexShader(const std::filesystem::path& filepath)
+        {
+            return Shader(GL_VERTEX_SHADER, filepath);
+        }
+
+        static Shader createFragmentShader(
+            const std::filesystem::path& filepath)
+        {
+            return Shader(GL_FRAGMENT_SHADER, filepath);
+        }
+
+        static Shader createGeometryShader(
+            const std::filesystem::path& filepath)
+        {
+            return Shader(GL_GEOMETRY_SHADER, filepath);
+        }
+
+        static Shader createComputeShader(const std::filesystem::path& filepath)
+        {
+            return Shader(GL_COMPUTE_SHADER, filepath);
+        }
+    };
+
+    GLuint pipeline;
+
+    Shader vertex_shader;
+    Shader fragment_shader;
+    Shader geometry_shader;
+    Shader compute_shader;
+
+    void release()
+    {
+        if (pipeline) { glDeleteProgramPipelines(1, &pipeline); }
+    }
+
+    void attachVertexShader(Shader&& shader)
+    {
+        vertex_shader = std::move(shader);
+        glUseProgramStages(pipeline, GL_VERTEX_SHADER_BIT,
+                           vertex_shader.getProgram());
+    }
+
+    void attachGeometryShader(Shader&& shader)
+    {
+        geometry_shader = std::move(shader);
+        glUseProgramStages(pipeline, GL_GEOMETRY_SHADER_BIT,
+                           geometry_shader.getProgram());
+    }
+
+    void attachFragmentShader(Shader&& shader)
+    {
+        fragment_shader = std::move(shader);
+        glUseProgramStages(pipeline, GL_FRAGMENT_SHADER_BIT,
+                           fragment_shader.getProgram());
+    }
+
+    void attachComputeShader(Shader&& shader)
+    {
+        compute_shader = std::move(shader);
+        glUseProgramStages(pipeline, GL_COMPUTE_SHADER_BIT,
+                           compute_shader.getProgram());
+    }
+
+   public:
+    GLPipeline() { glCreateProgramPipelines(1, &pipeline); }
+
+    GLPipeline(const GLPipeline& other) = delete;
+
+    GLPipeline(GLPipeline&& other) : pipeline(other.pipeline)
+    {
+        other.pipeline = 0;
+    }
+
+    ~GLPipeline();
+
+    GLPipeline& operator=(const GLPipeline& other) = delete;
+
+    GLPipeline& operator=(GLPipeline&& other)
+    {
+        if (this != &other)
+        {
+            release();
+
+            pipeline = other.pipeline;
+
+            other.pipeline = 0;
+        }
+
+        return *this;
+    }
+
+    void loadVertexShader(const std::filesystem::path& filepath)
+    {
+        attachVertexShader(Shader::createVertexShader(filepath));
+    }
+
+    void loadGeometryShader(const std::filesystem::path& filepath)
+    {
+        attachFragmentShader(Shader::createFragmentShader(filepath));
+    }
+
+    void loadFragmentShader(const std::filesystem::path& filepath)
+    {
+        attachGeometryShader(Shader::createGeometryShader(filepath));
+    }
+
+    void loadComputeShader(const std::filesystem::path& filepath)
+    {
+        attachComputeShader(Shader::createComputeShader(filepath));
+    }
+
+    void setUniform(const std::string& uniform_name,
+                    const std::variant<bool, GLint, GLuint, GLfloat, glm::vec2,
+                                       glm::vec3, glm::mat4>& value) const
+    {
+        if (vertex_shader) { vertex_shader.setUniform(uniform_name, value); }
+        if (geometry_shader)
+        {
+            geometry_shader.setUniform(uniform_name, value);
+        }
+        if (fragment_shader)
+        {
+            fragment_shader.setUniform(uniform_name, value);
+        }
+        if (compute_shader) { compute_shader.setUniform(uniform_name, value); }
+    }
+
+    void activate() const { glBindProgramPipeline(pipeline); }
+
+    void deactivate() const { glBindProgramPipeline(0); }
 };
 
 }  // namespace fredholm

@@ -70,6 +70,7 @@ target_link_libraries(fredholm PUBLIC
     tinygltf
     tinyobjloader
     spdlog::spdlog
+    glsl-shader-includes
 )
 
 # app
