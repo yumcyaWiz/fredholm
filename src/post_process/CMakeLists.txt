@@ -4,16 +4,22 @@ add_library(post_process_kernel OBJECT
 set_target_properties(post_process_kernel PROPERTIES
     CUDA_PTX_COMPILATION ON
 )
-target_link_libraries(post_process_kernel PUBLIC
+target_include_directories(post_process_kernel PRIVATE
+    "./"
+)
+target_link_libraries(post_process_kernel PRIVATE
     fredholm
 )
 
 add_library(post_process
     "post_process.cpp"
 )
-target_link_libraries(post_process PUBLIC
+target_link_libraries(post_process PRIVATE
     CUDA::cuda_driver
     fredholm
+)
+target_include_directories(post_process PRIVATE
+    "./"
 )
 
 # set cmake source dir macro
