@@ -88,6 +88,11 @@ class Renderer
         sbt = optix_create_sbt(sbt_record_set);
     }
 
+    void runImGui() const
+    {
+        if (m_render_strategy) { m_render_strategy->runImGui(); }
+    }
+
     // TODO: rendere should manage camera and scene?
     void render(const Camera& camera, const SceneDevice& scene)
     {

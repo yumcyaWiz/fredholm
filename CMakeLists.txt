@@ -71,6 +71,7 @@ target_link_libraries(fredholm PUBLIC
     tinyobjloader
     spdlog::spdlog
     glsl-shader-includes
+    imgui
 )
 
 # app

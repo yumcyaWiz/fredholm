@@ -1,5 +1,6 @@
 #pragma once
 #include "cuda_util.h"
+#include "imgui.h"
 #include "render_strategy/pt/pt_shared.h"
 #include "render_strategy/render_strategy.h"
 
@@ -24,6 +25,13 @@ class PtStrategy : public RenderStrategy
 
         m_pipeline =
             optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
+    }
+
+    void runImGui() override
+    {
+        ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples));
+        ImGui::SliderInt("max_depth", reinterpret_cast<int*>(&max_depth), 1,
+                         100);
     }
 
     void render(uint32_t width, uint32_t height, const Camera& camera,
@@ -62,8 +70,8 @@ class PtStrategy : public RenderStrategy
     }
 
    private:
-    uint32_t n_samples = 512;
-    uint32_t max_depth = 100;
+    uint32_t n_samples = 1;
+    uint32_t max_depth = 2;
     uint32_t seed = 1;
     CUdeviceptr sample_count = 0;
 };

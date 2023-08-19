@@ -20,7 +20,6 @@ struct RenderLayers
 };
 
 // TODO: add parameters specific to each strategy
-// TODO: add GUI to change each parameters
 
 // TODO: change AOV based on strategy
 class RenderStrategy
@@ -81,6 +80,8 @@ class RenderStrategy
     {
         return m_program_group_sets;
     }
+
+    virtual void runImGui() = 0;
 
     virtual void render(uint32_t width, uint32_t height, const Camera& camera,
                         const SceneDevice& scene,

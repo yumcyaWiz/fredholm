@@ -237,6 +237,8 @@ class App
                 {
                     // TODO: set render strategy
                 }
+
+                renderer->runImGui();
             }
         }
         ImGui::End();
@@ -272,6 +274,7 @@ class App
     fredholm::SceneGraph scene;
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
+    // TODO: place this inside renderer
     std::unique_ptr<fredholm::RenderStrategy> render_strategy = nullptr;
 
     std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
