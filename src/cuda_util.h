@@ -12,7 +12,10 @@
 #include <iostream>
 #include <source_location>
 
+#include "gl_util.h"
 #include "helper_math.h"
+//
+#include <cudaGL.h>
 
 namespace fredholm
 {
@@ -63,6 +66,55 @@ class CUDABuffer
     ~CUDABuffer() { cuda_check(cuMemFree(dptr)); }
 
     CUdeviceptr get_device_ptr() { return dptr; }
+
+    void copy_h_to_d(const T *hptr) const
+    {
+        cuda_check(cuMemcpyHtoD(dptr, hptr, sizeof(T) * size));
+    }
+
+    void copy_d_to_h(T *hptr) const
+    {
+        cuda_check(cuMemcpyDtoH(hptr, dptr, sizeof(T) * size));
+    }
+};
+
+template <typename T>
+class CUDAGLBuffer
+{
+   private:
+    GLBuffer buffer;
+    CUdeviceptr dptr = 0;
+    CUgraphicsResource resource = nullptr;
+    uint32_t size = 0;
+
+   public:
+    CUDAGLBuffer() {}
+
+    CUDAGLBuffer(uint32_t size) : size(size)
+    {
+        cuda_check(cuGraphicsGLRegisterBuffer(
+            &resource, buffer.getName(),
+            CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD));
+        cuda_check(cuGraphicsMapResources(1, &resource, 0));
+        size_t s = 0;
+        cuda_check(cuGraphicsResourceGetMappedPointer(&dptr, &s, resource));
+    }
+
+    CUDAGLBuffer(const CUDAGLBuffer &) = delete;
+
+    CUDAGLBuffer(CUDAGLBuffer &&other) : dptr(other.dptr), size(other.size)
+    {
+        other.dptr = 0;
+        other.size = 0;
+    }
+
+    ~CUDAGLBuffer()
+    {
+        cuda_check(cuGraphicsUnmapResources(1, &resource, 0));
+        cuda_check(cuGraphicsUnregisterResource(resource));
+    }
+
+    const CUdeviceptr &get_device_ptr() const { return dptr; }
 
     void copy_h_to_d(const T *hptr) const
     {
