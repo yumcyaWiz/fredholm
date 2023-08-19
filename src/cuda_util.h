@@ -10,6 +10,7 @@
 
 #include <format>
 #include <iostream>
+#include <memory>
 #include <source_location>
 
 #include "gl_util.h"
@@ -43,12 +44,29 @@ class CUDABuffer
     CUdeviceptr dptr = 0;
     uint32_t size = 0;
 
+    bool use_gl_interop = false;
+    std::unique_ptr<GLBuffer> gl_buffer = nullptr;
+    CUgraphicsResource resource = nullptr;
+
    public:
     CUDABuffer() {}
 
-    CUDABuffer(uint32_t size) : size(size)
+    CUDABuffer(uint32_t size, bool use_gl_interop = false)
+        : size(size), use_gl_interop(use_gl_interop)
     {
         cuda_check(cuMemAlloc(&dptr, sizeof(T) * size));
+
+        if (use_gl_interop)
+        {
+            gl_buffer = std::make_unique<GLBuffer>();
+
+            cuda_check(
+                cuGraphicsGLRegisterBuffer(&resource, gl_buffer->getName(),
+                                           CU_GRAPHICS_REGISTER_FLAGS_NONE));
+            cuda_check(cuGraphicsMapResources(1, &resource, 0));
+            size_t s = 0;
+            cuda_check(cuGraphicsResourceGetMappedPointer(&dptr, &s, resource));
+        }
     }
 
     CUDABuffer(const T *hptr, uint32_t size) : CUDABuffer(size)
@@ -58,62 +76,29 @@ class CUDABuffer
 
     CUDABuffer(const CUDABuffer &) = delete;
 
-    CUDABuffer(CUDABuffer &&other) : dptr(other.dptr), size(other.size)
-    {
-        other.dptr = 0;
-    }
-
-    ~CUDABuffer() { cuda_check(cuMemFree(dptr)); }
-
-    CUdeviceptr get_device_ptr() { return dptr; }
-
-    void clear() { cuda_check(cuMemsetD32(dptr, 0, size)); }
-
-    void copy_h_to_d(const T *hptr) const
-    {
-        cuda_check(cuMemcpyHtoD(dptr, hptr, sizeof(T) * size));
-    }
-
-    void copy_d_to_h(T *hptr) const
-    {
-        cuda_check(cuMemcpyDtoH(hptr, dptr, sizeof(T) * size));
-    }
-};
-
-template <typename T>
-class CUDAGLBuffer
-{
-   private:
-    GLBuffer buffer;
-    CUdeviceptr dptr = 0;
-    CUgraphicsResource resource = nullptr;
-    uint32_t size = 0;
-
-   public:
-    CUDAGLBuffer() {}
-
-    CUDAGLBuffer(uint32_t size) : size(size)
-    {
-        cuda_check(cuGraphicsGLRegisterBuffer(
-            &resource, buffer.getName(),
-            CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD));
-        cuda_check(cuGraphicsMapResources(1, &resource, 0));
-        size_t s = 0;
-        cuda_check(cuGraphicsResourceGetMappedPointer(&dptr, &s, resource));
-    }
-
-    CUDAGLBuffer(const CUDAGLBuffer &) = delete;
-
-    CUDAGLBuffer(CUDAGLBuffer &&other) : dptr(other.dptr), size(other.size)
+    CUDABuffer(CUDABuffer &&other)
+        : dptr(other.dptr),
+          size(other.size),
+          gl_buffer(std::move(other.gl_buffer)),
+          resource(other.resource)
     {
         other.dptr = 0;
         other.size = 0;
+        other.gl_buffer = nullptr;
+        other.resource = nullptr;
     }
 
-    ~CUDAGLBuffer()
+    ~CUDABuffer()
     {
-        cuda_check(cuGraphicsUnmapResources(1, &resource, 0));
-        cuda_check(cuGraphicsUnregisterResource(resource));
+        if (use_gl_interop)
+        {
+            cuda_check(cuGraphicsUnmapResources(1, &resource, 0));
+            cuda_check(cuGraphicsUnregisterResource(resource));
+        }
+
+        if (gl_buffer) { gl_buffer.reset(); }
+
+        cuda_check(cuMemFree(dptr));
     }
 
     const CUdeviceptr &get_device_ptr() const { return dptr; }
