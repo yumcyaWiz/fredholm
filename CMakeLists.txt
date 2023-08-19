@@ -71,8 +71,5 @@ target_link_libraries(fredholm PUBLIC
     spdlog::spdlog
 )
 
-# src
-add_executable(main "src/main.cpp")
-target_link_libraries(main PRIVATE
-    fredholm
-)
+# app
+add_subdirectory("app/")
