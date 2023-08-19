@@ -110,7 +110,7 @@ struct Camera
             glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
 
-    void lookAround(float d_phi, float d_theta)
+    void look_around(float d_phi, float d_theta)
     {
         // update phi, theta
         m_phi += m_look_around_speed * d_phi;

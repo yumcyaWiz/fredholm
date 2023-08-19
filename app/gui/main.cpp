@@ -78,6 +78,46 @@ void gl_debug_message_callback(GLenum source, GLenum type, GLuint id,
     }
 }
 
+void handle_input(GLFWwindow* window, const ImGuiIO& io,
+                  fredholm::Renderer& renderer, fredholm::Camera& camera)
+{
+    // close window
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
+    // move camera
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        camera.move(fredholm::CameraMovement::FORWARD, io.DeltaTime);
+        renderer.clear_render();
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        camera.move(fredholm::CameraMovement::LEFT, io.DeltaTime);
+        renderer.clear_render();
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        camera.move(fredholm::CameraMovement::BACKWARD, io.DeltaTime);
+        renderer.clear_render();
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        camera.move(fredholm::CameraMovement::RIGHT, io.DeltaTime);
+        renderer.clear_render();
+    }
+
+    // camera look around
+    if (!io.WantCaptureMouse &&
+        glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS)
+    {
+        camera.look_around(io.MouseDelta.x, io.MouseDelta.y);
+        renderer.clear_render();
+    }
+}
+
 class App
 {
    public:
@@ -114,6 +154,8 @@ class App
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
+
+            handle_input(window, ImGui::GetIO(), *renderer, camera);
 
             // start imgui frame
             ImGui_ImplOpenGL3_NewFrame();
@@ -247,7 +289,6 @@ class App
 
             if (ImGui::CollapsingHeader("Scene settings"))
             {
-                // TODO: show scene settings
                 const std::string scenes_names =
                     SceneList::get_names_for_imgui();
 
