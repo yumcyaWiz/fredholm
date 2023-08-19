@@ -259,6 +259,17 @@ class App
                     scene_device->send(context, scene);
                     renderer->clear_render();
                 }
+                ImGui::Text("# of vertices: %d",
+                            scene_device->get_n_vertices());
+                ImGui::Text("# of faces: %d", scene_device->get_n_faces());
+                ImGui::Text("# of materials: %d",
+                            scene_device->get_n_materials());
+                ImGui::Text("# of textures: %d",
+                            scene_device->get_n_textures());
+                ImGui::Text("# of geometries: %d",
+                            scene_device->get_n_geometries());
+                ImGui::Text("# of instances: %d",
+                            scene_device->get_n_instances());
             }
 
             if (ImGui::CollapsingHeader(("Render settings")))

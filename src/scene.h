@@ -273,6 +273,13 @@ class SceneDevice
     CUdeviceptr get_object_to_worlds() const { return object_to_world_buffer; }
     CUdeviceptr get_world_to_objects() const { return world_to_object_buffer; }
 
+    uint32_t get_n_vertices() const { return n_vertices; }
+    uint32_t get_n_faces() const { return n_faces; }
+    uint32_t get_n_materials() const { return n_materials; }
+    uint32_t get_n_geometries() const { return n_geometries; }
+    uint32_t get_n_instances() const { return n_instances; }
+    uint32_t get_n_textures() const { return n_textures; }
+
     void send(const OptixDeviceContext& context, const SceneGraph& scene_graph)
     {
         // compile scene graph
@@ -494,6 +501,12 @@ class SceneDevice
         cuda_check(cuMemcpyHtoD(world_to_object_buffer,
                                 inverse_transforms.data(),
                                 inverse_transforms.size() * sizeof(Matrix3x4)));
+
+        n_vertices = vertices.size();
+        n_faces = indices.size();
+        n_materials = materials.size();
+        n_geometries = compiled_scene.geometry_nodes.size();
+        n_instances = compiled_scene.instance_nodes.size();
     }
 
     OptixTraversableHandle get_ias_handle() const
@@ -601,6 +614,14 @@ class SceneDevice
             cuda_check(cuMemFree(world_to_object_buffer));
             world_to_object_buffer = 0;
         }
+
+        // reset statistics
+        n_vertices = 0;
+        n_faces = 0;
+        n_materials = 0;
+        n_textures = 0;
+        n_geometries = 0;
+        n_instances = 0;
     }
 
     std::vector<GASBuildOutput> gas_build_outputs = {};
@@ -612,12 +633,19 @@ class SceneDevice
     CUdeviceptr texcoords_buffer = 0;
     CUdeviceptr materials_buffer = 0;
     CUdeviceptr textures_buffer = 0;
-    uint32_t n_textures = 0;
     CUdeviceptr material_ids_buffer = 0;
     CUdeviceptr indices_offset_buffer = 0;
     CUdeviceptr geometry_ids_buffer = 0;
     CUdeviceptr object_to_world_buffer = 0;
     CUdeviceptr world_to_object_buffer = 0;
+
+    // statistics
+    uint32_t n_vertices = 0;
+    uint32_t n_faces = 0;
+    uint32_t n_materials = 0;
+    uint32_t n_textures = 0;
+    uint32_t n_geometries = 0;
+    uint32_t n_instances = 0;
 };
 
 }  // namespace fredholm
