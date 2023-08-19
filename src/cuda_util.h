@@ -55,8 +55,6 @@ class CUDABuffer
     CUDABuffer(uint32_t size, bool use_gl_interop = false)
         : size(size), use_gl_interop(use_gl_interop)
     {
-        cuda_check(cuMemAlloc(&dptr, sizeof(T) * size));
-
         if (use_gl_interop)
         {
             // create gl buffer
@@ -72,6 +70,7 @@ class CUDABuffer
             size_t s = 0;
             cuda_check(cuGraphicsResourceGetMappedPointer(&dptr, &s, resource));
         }
+        else { cuda_check(cuMemAlloc(&dptr, sizeof(T) * size)); }
     }
 
     CUDABuffer(const T *hptr, uint32_t size) : CUDABuffer(size)
@@ -99,11 +98,9 @@ class CUDABuffer
         {
             cuda_check(cuGraphicsUnmapResources(1, &resource, 0));
             cuda_check(cuGraphicsUnregisterResource(resource));
+            if (gl_buffer) { gl_buffer.reset(); }
         }
-
-        if (gl_buffer) { gl_buffer.reset(); }
-
-        cuda_check(cuMemFree(dptr));
+        else { cuda_check(cuMemFree(dptr)); }
     }
 
     const CUdeviceptr &get_device_ptr() const
