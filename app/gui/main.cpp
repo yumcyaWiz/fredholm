@@ -68,6 +68,8 @@ class App
 
             run_imgui();
 
+            glClear(GL_COLOR_BUFFER_BIT);
+
             // render imgui
             ImGui::Render();
             int display_w, display_h;
