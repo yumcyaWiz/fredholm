@@ -176,12 +176,14 @@ class App
                 // show image
                 const uint2 resolution =
                     renderer->get_option<uint2>("resolution");
-                const fredholm::GLBuffer& beauty =
-                    renderer->get_aov("final").get_gl_buffer();
+                const fredholm::GLBuffer& image =
+                    renderer
+                        ->get_aov(static_cast<fredholm::AOVType>(selected_aov))
+                        .get_gl_buffer();
 
                 pipeline->setUniform("resolution",
                                      glm::vec2(resolution.x, resolution.y));
-                beauty.bindToShaderStorageBuffer(0);
+                image.bindToShaderStorageBuffer(0);
 
                 glViewport(0, 0, resolution.x, resolution.y);
                 quad->draw(*pipeline);
@@ -284,6 +286,8 @@ class App
     {
         ImGui::Begin("fredholm");
         {
+            ImGui::Combo("AOV", &selected_aov, "Final\0Beauty\0\0");
+
             if (ImGui::CollapsingHeader("Camera settings"))
             {
                 // TODO: show camera settings
@@ -380,6 +384,7 @@ class App
 
     int resolution[2] = {512, 512};
     int selected_render_strategy = 0;
+    int selected_aov = 0;
 };
 
 int main()

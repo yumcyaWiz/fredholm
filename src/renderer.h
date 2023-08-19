@@ -20,19 +20,19 @@
 namespace fredholm
 {
 
-enum class AOVType
-{
-    FINAL = 0,
-    BEAUTY = 1,
-    N_AOV_TYPES
-};
-
 enum class RenderStrategyType
 {
     HELLO = 0,
     SIMPLE,
     PT,
     N_RENDER_STRATEGIES,
+};
+
+enum class AOVType
+{
+    FINAL = 0,
+    BEAUTY = 1,
+    N_AOV_TYPES
 };
 
 class RenderStrategyFactory
@@ -77,10 +77,17 @@ class Renderer
         if (final) { final.reset(); }
     }
 
-    const CUDABuffer<float4>& get_aov(const std::string& name) const
+    const CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
-        if (name == "final") { return *final; }
-        else { return m_render_strategy->get_aov(name); }
+        switch (type)
+        {
+            case AOVType::FINAL:
+                return *final;
+            case AOVType::BEAUTY:
+                return m_render_strategy->get_aov("beauty");
+            default:
+                throw std::runtime_error("Unknown AOV type");
+        }
     }
 
     template <typename T>
