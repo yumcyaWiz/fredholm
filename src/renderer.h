@@ -26,11 +26,7 @@ class Renderer
     };
 
    public:
-    Renderer()
-    {
-        beauty = std::make_unique<CUDABuffer<float4>>(options.width *
-                                                      options.height);
-    }
+    Renderer() { init_render_layers(); }
 
     ~Renderer()
     {
@@ -44,14 +40,43 @@ class Renderer
     template <typename T>
     T get_option(const std::string& name) const
     {
-        // TODO: implement
-        return T();
+        if (name == "width") { return options.width; }
+        else if (name == "height") { return options.height; }
+        else if (name == "use_gl_interop") { return options.use_gl_interop; }
+        else { throw std::runtime_error("Unknown option name"); }
     }
 
     template <typename T>
     void set_option(const std::string& name, const T& value)
     {
-        // TODO: implement
+        if (name == "width")
+        {
+            options.width = value;
+            init_render_layers();
+        }
+        else if (name == "height")
+        {
+            options.height = value;
+            init_render_layers();
+        }
+        else if (name == "use_gl_interop")
+        {
+            options.use_gl_interop = value;
+            init_render_layers();
+        }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+
+    const CUDABuffer<float4>& get_aov(const std::string& name) const
+    {
+        if (name == "beauty") { return *beauty; }
+        else { throw std::runtime_error("Unknown AOV name"); }
+    }
+
+    void init_render_layers()
+    {
+        beauty = std::make_unique<CUDABuffer<float4>>(
+            options.width * options.height, options.use_gl_interop);
     }
 
     void set_render_strategy(RenderStrategy* strategy)

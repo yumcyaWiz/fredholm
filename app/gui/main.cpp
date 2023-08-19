@@ -14,7 +14,7 @@
 #include "render_strategy/pt/pt.h"
 #include "renderer.h"
 
-static void glfw_error_callback(int error, const char* description)
+void glfw_error_callback(int error, const char* description)
 {
     spdlog::error("Glfw Error %d: %s\n", error, description);
 }
@@ -84,11 +84,16 @@ class App
 
             glClear(GL_COLOR_BUFFER_BIT);
 
-            // render
             if (renderer)
             {
+                // render
                 renderer->render(camera, *scene_device);
                 renderer->synchronize();
+
+                // show image
+                const fredholm::GLBuffer& beauty =
+                    renderer->get_aov("beauty").get_gl_buffer();
+                beauty.bindToShaderStorageBuffer(0);
             }
 
             // render imgui
@@ -118,6 +123,7 @@ class App
     void init_renderer()
     {
         renderer = std::make_unique<fredholm::Renderer>();
+        renderer->set_option("use_gl_interop", true);
 
         camera = fredholm::Camera(glm::vec3(0, 1, 2));
 

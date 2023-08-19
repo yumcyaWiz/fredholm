@@ -106,7 +106,17 @@ class CUDABuffer
         cuda_check(cuMemFree(dptr));
     }
 
-    const CUdeviceptr &get_device_ptr() const { return dptr; }
+    const CUdeviceptr &get_device_ptr() const
+    {
+        if (dptr == 0) throw std::runtime_error("dptr is null");
+        return dptr;
+    }
+
+    const GLBuffer &get_gl_buffer() const
+    {
+        if (gl_buffer == nullptr) throw std::runtime_error("gl_buffer is null");
+        return *gl_buffer;
+    }
 
     void clear() { cuda_check(cuMemsetD32(dptr, 0, size)); }
 
