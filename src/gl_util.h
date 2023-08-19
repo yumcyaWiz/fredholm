@@ -70,6 +70,69 @@ class GLBuffer
     }
 };
 
+class GLVertexArrayObject
+{
+   private:
+    GLuint array;
+
+   public:
+    GLVertexArrayObject() { glCreateVertexArrays(1, &array); }
+
+    GLVertexArrayObject(const GLVertexArrayObject& other) = delete;
+
+    GLVertexArrayObject(GLVertexArrayObject&& other) : array(other.array)
+    {
+        other.array = 0;
+    }
+
+    ~GLVertexArrayObject() { release(); }
+
+    GLVertexArrayObject& operator=(const GLVertexArrayObject& other) = delete;
+
+    GLVertexArrayObject& operator=(GLVertexArrayObject&& other)
+    {
+        if (this != &other)
+        {
+            release();
+
+            array = other.array;
+
+            other.array = 0;
+        }
+
+        return *this;
+    }
+
+    void bindVertexBuffer(const GLBuffer& buffer, GLuint binding,
+                          GLintptr offset, GLsizei stride) const
+    {
+        glVertexArrayVertexBuffer(array, binding, buffer.getName(), offset,
+                                  stride);
+    }
+
+    void bindElementBuffer(const GLBuffer& buffer) const
+    {
+        glVertexArrayElementBuffer(array, buffer.getName());
+    }
+
+    void activateVertexAttribution(GLuint binding, GLuint attrib, GLint size,
+                                   GLenum type, GLsizei offset) const
+    {
+        glEnableVertexArrayAttrib(array, attrib);
+        glVertexArrayAttribBinding(array, attrib, binding);
+        glVertexArrayAttribFormat(array, attrib, size, type, GL_FALSE, offset);
+    }
+
+    void activate() const { glBindVertexArray(array); }
+
+    void deactivate() const { glBindVertexArray(0); }
+
+    void release()
+    {
+        if (array) { glDeleteVertexArrays(1, &array); }
+    }
+};
+
 }  // namespace fredholm
 
 #endif
