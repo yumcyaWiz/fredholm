@@ -248,11 +248,9 @@ class App
             if (ImGui::CollapsingHeader("Scene settings"))
             {
                 // TODO: show scene settings
-
                 const std::string scenes_names =
                     SceneList::get_names_for_imgui();
 
-                static int selected_scene = 0;
                 if (ImGui::Combo("Scene", &selected_scene,
                                  scenes_names.c_str()))
                 {
@@ -265,7 +263,17 @@ class App
 
             if (ImGui::CollapsingHeader(("Render settings")))
             {
-                static int selected_render_strategy =
+                const uint2 res = renderer->get_option<uint2>("resolution");
+                resolution[0] = res.x;
+                resolution[1] = res.y;
+                if (ImGui::InputInt2("resolution",
+                                     reinterpret_cast<int*>(&resolution)))
+                {
+                    renderer->set_option<uint2>(
+                        "resolution", make_uint2(resolution[0], resolution[1]));
+                }
+
+                selected_render_strategy =
                     static_cast<int>(renderer->get_render_strategy_type());
                 if (ImGui::Combo("Render strategy", &selected_render_strategy,
                                  "Hello\0Simple\0PT\0\0"))
@@ -314,6 +322,12 @@ class App
 
     std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
     std::unique_ptr<fredholm::GLQuad> quad = nullptr;
+
+    // for imgui
+    int selected_scene = 0;
+
+    int resolution[2] = {512, 512};
+    int selected_render_strategy = 0;
 };
 
 int main()
