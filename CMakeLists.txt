@@ -74,5 +74,8 @@ target_link_libraries(fredholm PUBLIC
     imgui
 )
 
+# fredholm
+add_subdirectory("src/")
+
 # app
 add_subdirectory("app/")

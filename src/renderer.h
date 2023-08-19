@@ -115,7 +115,7 @@ class Renderer
         if (m_render_strategy) { m_render_strategy->clear_render(); }
     }
 
-    // TODO: rendere should manage camera and scene?
+    // TODO: renderer should manage camera and scene?
     void render(const Camera& camera, const SceneDevice& scene)
     {
         m_render_strategy->render(camera, scene, scene.get_ias_handle(), sbt);
