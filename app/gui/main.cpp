@@ -256,7 +256,6 @@ class App
         glfwTerminate();
 
         if (scene_device) { scene_device.reset(); }
-        if (render_strategy) { render_strategy.reset(); }
         if (renderer) { renderer.reset(); }
 
         fredholm::optix_check(optixDeviceContextDestroy(context));
@@ -273,8 +272,6 @@ class App
     fredholm::SceneGraph scene;
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
-    // TODO: place this inside renderer
-    std::unique_ptr<fredholm::RenderStrategy> render_strategy = nullptr;
 
     std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
     std::unique_ptr<fredholm::GLQuad> quad = nullptr;
