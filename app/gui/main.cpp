@@ -9,6 +9,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "spdlog/spdlog.h"
+//
+#include "renderer.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -47,10 +49,19 @@ class App
    public:
     App()
     {
+#ifndef NDEBUG
+        debug = true;
+#else
+        debug = false;
+#endif
+
         init_glfw();
         init_glad();
         init_gl();
         init_imgui();
+
+        init_cuda();
+        init_optix();
     }
 
     ~App() { release(); }
@@ -82,6 +93,18 @@ class App
     };
 
    private:
+    void init_cuda()
+    {
+        fredholm::cuda_check(cuInit(0));
+        device = std::make_unique<fredholm::CUDADevice>(0);
+    }
+
+    void init_optix()
+    {
+        optixInit();
+        context = fredholm::optix_create_context(device->get_context(), debug);
+    }
+
     void init_glad()
     {
         if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress))
@@ -108,11 +131,12 @@ class App
 
     void init_gl()
     {
-#ifndef NDEBUG
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(gl_debug_message_callback, nullptr);
-#endif
+        if (debug)
+        {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageCallback(gl_debug_message_callback, nullptr);
+        }
     }
 
     void init_imgui()
@@ -172,9 +196,18 @@ class App
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
+
+        fredholm::optix_check(optixDeviceContextDestroy(context));
+
+        if (device) { device.reset(); }
     }
 
     GLFWwindow* window = nullptr;
+    bool debug = false;
+
+    std::unique_ptr<fredholm::CUDADevice> device = nullptr;
+    OptixDeviceContext context = nullptr;
+    std::unique_ptr<fredholm::Renderer> renderer = nullptr;
 };
 
 int main()
