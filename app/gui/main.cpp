@@ -130,6 +130,35 @@ class App
     {
         ImGui::Begin("fredholm");
         {
+            if (ImGui::CollapsingHeader("Camera settings"))
+            {
+                // TODO: show camera settings
+            }
+
+            if (ImGui::CollapsingHeader("Scene settings"))
+            {
+                // TODO: show scene settings
+
+                // TODO: get list of scenes
+                int selected_scene = 0;
+                const char* scenes_names = "\0\0";
+                if (ImGui::Combo("Scene", &selected_scene, scenes_names))
+                {
+                    // TODO: load scene
+                }
+            }
+
+            if (ImGui::CollapsingHeader(("Render settings")))
+            {
+                // TODO: get list of render strategies from renderer
+                int selected_render_strategy = 0;
+                const char* render_strategies_names = "\0\0";
+                if (ImGui::Combo("Render strategy", &selected_render_strategy,
+                                 render_strategies_names))
+                {
+                    // TODO: set render strategy
+                }
+            }
         }
         ImGui::End();
     }
