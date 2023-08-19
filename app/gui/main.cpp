@@ -10,6 +10,8 @@
 #include "imgui_impl_opengl3.h"
 #include "spdlog/spdlog.h"
 //
+#include "loader.h"
+#include "render_strategy/pt/pt.h"
 #include "renderer.h"
 
 static void glfw_error_callback(int error, const char* description)
@@ -62,6 +64,7 @@ class App
 
         init_cuda();
         init_optix();
+        init_renderer();
     }
 
     ~App() { release(); }
@@ -80,6 +83,13 @@ class App
             run_imgui();
 
             glClear(GL_COLOR_BUFFER_BIT);
+
+            // render
+            if (renderer)
+            {
+                renderer->render(camera, *scene_device);
+                renderer->synchronize();
+            }
 
             // render imgui
             ImGui::Render();
@@ -103,6 +113,21 @@ class App
     {
         optixInit();
         context = fredholm::optix_create_context(device->get_context(), debug);
+    }
+
+    void init_renderer()
+    {
+        renderer = std::make_unique<fredholm::Renderer>();
+
+        camera = fredholm::Camera(glm::vec3(0, 1, 2));
+
+        fredholm::SceneLoader::load_obj("CornellBox-Texture.obj", scene);
+        scene_device = std::make_unique<fredholm::SceneDevice>();
+        scene_device->send(context, scene);
+
+        render_strategy =
+            std::make_unique<fredholm::PtStrategy>(context, debug);
+        renderer->set_render_strategy(render_strategy.get());
     }
 
     void init_glad()
@@ -194,8 +219,13 @@ class App
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+
         glfwDestroyWindow(window);
         glfwTerminate();
+
+        if (scene_device) { scene_device.reset(); }
+        if (render_strategy) { render_strategy.reset(); }
+        if (renderer) { renderer.reset(); }
 
         fredholm::optix_check(optixDeviceContextDestroy(context));
 
@@ -207,7 +237,11 @@ class App
 
     std::unique_ptr<fredholm::CUDADevice> device = nullptr;
     OptixDeviceContext context = nullptr;
+    fredholm::Camera camera;
+    fredholm::SceneGraph scene;
+    std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
+    std::unique_ptr<fredholm::RenderStrategy> render_strategy = nullptr;
 };
 
 int main()
