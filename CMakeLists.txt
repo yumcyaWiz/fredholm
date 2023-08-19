@@ -64,6 +64,7 @@ target_link_libraries(fredholm PUBLIC
     CUDA::cudart
     CUDA::cuda_driver
     glm
+    glad
     stb_image
     stb_image_write
     tinygltf
