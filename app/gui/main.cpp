@@ -14,6 +14,38 @@
 #include "render_strategy/pt/pt.h"
 #include "renderer.h"
 
+struct SceneListEntry
+{
+    std::string name;
+    std::filesystem::path filepath;
+};
+
+class SceneList
+{
+   public:
+    static std::string get_names_for_imgui()
+    {
+        std::string names;
+        for (const auto& entry : m_entries) { names += entry.name + '\0'; }
+        names += '\0';
+        return names;
+    }
+
+    static SceneListEntry get_entry(uint32_t idx) { return m_entries[idx]; }
+
+   private:
+    static std::vector<SceneListEntry> m_entries;
+};
+
+std::vector<SceneListEntry> SceneList::m_entries = {
+    {"CornellBox-Original",
+     std::filesystem::path(CMAKE_SOURCE_DIR) /
+         "resources/scenes/cornellbox/CornellBox-Original.obj"},
+    {"CornellBox-Texture",
+     std::filesystem::path(CMAKE_SOURCE_DIR) /
+         "resources/scenes/cornellbox/CornellBox-Texture.obj"},
+};
+
 void glfw_error_callback(int error, const char* description)
 {
     spdlog::error("Glfw Error %d: %s\n", error, description);
@@ -77,7 +109,7 @@ class App
 
     ~App() { release(); }
 
-    void run() const
+    void run()
     {
         while (!glfwWindowShouldClose(window))
         {
@@ -142,7 +174,7 @@ class App
 
         camera = fredholm::Camera(glm::vec3(0, 1, 2));
 
-        fredholm::SceneLoader::load_obj("CornellBox-Texture.obj", scene);
+        fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
         scene_device = std::make_unique<fredholm::SceneDevice>();
         scene_device->send(context, scene);
 
@@ -204,7 +236,7 @@ class App
         quad = std::make_unique<fredholm::GLQuad>();
     }
 
-    void run_imgui() const
+    void run_imgui()
     {
         ImGui::Begin("fredholm");
         {
@@ -217,12 +249,17 @@ class App
             {
                 // TODO: show scene settings
 
-                // TODO: get list of scenes
+                const std::string scenes_names =
+                    SceneList::get_names_for_imgui();
+
                 static int selected_scene = 0;
-                const char* scenes_names = "\0\0";
-                if (ImGui::Combo("Scene", &selected_scene, scenes_names))
+                if (ImGui::Combo("Scene", &selected_scene,
+                                 scenes_names.c_str()))
                 {
-                    // TODO: load scene
+                    fredholm::SceneLoader::load(
+                        SceneList::get_entry(selected_scene).filepath, scene);
+                    scene_device->send(context, scene);
+                    renderer->clear_render();
                 }
             }
 

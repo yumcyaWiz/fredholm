@@ -48,6 +48,25 @@ namespace fredholm
 class SceneLoader
 {
    public:
+    static void load(const std::filesystem::path& filepath,
+                     SceneGraph& scene_graph)
+    {
+        if (!scene_graph.is_empty()) { scene_graph.clear(); }
+
+        if (filepath.extension() == ".obj") { load_obj(filepath, scene_graph); }
+        else if (filepath.extension() == ".gltf")
+        {
+            load_gltf(filepath, scene_graph);
+        }
+        else
+        {
+            throw std::runtime_error(
+                std::format("unsupported file format: {}",
+                            filepath.extension().generic_string()));
+        }
+    }
+
+   private:
     static void load_obj(const std::filesystem::path& filepath,
                          SceneGraph& scene_graph)
     {
@@ -65,7 +84,6 @@ class SceneLoader
     {
     }
 
-   private:
     static GeometryNode load_obj(const std::filesystem::path& filepath)
     {
         std::vector<float3> m_vertices = {};

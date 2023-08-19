@@ -536,13 +536,14 @@ class SceneDevice
         {
             for (int i = 0; i < n_textures; ++i)
             {
-                TextureHeader* header =
-                    reinterpret_cast<TextureHeader*>(textures_buffer) + i;
-                if (header->data != 0)
-                {
-                    cuda_check(cuMemFree(header->data));
-                    header->data = 0;
-                }
+                // TODO: fix segfault
+                // TextureHeader* header =
+                //     reinterpret_cast<TextureHeader*>(textures_buffer) + i;
+                // if (header != nullptr && header->data != 0)
+                // {
+                //     cuda_check(cuMemFree(header->data));
+                //     header->data = 0;
+                // }
             }
             n_textures = 0;
 

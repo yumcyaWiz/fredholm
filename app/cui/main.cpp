@@ -33,7 +33,7 @@ int main()
         fredholm::Camera camera(glm::vec3(0, 1, 2));
 
         fredholm::SceneGraph scene;
-        fredholm::SceneLoader::load_obj("CornellBox-Texture.obj", scene);
+        fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
 
         fredholm::SceneDevice scene_device;
         scene_device.send(context, scene);

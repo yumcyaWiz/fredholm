@@ -98,6 +98,11 @@ class Renderer
         if (m_render_strategy) { m_render_strategy->runImGui(); }
     }
 
+    void clear_render()
+    {
+        if (m_render_strategy) { m_render_strategy->clear_render(); }
+    }
+
     // TODO: rendere should manage camera and scene?
     void render(const Camera& camera, const SceneDevice& scene)
     {
