@@ -9,6 +9,7 @@
 #include "imgui.h"
 #include "io.h"
 #include "optix_util.h"
+#include "post_process/post_process.h"
 #include "render_strategy/hello/hello.h"
 #include "render_strategy/pt/pt.h"
 #include "render_strategy/simple/simple.h"
@@ -18,6 +19,13 @@
 
 namespace fredholm
 {
+
+enum class AOVType
+{
+    FINAL = 0,
+    BEAUTY = 1,
+    N_AOV_TYPES
+};
 
 enum class RenderStrategyType
 {
@@ -55,6 +63,7 @@ class Renderer
     Renderer(const OptixDeviceContext& context, bool debug)
         : context(context), debug(debug)
     {
+        m_post_process = std::make_unique<PostProcess>();
     }
 
     ~Renderer()
@@ -64,11 +73,14 @@ class Renderer
         cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
 
         if (m_render_strategy) { m_render_strategy.reset(); }
+        if (m_post_process) { m_post_process.reset(); }
+        if (final) { final.reset(); }
     }
 
     const CUDABuffer<float4>& get_aov(const std::string& name) const
     {
-        return m_render_strategy->get_aov(name);
+        if (name == "final") { return *final; }
+        else { return m_render_strategy->get_aov(name); }
     }
 
     template <typename T>
@@ -81,6 +93,8 @@ class Renderer
     void set_option(const std::string& name, const T& value)
     {
         m_render_strategy->set_option<T>(name, value);
+
+        if (name == "resolution") { init_final_buffer(); }
     }
 
     RenderStrategyType get_render_strategy_type() const
@@ -94,6 +108,8 @@ class Renderer
         m_render_strategy =
             RenderStrategyFactory::create(type, options, context, debug);
         m_render_strategy_type = type;
+
+        init_final_buffer();
 
         sbt_record_set = optix_create_sbt_records(
             m_render_strategy->get_program_group_sets());
@@ -121,6 +137,17 @@ class Renderer
         m_render_strategy->render(camera, scene, scene.get_ias_handle(), sbt);
     }
 
+    void post_process()
+    {
+        const uint2 resolution =
+            m_render_strategy->get_option<uint2>("resolution");
+        m_post_process->run(
+            resolution.x, resolution.y,
+            reinterpret_cast<float4*>(
+                m_render_strategy->get_aov("beauty").get_device_ptr()),
+            reinterpret_cast<float4*>(final->get_device_ptr()));
+    }
+
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
 
     void save_image(const std::filesystem::path& filepath) const
@@ -134,6 +161,16 @@ class Renderer
     }
 
    private:
+    void init_final_buffer()
+    {
+        const uint2 resolution =
+            m_render_strategy->get_option<uint2>("resolution");
+        const bool use_gl_interop =
+            m_render_strategy->get_option<bool>("use_gl_interop");
+        final = std::make_unique<CUDABuffer<float4>>(
+            resolution.x * resolution.y, use_gl_interop);
+    }
+
     OptixDeviceContext context = nullptr;
     bool debug = false;
 
@@ -144,6 +181,8 @@ class Renderer
     RenderStrategyType m_render_strategy_type =
         RenderStrategyType::N_RENDER_STRATEGIES;
     std::unique_ptr<RenderStrategy> m_render_strategy = nullptr;
+    std::unique_ptr<PostProcess> m_post_process = nullptr;
+    std::unique_ptr<CUDABuffer<float4>> final = nullptr;
 };
 
 }  // namespace fredholm

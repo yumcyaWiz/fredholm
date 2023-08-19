@@ -170,13 +170,14 @@ class App
             {
                 // render
                 renderer->render(camera, *scene_device);
+                renderer->post_process();
                 renderer->synchronize();
 
                 // show image
                 const uint2 resolution =
                     renderer->get_option<uint2>("resolution");
                 const fredholm::GLBuffer& beauty =
-                    renderer->get_aov("beauty").get_gl_buffer();
+                    renderer->get_aov("final").get_gl_buffer();
 
                 pipeline->setUniform("resolution",
                                      glm::vec2(resolution.x, resolution.y));

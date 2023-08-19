@@ -116,10 +116,10 @@ static __forceinline__ __device__ float convert_EV100_to_exposure(float EV100)
     return 1.0f / maxLuminance;
 }
 
-__global__ void tone_mapping_kernel(const float4* beauty_in, int width,
-                                    int height, float ISO,
-                                    float chromatic_aberration,
-                                    float4* beauty_out)
+extern "C" __global__ void tone_mapping_kernel(uint width, uint height,
+                                               float chromatic_aberration,
+                                               float ISO, const float4* input,
+                                               float4* output)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     const int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -143,9 +143,8 @@ __global__ void tone_mapping_kernel(const float4* beauty_in, int width,
     const int image_idx_g = uv_g.x * width + width * (uv_g.y * height);
     const int image_idx_b = uv_b.x * width + width * (uv_b.y * height);
 
-    float3 color =
-        make_float3(beauty_in[image_idx_r].x, beauty_in[image_idx_g].y,
-                    beauty_in[image_idx_b].z);
+    float3 color = make_float3(input[image_idx_r].x, input[image_idx_g].y,
+                               input[image_idx_b].z);
 
     // exposure adjustment
     const float EV100 = compute_EV100(1.0f, 1.0f, ISO);
@@ -159,5 +158,5 @@ __global__ void tone_mapping_kernel(const float4* beauty_in, int width,
     // linear to sRGB conversion
     color = linear_to_srgb(color);
 
-    beauty_out[image_idx] = make_float4(color, 1.0f);
+    output[image_idx] = make_float4(color, 1.0f);
 }
