@@ -44,12 +44,14 @@ class PtStrategy : public RenderStrategy
 
     void clear_render() override
     {
-        init_render_layers();
+        RenderStrategy::clear_render();
         sample_count = 0;
     }
 
     void runImGui() override
     {
+        RenderStrategy::runImGui();
+
         ImGui::Text("%d / %d spp", sample_count, options.n_samples);
         if (ImGui::Button("clear")) { clear_render(); }
 

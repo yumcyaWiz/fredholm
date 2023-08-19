@@ -1,29 +1,62 @@
 #pragma once
 #include <optix.h>
 
+#include <memory>
+
 #include "camera.h"
 #include "cuda_util.h"
 #include "gl_util.h"
 #include "imgui.h"
 #include "io.h"
 #include "optix_util.h"
-#include "render_strategy/render_strategy.h"
+#include "render_strategy/hello/hello.h"
+#include "render_strategy/pt/pt.h"
+#include "render_strategy/simple/simple.h"
 #include "scene.h"
 #include "shared.h"
 #include "util.h"
 
 namespace fredholm
 {
+
+class RenderStrategyFactory
+{
+   public:
+    static std::unique_ptr<RenderStrategy> create(
+        const std::string& name, const RenderOptions& options,
+        const OptixDeviceContext& context, bool debug)
+    {
+        if (name == "hello")
+        {
+            return std::make_unique<HelloStrategy>(options, context, debug);
+        }
+        else if (name == "simple")
+        {
+            return std::make_unique<SimpleStrategy>(options, context, debug);
+        }
+        else if (name == "pt")
+        {
+            return std::make_unique<PtStrategy>(options, context, debug);
+        }
+        else { throw std::runtime_error("Unknown render strategy: " + name); }
+    }
+};
+
 class Renderer
 {
    public:
-    Renderer() {}
+    Renderer(const OptixDeviceContext& context, bool debug)
+        : context(context), debug(debug)
+    {
+    }
 
     ~Renderer()
     {
         cuda_check(cuMemFree(sbt_record_set.raygen_records));
         cuda_check(cuMemFree(sbt_record_set.miss_records));
         cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
+
+        if (m_render_strategy) { m_render_strategy.reset(); }
     }
 
     const CUDABuffer<float4>& get_aov(const std::string& name) const
@@ -37,9 +70,11 @@ class Renderer
         return m_render_strategy->get_option<T>(name);
     }
 
-    void set_render_strategy(RenderStrategy* strategy)
+    void set_render_strategy(const std::string& name,
+                             const RenderOptions& options)
     {
-        m_render_strategy = strategy;
+        m_render_strategy =
+            RenderStrategyFactory::create(name, options, context, debug);
 
         sbt_record_set = optix_create_sbt_records(
             m_render_strategy->get_program_group_sets());
@@ -71,11 +106,14 @@ class Renderer
     }
 
    private:
+    OptixDeviceContext context = nullptr;
+    bool debug = false;
+
     // TODO: this could be placed in render strategy?
     SbtRecordSet sbt_record_set;
     OptixShaderBindingTable sbt;
 
-    RenderStrategy* m_render_strategy = nullptr;
+    std::unique_ptr<RenderStrategy> m_render_strategy = nullptr;
 };
 
 }  // namespace fredholm

@@ -138,7 +138,7 @@ class App
 
     void init_renderer()
     {
-        renderer = std::make_unique<fredholm::Renderer>();
+        renderer = std::make_unique<fredholm::Renderer>(context, debug);
 
         camera = fredholm::Camera(glm::vec3(0, 1, 2));
 
@@ -148,9 +148,7 @@ class App
 
         fredholm::RenderOptions options;
         options.use_gl_interop = true;
-        render_strategy =
-            std::make_unique<fredholm::PtStrategy>(options, context, debug);
-        renderer->set_render_strategy(render_strategy.get());
+        renderer->set_render_strategy("pt", options);
     }
 
     void init_glad()

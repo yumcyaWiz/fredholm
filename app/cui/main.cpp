@@ -28,7 +28,7 @@ int main()
 
     {
         // init renderer
-        fredholm::Renderer renderer;
+        fredholm::Renderer renderer(context, debug);
 
         fredholm::Camera camera(glm::vec3(0, 1, 2));
 
@@ -40,10 +40,7 @@ int main()
 
         fredholm::RenderOptions options;
         options.n_spp = 512;
-        // fredholm::HelloStrategy strategy(context, debug);
-        // fredholm::SimpleStrategy strategy(context, debug);
-        fredholm::PtStrategy strategy(options, context, debug);
-        renderer.set_render_strategy(&strategy);
+        renderer.set_render_strategy("pt", options);
 
         // render
         renderer.render(camera, scene_device);

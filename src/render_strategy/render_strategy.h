@@ -115,9 +115,10 @@ class RenderStrategy
         else { throw std::runtime_error("Unknown AOV name"); }
     }
 
-    virtual void clear_render() = 0;
+    virtual void clear_render() { init_render_layers(); }
 
-    virtual void runImGui() = 0;
+    // TODO: add common GUI elements in this function(template method pattern)
+    virtual void runImGui() {}
 
     virtual void render(const Camera& camera, const SceneDevice& scene,
                         const OptixTraversableHandle& ias_handle,
