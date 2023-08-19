@@ -21,6 +21,27 @@ void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width,
     glViewport(0, 0, width, height);
 }
 
+void gl_debug_message_callback(GLenum source, GLenum type, GLuint id,
+                               GLenum severity, GLsizei length,
+                               const GLchar* message, const void* user_param)
+{
+    switch (severity)
+    {
+        case GL_DEBUG_SEVERITY_HIGH:
+            spdlog::critical("[gl] {}", message);
+            break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            spdlog::error("[gl] {}", message);
+            break;
+        case GL_DEBUG_SEVERITY_LOW:
+            spdlog::warn("[gl] {}", message);
+            break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            spdlog::info("[gl] {}", message);
+            break;
+    }
+}
+
 class App
 {
    public:
@@ -28,6 +49,7 @@ class App
     {
         init_glfw();
         init_glad();
+        init_gl();
         init_imgui();
     }
 
@@ -80,6 +102,15 @@ class App
         glfwMakeContextCurrent(window);
 
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    }
+
+    void init_gl()
+    {
+#ifndef NDEBUG
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(gl_debug_message_callback, nullptr);
+#endif
     }
 
     void init_imgui()
