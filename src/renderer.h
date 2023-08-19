@@ -19,26 +19,33 @@
 namespace fredholm
 {
 
+enum class RenderStrategyType
+{
+    HELLO = 0,
+    SIMPLE,
+    PT,
+    N_RENDER_STRATEGIES,
+};
+
 class RenderStrategyFactory
 {
    public:
     static std::unique_ptr<RenderStrategy> create(
-        const std::string& name, const RenderOptions& options,
+        const RenderStrategyType& type, const RenderOptions& options,
         const OptixDeviceContext& context, bool debug)
     {
-        if (name == "hello")
+        switch (type)
         {
-            return std::make_unique<HelloStrategy>(options, context, debug);
+            case RenderStrategyType::HELLO:
+                return std::make_unique<HelloStrategy>(options, context, debug);
+            case RenderStrategyType::SIMPLE:
+                return std::make_unique<SimpleStrategy>(options, context,
+                                                        debug);
+            case RenderStrategyType::PT:
+                return std::make_unique<PtStrategy>(options, context, debug);
+            default:
+                throw std::runtime_error("unknown render strategy type");
         }
-        else if (name == "simple")
-        {
-            return std::make_unique<SimpleStrategy>(options, context, debug);
-        }
-        else if (name == "pt")
-        {
-            return std::make_unique<PtStrategy>(options, context, debug);
-        }
-        else { throw std::runtime_error("Unknown render strategy: " + name); }
     }
 };
 
@@ -70,11 +77,16 @@ class Renderer
         return m_render_strategy->get_option<T>(name);
     }
 
-    void set_render_strategy(const std::string& name,
+    RenderStrategyType get_render_strategy_type() const
+    {
+        return m_render_strategy_type;
+    }
+
+    void set_render_strategy(const RenderStrategyType& type,
                              const RenderOptions& options)
     {
         m_render_strategy =
-            RenderStrategyFactory::create(name, options, context, debug);
+            RenderStrategyFactory::create(type, options, context, debug);
 
         sbt_record_set = optix_create_sbt_records(
             m_render_strategy->get_program_group_sets());
@@ -113,6 +125,8 @@ class Renderer
     SbtRecordSet sbt_record_set;
     OptixShaderBindingTable sbt;
 
+    RenderStrategyType m_render_strategy_type =
+        RenderStrategyType::N_RENDER_STRATEGIES;
     std::unique_ptr<RenderStrategy> m_render_strategy = nullptr;
 };
 

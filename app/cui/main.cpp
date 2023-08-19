@@ -40,7 +40,7 @@ int main()
 
         fredholm::RenderOptions options;
         options.n_spp = 512;
-        renderer.set_render_strategy("pt", options);
+        renderer.set_render_strategy(fredholm::RenderStrategyType::PT, options);
 
         // render
         renderer.render(camera, scene_device);

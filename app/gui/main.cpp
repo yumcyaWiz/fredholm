@@ -146,9 +146,9 @@ class App
         scene_device = std::make_unique<fredholm::SceneDevice>();
         scene_device->send(context, scene);
 
-        fredholm::RenderOptions options;
         options.use_gl_interop = true;
-        renderer->set_render_strategy("pt", options);
+        renderer->set_render_strategy(fredholm::RenderStrategyType::PT,
+                                      options);
     }
 
     void init_glad()
@@ -218,7 +218,7 @@ class App
                 // TODO: show scene settings
 
                 // TODO: get list of scenes
-                int selected_scene = 0;
+                static int selected_scene = 0;
                 const char* scenes_names = "\0\0";
                 if (ImGui::Combo("Scene", &selected_scene, scenes_names))
                 {
@@ -228,13 +228,14 @@ class App
 
             if (ImGui::CollapsingHeader(("Render settings")))
             {
-                // TODO: get list of render strategies from renderer
-                int selected_render_strategy = 0;
-                const char* render_strategies_names = "\0\0";
+                static int selected_render_strategy =
+                    static_cast<int>(renderer->get_render_strategy_type());
                 if (ImGui::Combo("Render strategy", &selected_render_strategy,
-                                 render_strategies_names))
+                                 "Hello\0Simple\0PT\0\0"))
                 {
-                    // TODO: set render strategy
+                    renderer->set_render_strategy(
+                        fredholm::RenderStrategyType(selected_render_strategy),
+                        options);
                 }
 
                 renderer->runImGui();
@@ -271,6 +272,7 @@ class App
     fredholm::Camera camera;
     fredholm::SceneGraph scene;
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
+    fredholm::RenderOptions options;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
 
     std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
