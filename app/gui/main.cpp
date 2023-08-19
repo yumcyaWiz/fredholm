@@ -65,6 +65,14 @@ class App
         init_cuda();
         init_optix();
         init_renderer();
+        init_shaders();
+
+        pipeline->loadVertexShader(
+            std::filesystem::path(CMAKE_CURRENT_SOURCE_DIR) /
+            "shaders/shader.vert");
+        pipeline->loadFragmentShader(
+            std::filesystem::path(CMAKE_CURRENT_SOURCE_DIR) /
+            "shaders/shader.frag");
     }
 
     ~App() { release(); }
@@ -91,9 +99,17 @@ class App
                 renderer->synchronize();
 
                 // show image
+                const uint32_t width = renderer->get_option<uint32_t>("width");
+                const uint32_t height =
+                    renderer->get_option<uint32_t>("height");
                 const fredholm::GLBuffer& beauty =
                     renderer->get_aov("beauty").get_gl_buffer();
+
+                pipeline->setUniform("resolution", glm::vec2(width, height));
                 beauty.bindToShaderStorageBuffer(0);
+
+                glViewport(0, 0, width, height);
+                quad->draw(*pipeline);
             }
 
             // render imgui
@@ -183,6 +199,12 @@ class App
         ImGui_ImplOpenGL3_Init("#version 460 core");
     }
 
+    void init_shaders()
+    {
+        pipeline = std::make_unique<fredholm::GLPipeline>();
+        quad = std::make_unique<fredholm::GLQuad>();
+    }
+
     void run_imgui() const
     {
         ImGui::Begin("fredholm");
@@ -222,6 +244,9 @@ class App
 
     void release()
     {
+        if (pipeline) { pipeline.reset(); }
+        if (quad) { quad.reset(); }
+
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
@@ -248,6 +273,9 @@ class App
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
     std::unique_ptr<fredholm::RenderStrategy> render_strategy = nullptr;
+
+    std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
+    std::unique_ptr<fredholm::GLQuad> quad = nullptr;
 };
 
 int main()
