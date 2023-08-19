@@ -110,7 +110,6 @@ extern "C" __global__ void __raygen__()
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
     const uint image_idx = idx.x + params.width * idx.y;
-    uint n_spp = params.sample_count[image_idx];
 
     float3 beauty = make_float3(params.output[image_idx]);
 
@@ -118,6 +117,7 @@ extern "C" __global__ void __raygen__()
     for (int spp = 0; spp < params.n_samples; ++spp)
     {
         // initialize sampler
+        const uint n_spp = spp + params.sample_count;
         init_sampler_state(idx, image_idx, n_spp, payload.sampler);
 
         // generate initial ray from camera
@@ -173,12 +173,7 @@ extern "C" __global__ void __raygen__()
         // streaming average
         const float coef = 1.0f / (n_spp + 1.0f);
         beauty = coef * (n_spp * beauty + radiance);
-
-        n_spp++;
     }
-
-    // update total number of samples
-    params.sample_count[image_idx] = n_spp;
 
     // write results in render layers
     params.output[image_idx] = make_float4(beauty, 1.0f);

@@ -29,6 +29,8 @@ class PtStrategy : public RenderStrategy
 
     void runImGui() override
     {
+        ImGui::ProgressBar(static_cast<float>(sample_count) / n_samples);
+        ImGui::Text("%d / %d spp", sample_count, n_samples);
         ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples));
         ImGui::SliderInt("max_depth", reinterpret_cast<int*>(&max_depth), 1,
                          100);
@@ -40,22 +42,20 @@ class PtStrategy : public RenderStrategy
                 const OptixShaderBindingTable& sbt,
                 const RenderLayers& layers) override
     {
+        if (sample_count >= n_samples) return;
+
         // TODO: remove malloc from this function, maybe it's good to
         // initialize in the constructor
-        cuda_check(
-            cuMemAlloc(&sample_count, width * height * sizeof(uint32_t)));
-        cuda_check(cuMemsetD32(sample_count, 0, width * height));
-
         PtStrategyParams params;
         params.width = width;
         params.height = height;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
         params.ias_handle = ias_handle;
-        params.n_samples = n_samples;
+        params.n_samples = 1;
         params.max_depth = max_depth;
         params.seed = seed;
-        params.sample_count = reinterpret_cast<uint*>(sample_count);
+        params.sample_count = sample_count;
         params.output = reinterpret_cast<float4*>(layers.beauty);
 
         cuda_check(cuMemAlloc(&m_params_buffer, sizeof(PtStrategyParams)));
@@ -65,15 +65,14 @@ class PtStrategy : public RenderStrategy
         optix_check(optixLaunch(m_pipeline, 0, m_params_buffer,
                                 sizeof(PtStrategyParams), &sbt, width, height,
                                 1));
-
-        cuda_check(cuMemFree(sample_count));
+        sample_count += 1;
     }
 
    private:
-    uint32_t n_samples = 1;
-    uint32_t max_depth = 2;
+    uint32_t n_samples = 512;
+    uint32_t max_depth = 100;
     uint32_t seed = 1;
-    CUdeviceptr sample_count = 0;
+    uint32_t sample_count = 0;
 };
 
 }  // namespace fredholm
