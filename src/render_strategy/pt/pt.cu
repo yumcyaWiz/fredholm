@@ -22,8 +22,8 @@ struct RadiancePayload
     float3 origin;
     float3 direction;
 
-    float3 throughput = make_float3(1);
-    float3 radiance = make_float3(0);
+    float3 throughput = make_float3(1.0f);
+    float3 radiance = make_float3(0.0f);
 
     SamplerState sampler;
 
@@ -40,19 +40,6 @@ static CUDA_INLINE CUDA_DEVICE void trace_radiance(
     pack_ptr(payload_ptr, u0, u1);
     optixTrace(handle, ray_origin, ray_direction, tmin, tmax, 0.0f,
                OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE, 0, 1, 0, u0, u1);
-}
-
-static CUDA_INLINE CUDA_DEVICE float3 evaluate_arhosek_sky(const float3& v)
-{
-    // const float2 thphi = cartesian_to_spherical(v);
-    // const float gamma = acosf(dot(params.sun_direction, v));
-    // return params.sky_intensity *
-    //        make_float3(arhosek_tristim_skymodel_radiance(params.arhosek,
-    //                                                      thphi.x, gamma, 0),
-    //                    arhosek_tristim_skymodel_radiance(params.arhosek,
-    //                                                      thphi.x, gamma, 1),
-    //                    arhosek_tristim_skymodel_radiance(params.arhosek,
-    //                                                      thphi.x, gamma, 2));
 }
 
 static CUDA_INLINE CUDA_DEVICE void init_sampler_state(const uint3& idx,
