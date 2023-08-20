@@ -21,7 +21,7 @@ class PostProcess
         if (kernel) kernel.reset();
     }
 
-    void runImGui()
+    void run_imgui()
     {
         if (ImGui::CollapsingHeader("Post process",
                                     ImGuiTreeNodeFlags_DefaultOpen))

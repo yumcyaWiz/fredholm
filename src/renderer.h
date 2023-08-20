@@ -119,13 +119,13 @@ class Renderer
         set_render_strategy(type, m_render_strategy->get_options());
     }
 
-    void runImGui()
+    void run_imgui()
     {
         ImGui::Separator();
 
-        if (m_render_strategy) { m_render_strategy->runImGui(); }
+        if (m_render_strategy) { m_render_strategy->run_imgui(); }
 
-        if (m_post_process) { m_post_process->runImGui(); }
+        if (m_post_process) { m_post_process->run_imgui(); }
     }
 
     void clear_render()

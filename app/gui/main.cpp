@@ -371,7 +371,7 @@ class App
                         fredholm::RenderStrategyType(selected_render_strategy));
                 }
 
-                renderer->runImGui();
+                renderer->run_imgui();
             }
         }
         ImGui::End();

@@ -48,9 +48,9 @@ class PtStrategy : public RenderStrategy
         sample_count = 0;
     }
 
-    void runImGui() override
+    void run_imgui() override
     {
-        RenderStrategy::runImGui();
+        RenderStrategy::run_imgui();
 
         ImGui::ProgressBar(static_cast<float>(sample_count) /
                                static_cast<float>(options.n_samples),

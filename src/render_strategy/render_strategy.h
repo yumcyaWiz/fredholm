@@ -173,7 +173,7 @@ class RenderStrategy
 
     // TODO: add common GUI elements in this function(template method
     // pattern)
-    virtual void runImGui() {}
+    virtual void run_imgui() {}
 
     virtual void render(const Camera& camera, const SceneDevice& scene,
                         const OptixTraversableHandle& ias_handle,
