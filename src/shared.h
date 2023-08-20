@@ -6,6 +6,8 @@
 #include "helper_math.h"
 #endif
 
+#define FRED_INVALID_ID -1
+
 #include "arhosek.h"
 #include "cuda_util.h"
 #include "helper_math.h"
@@ -154,25 +156,25 @@ struct Material
 {
     float diffuse = 1.0f;
     float3 base_color = make_float3(1, 1, 1);
-    int base_color_texture_id = -1;
+    int base_color_texture_id = FRED_INVALID_ID;
     float diffuse_roughness = 0.0f;
 
     float specular = 1.0f;
     float3 specular_color = make_float3(1, 1, 1);
-    int specular_color_texture_id = -1;
+    int specular_color_texture_id = FRED_INVALID_ID;
     float specular_roughness = 0.2f;
-    int specular_roughness_texture_id = -1;
+    int specular_roughness_texture_id = FRED_INVALID_ID;
 
     float metalness = 0;
-    int metalness_texture_id = -1;
+    int metalness_texture_id = FRED_INVALID_ID;
 
-    int metallic_roughness_texture_id = -1;
+    int metallic_roughness_texture_id = FRED_INVALID_ID;
 
     float coat = 0;
     int coat_texture_id = -1;
     float3 coat_color = make_float3(1, 1, 1);
     float coat_roughness = 0.1;
-    int coat_roughness_texture_id = -1;
+    int coat_roughness_texture_id = FRED_INVALID_ID;
 
     float transmission = 0;
     float3 transmission_color = make_float3(1, 1, 1);
@@ -188,11 +190,11 @@ struct Material
 
     float emission = 0;
     float3 emission_color = make_float3(0, 0, 0);
-    int emission_texture_id = -1;
+    int emission_texture_id = FRED_INVALID_ID;
 
-    int heightmap_texture_id = -1;
-    int normalmap_texture_id = -1;
-    int alpha_texture_id = -1;
+    int heightmap_texture_id = FRED_INVALID_ID;
+    int normalmap_texture_id = FRED_INVALID_ID;
+    int alpha_texture_id = FRED_INVALID_ID;
 };
 
 struct TextureHeader
