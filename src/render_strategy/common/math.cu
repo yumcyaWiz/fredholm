@@ -2,66 +2,65 @@
 
 #include "helper_math.h"
 
-static __forceinline__ __device__ float length2(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float length2(const float3& v)
 {
     return dot(v, v);
 }
 
-static __forceinline__ __device__ float3 square(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 square(const float3& v)
 {
     return make_float3(v.x * v.x, v.y * v.y, v.z * v.z);
 }
 
-static __forceinline__ __device__ float3 sqrtf(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 sqrtf(const float3& v)
 {
     return make_float3(sqrtf(v.x), sqrtf(v.y), sqrtf(v.z));
 }
 
-static __forceinline__ __device__ float3 sinf(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 sinf(const float3& v)
 {
     return make_float3(sinf(v.x), sinf(v.y), sinf(v.z));
 }
 
-static __forceinline__ __device__ float3 cosf(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 cosf(const float3& v)
 {
     return make_float3(cosf(v.x), cosf(v.y), cosf(v.z));
 }
 
-static __forceinline__ float3 tanf(const float3& v)
+static CUDA_INLINE float3 tanf(const float3& v)
 {
     return make_float3(tanf(v.x), tanf(v.y), tanf(v.z));
 }
 
-static __forceinline__ __device__ float3 atan2f(const float3& v1,
-                                                const float3& v2)
+static CUDA_INLINE CUDA_DEVICE float3 atan2f(const float3& v1, const float3& v2)
 {
     return make_float3(atan2f(v1.x, v2.x), atan2f(v1.y, v2.y),
                        atan2f(v1.z, v2.z));
 }
 
-static __forceinline__ __device__ bool isnan(const float3& v)
+static CUDA_INLINE CUDA_DEVICE bool isnan(const float3& v)
 {
     return isnan(v.x) || isnan(v.y) || isnan(v.z);
 }
 
-static __forceinline__ __device__ bool isinf(const float3& v)
+static CUDA_INLINE CUDA_DEVICE bool isinf(const float3& v)
 {
     return isinf(v.x) || isinf(v.y) || isinf(v.z);
 }
 
-static __forceinline__ __device__ float deg_to_rad(float deg)
+static CUDA_INLINE CUDA_DEVICE float deg_to_rad(float deg)
 {
     return deg * M_PIf / 180.0f;
 }
 
 // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-static __forceinline__ __device__ float rgb_to_luminance(const float3& rgb)
+static CUDA_INLINE CUDA_DEVICE float rgb_to_luminance(const float3& rgb)
 {
     return dot(rgb, make_float3(0.2126729f, 0.7151522f, 0.0721750f));
 }
 
 // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-static __forceinline__ __device__ float3 rgb_to_xyz(const float3& rgb)
+static CUDA_INLINE CUDA_DEVICE float3 rgb_to_xyz(const float3& rgb)
 {
     return make_float3(
         dot(rgb, make_float3(0.4887180f, 0.3106803f, 0.2006017f)),
@@ -70,14 +69,14 @@ static __forceinline__ __device__ float3 rgb_to_xyz(const float3& rgb)
 }
 
 // http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-static __forceinline__ __device__ float3 xyz_to_rgb(const float3& xyz)
+static CUDA_INLINE CUDA_DEVICE float3 xyz_to_rgb(const float3& xyz)
 {
     return make_float3(dot(xyz, make_float3(2.3706743, -0.9000405, -0.4706338)),
                        dot(xyz, make_float3(-0.5138850, 1.4253036, 0.0885814)),
                        dot(xyz, make_float3(0.0052982, -0.0146949, 1.0093968)));
 }
 
-static __forceinline__ __device__ float2 cartesian_to_spherical(const float3& w)
+static CUDA_INLINE CUDA_DEVICE float2 cartesian_to_spherical(const float3& w)
 {
     float2 ret;
     ret.x = acosf(clamp(w.y, -1.0f, 1.0f));
@@ -87,8 +86,8 @@ static __forceinline__ __device__ float2 cartesian_to_spherical(const float3& w)
 }
 
 template <typename T>
-static __forceinline__ __device__ int binary_search(T* values, int size,
-                                                    float value)
+static CUDA_INLINE CUDA_DEVICE int binary_search(T* values, int size,
+                                                 float value)
 {
     int idx_min = 0;
     int idx_max = size - 1;

@@ -2,6 +2,7 @@
 
 #include "blue-noise.cu"
 #include "cmj.cu"
+#include "cuda_util.h"
 #include "helper_math.h"
 #include "math.cu"
 #include "shared.h"
@@ -11,24 +12,24 @@
 
 using namespace fredholm;
 
-static __forceinline__ __device__ float funiform(PCGState& state)
+static CUDA_INLINE CUDA_DEVICE float funiform(PCGState& state)
 {
     return pcg32_random_r(&state) * (1.0f / (1ULL << 32));
 }
 
-static __forceinline__ __device__ float sample_1d(SamplerState& state)
+static CUDA_INLINE CUDA_DEVICE float sample_1d(SamplerState& state)
 {
     return fsobol_owen(state.sobol_state);
 }
 
-static __forceinline__ __device__ float2 sample_2d(SamplerState& state)
+static CUDA_INLINE CUDA_DEVICE float2 sample_2d(SamplerState& state)
 {
     // return make_float2(fsobol_owen(state.sobol_state),
     //                    fsobol_owen(state.sobol_state));
     return cmj_2d(state.cmj_state);
 }
 
-static __forceinline__ __device__ float3 sampler_3d(SamplerState& state)
+static CUDA_INLINE CUDA_DEVICE float3 sampler_3d(SamplerState& state)
 {
     // return make_float3(fsobol_owen(state.sobol_state),
     //                    fsobol_owen(state.sobol_state),
@@ -36,7 +37,7 @@ static __forceinline__ __device__ float3 sampler_3d(SamplerState& state)
     return make_float3(cmj_2d(state.cmj_state), cmj_1d(state.cmj_state));
 }
 
-static __forceinline__ __device__ float4 sample_4d(SamplerState& state)
+static CUDA_INLINE CUDA_DEVICE float4 sample_4d(SamplerState& state)
 {
     // return make_float4(
     //     fsobol_owen(state.sobol_state), fsobol_owen(state.sobol_state),
@@ -44,14 +45,14 @@ static __forceinline__ __device__ float4 sample_4d(SamplerState& state)
     return make_float4(cmj_2d(state.cmj_state), cmj_2d(state.cmj_state));
 }
 
-static __forceinline__ __device__ float2 sample_uniform_disk(const float2& u)
+static CUDA_INLINE CUDA_DEVICE float2 sample_uniform_disk(const float2& u)
 {
     const float r = sqrtf(u.x);
     const float theta = 2.0f * M_PIf * u.y;
     return make_float2(r * cosf(theta), r * sinf(theta));
 }
 
-static __forceinline__ __device__ float2 sample_concentric_disk(const float2& u)
+static CUDA_INLINE CUDA_DEVICE float2 sample_concentric_disk(const float2& u)
 {
     const float2 u0 = 2.0f * u - 1.0f;
     if (u0.x == 0.0f && u0.y == 0.0f) return make_float2(0.0f);
@@ -63,7 +64,7 @@ static __forceinline__ __device__ float2 sample_concentric_disk(const float2& u)
     return make_float2(r * cosf(theta), r * sinf(theta));
 }
 
-static __forceinline__ __device__ float3
+static CUDA_INLINE CUDA_DEVICE float3
 sample_cosine_weighted_hemisphere(const float2& u)
 {
     const float2 p_disk = sample_concentric_disk(u);
@@ -77,15 +78,15 @@ sample_cosine_weighted_hemisphere(const float2& u)
     return p;
 }
 
-static __forceinline__ __device__ float2 sample_triangle(const float2& u)
+static CUDA_INLINE CUDA_DEVICE float2 sample_triangle(const float2& u)
 {
     const float su0 = sqrtf(u.x);
     return make_float2(1.0f - su0, u.y * su0);
 }
 
 // https://jcgt.org/published/0007/04/01/
-static __device__ float3 sample_vndf(const float3& wo, const float2& alpha,
-                                     const float2& u)
+static CUDA_DEVICE float3 sample_vndf(const float3& wo, const float2& alpha,
+                                      const float2& u)
 {
     const float3 Vh =
         normalize(make_float3(alpha.x * wo.x, wo.y, alpha.y * wo.z));
@@ -111,9 +112,9 @@ static __device__ float3 sample_vndf(const float3& wo, const float2& alpha,
 
 struct DiscreteDistribution1D
 {
-    __device__ DiscreteDistribution1D() {}
+    CUDA_INLINE CUDA_DEVICE DiscreteDistribution1D() {}
 
-    __device__ void init(const float* values, int size)
+    CUDA_INLINE CUDA_DEVICE void init(const float* values, int size)
     {
         m_size = size;
 
@@ -128,7 +129,7 @@ struct DiscreteDistribution1D
         }
     }
 
-    __device__ int sample(float u, float& pmf) const
+    CUDA_INLINE CUDA_DEVICE int sample(float u, float& pmf) const
     {
         float cdf = 0.0f;
         for (int i = 1; i <= m_size; ++i)
@@ -145,7 +146,7 @@ struct DiscreteDistribution1D
         return m_size - 1;
     }
 
-    __device__ float eval_pmf(int idx) const
+    CUDA_INLINE CUDA_DEVICE float eval_pmf(int idx) const
     {
         return m_cdf[idx + 1] - m_cdf[idx];
     }

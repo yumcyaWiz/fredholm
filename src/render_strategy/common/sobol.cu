@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cuda_util.h"
 #include "shared.h"
 
 #define SOBOL_MATRICES_DIMENSION 1024
@@ -7,7 +8,7 @@
 
 using namespace fredholm;
 
-inline __device__ unsigned int SOBOL_MATRICES[] = {
+inline CUDA_DEVICE unsigned int SOBOL_MATRICES[] = {
     0x80000000U, 0x40000000U, 0x20000000U, 0x10000000U, 0x8000000U,
     0x4000000U,  0x2000000U,  0x1000000U,  0x800000U,   0x400000U,
     0x200000U,   0x100000U,   0x80000U,    0x40000U,    0x20000U,
@@ -10659,102 +10660,103 @@ inline __device__ unsigned int SOBOL_MATRICES[] = {
     0xf44133aaU, 0x8d64636fU, 0x3735b3acU, 0xb689234cU, 0x6d8253b0U,
     0x59c0d35aU, 0x34a32b93U, 0x1397876eU};
 
-static __forceinline__ __device__ unsigned int sobol(unsigned long long index,
+static CUDA_INLINE CUDA_DEVICE unsigned int sobol(unsigned long long index,
                                                      unsigned int dimension,
                                                      unsigned int scramble = 0)
 {
-  uint result = scramble;
-  for (unsigned int i = dimension * SOBOL_MATRICES_SIZE; index;
-       index >>= 1, ++i) {
-    if (index & 1) result ^= SOBOL_MATRICES[i];
-  }
-  return result;
+    uint result = scramble;
+    for (unsigned int i = dimension * SOBOL_MATRICES_SIZE; index;
+         index >>= 1, ++i)
+    {
+        if (index & 1) result ^= SOBOL_MATRICES[i];
+    }
+    return result;
 }
 
-static __forceinline__ __device__ float fsobol(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float fsobol(SobolState& state)
 {
-  const float result =
-      sobol(state.index, state.dimension, state.seed) * (1.0f / (1ULL << 32));
-  state.dimension += 1;
-  return result;
+    const float result =
+        sobol(state.index, state.dimension, state.seed) * (1.0f / (1ULL << 32));
+    state.dimension += 1;
+    return result;
 }
 
-static __forceinline__ __device__ float2 fsobol_2d(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float2 fsobol_2d(SobolState& state)
 {
-  return make_float2(fsobol(state), fsobol(state));
+    return make_float2(fsobol(state), fsobol(state));
 }
 
-static __forceinline__ __device__ float3 fsobol_3d(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float3 fsobol_3d(SobolState& state)
 {
-  return make_float3(fsobol(state), fsobol(state), fsobol(state));
+    return make_float3(fsobol(state), fsobol(state), fsobol(state));
 }
 
-static __forceinline__ __device__ float4 fsobol_4d(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float4 fsobol_4d(SobolState& state)
 {
-  return make_float4(fsobol(state), fsobol(state), fsobol(state),
-                     fsobol(state));
+    return make_float4(fsobol(state), fsobol(state), fsobol(state),
+                       fsobol(state));
 }
 
-static __forceinline__ __device__ unsigned int reverse_bits(unsigned int x)
+static CUDA_INLINE CUDA_DEVICE unsigned int reverse_bits(unsigned int x)
 {
-  x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
-  x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
-  x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
-  x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
-  return ((x >> 16) | (x << 16));
+    x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
+    x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
+    x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
+    x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
+    return ((x >> 16) | (x << 16));
 }
 
-static __forceinline__ __device__ unsigned int laine_karras_permutation(
+static CUDA_INLINE CUDA_DEVICE unsigned int laine_karras_permutation(
     unsigned int x, unsigned int seed)
 {
-  x += seed;
-  x ^= x * 0x6c50b47cu;
-  x ^= x * 0xb82f1e52u;
-  x ^= x * 0xc7afe638u;
-  x ^= x * 0x8d22f6e6u;
-  return x;
+    x += seed;
+    x ^= x * 0x6c50b47cu;
+    x ^= x * 0xb82f1e52u;
+    x ^= x * 0xc7afe638u;
+    x ^= x * 0x8d22f6e6u;
+    return x;
 }
 
-static __forceinline__ __device__ unsigned int hash_combine(unsigned int seed,
+static CUDA_INLINE CUDA_DEVICE unsigned int hash_combine(unsigned int seed,
                                                             unsigned int v)
 {
-  return seed ^ (v + (seed << 6) + (seed >> 2));
+    return seed ^ (v + (seed << 6) + (seed >> 2));
 }
 
 // https://jcgt.org/published/0009/04/01/
-static __forceinline__ __device__ unsigned int nested_uniform_scramble_base2(
+static CUDA_INLINE CUDA_DEVICE unsigned int nested_uniform_scramble_base2(
     unsigned int x, unsigned int seed)
 {
-  x = reverse_bits(x);
-  x = laine_karras_permutation(x, seed);
-  x = reverse_bits(x);
-  return x;
+    x = reverse_bits(x);
+    x = laine_karras_permutation(x, seed);
+    x = reverse_bits(x);
+    return x;
 }
 
-static __forceinline__ __device__ float fsobol_owen(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float fsobol_owen(SobolState& state)
 {
-  unsigned int index = nested_uniform_scramble_base2(state.index, state.seed);
-  const float result =
-      nested_uniform_scramble_base2(sobol(index, state.dimension),
-                                    hash_combine(state.seed, state.dimension)) *
-      (1.0f / (1ULL << 32));
-  state.dimension += 1;
-  return result;
+    unsigned int index = nested_uniform_scramble_base2(state.index, state.seed);
+    const float result = nested_uniform_scramble_base2(
+                             sobol(index, state.dimension),
+                             hash_combine(state.seed, state.dimension)) *
+                         (1.0f / (1ULL << 32));
+    state.dimension += 1;
+    return result;
 }
 
-static __forceinline__ __device__ float2 fsobol_owen_2d(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float2 fsobol_owen_2d(SobolState& state)
 {
-  return make_float2(fsobol_owen(state), fsobol_owen(state));
+    return make_float2(fsobol_owen(state), fsobol_owen(state));
 }
 
-static __forceinline__ __device__ float3 fsobol_owen_3d(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float3 fsobol_owen_3d(SobolState& state)
 {
-  return make_float3(fsobol_owen(state), fsobol_owen(state),
-                     fsobol_owen(state));
+    return make_float3(fsobol_owen(state), fsobol_owen(state),
+                       fsobol_owen(state));
 }
 
-static __forceinline__ __device__ float4 fsobol_owen_4d(SobolState& state)
+static CUDA_INLINE CUDA_DEVICE float4 fsobol_owen_4d(SobolState& state)
 {
-  return make_float4(fsobol_owen(state), fsobol_owen(state), fsobol_owen(state),
-                     fsobol_owen(state));
+    return make_float4(fsobol_owen(state), fsobol_owen(state),
+                       fsobol_owen(state), fsobol_owen(state));
 }

@@ -1,9 +1,10 @@
 #pragma once
 
+#include "cuda_util.h"
 #include "helper_math.h"
 
 #define REFLECTION_LUT_SIZE 16
-inline __constant__ float REFLECTION_LUT[] = {
+inline CUDA_CONSTANT float REFLECTION_LUT[] = {
     0.99996,  0.857567,    1,        0.613357,    1,        0.430158,
     1,        0.291317,    1,        0.191123,    1,        0.121853,
     1,        0.0737236,   1,        0.0426714,   1,        0.0226787,

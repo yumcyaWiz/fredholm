@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cuda_util.h"
 #include "helper_math.h"
 #include "shared.h"
 
@@ -10,9 +11,8 @@ using namespace fredholm;
 
 // https://graphics.pixar.com/library/MultiJitteredSampling/
 
-__forceinline__ __device__ unsigned int cmj_permute(unsigned int i,
-                                                    unsigned int l,
-                                                    unsigned int p)
+CUDA_INLINE CUDA_DEVICE unsigned int cmj_permute(unsigned int i, unsigned int l,
+                                                 unsigned int p)
 {
     unsigned int w = l - 1;
     w |= w >> 1;
@@ -43,7 +43,7 @@ __forceinline__ __device__ unsigned int cmj_permute(unsigned int i,
     return (i + p) % l;
 }
 
-__forceinline__ __device__ float cmj_randfloat(unsigned int i, unsigned int p)
+CUDA_INLINE CUDA_DEVICE float cmj_randfloat(unsigned int i, unsigned int p)
 {
     i ^= p;
     i ^= i >> 17;
@@ -58,7 +58,7 @@ __forceinline__ __device__ float cmj_randfloat(unsigned int i, unsigned int p)
     return i * (1.0f / 4294967808.0f);
 }
 
-__forceinline__ __device__ float2 cmj(unsigned int index, unsigned int scramble)
+CUDA_INLINE CUDA_DEVICE float2 cmj(unsigned int index, unsigned int scramble)
 {
     index = cmj_permute(index, CMJ_M * CMJ_N, scramble * 0x51633e2d);
     unsigned int sx = cmj_permute(index % CMJ_M, CMJ_M, scramble * 0xa511e9b3);
@@ -69,7 +69,7 @@ __forceinline__ __device__ float2 cmj(unsigned int index, unsigned int scramble)
                        (index / CMJ_M + (sx + jy) / CMJ_M) / CMJ_N);
 }
 
-static __forceinline__ __device__ float2 cmj_2d(CMJState& state)
+static CUDA_INLINE CUDA_DEVICE float2 cmj_2d(CMJState& state)
 {
     const unsigned int index = state.n_spp % (CMJ_M * CMJ_N);
     const unsigned int scramble =
@@ -80,17 +80,17 @@ static __forceinline__ __device__ float2 cmj_2d(CMJState& state)
     return result;
 }
 
-static __forceinline__ __device__ float cmj_1d(CMJState& state)
+static CUDA_INLINE CUDA_DEVICE float cmj_1d(CMJState& state)
 {
     return cmj_2d(state).x;
 }
 
-static __forceinline__ __device__ float3 cmj_3d(CMJState& state)
+static CUDA_INLINE CUDA_DEVICE float3 cmj_3d(CMJState& state)
 {
     return make_float3(cmj_2d(state), cmj_1d(state));
 }
 
-static __forceinline__ __device__ float4 cmj_4d(CMJState& state)
+static CUDA_INLINE CUDA_DEVICE float4 cmj_4d(CMJState& state)
 {
     return make_float4(cmj_2d(state), cmj_2d(state));
 }

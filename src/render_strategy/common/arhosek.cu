@@ -99,8 +99,9 @@ All instructions on how to use this code are in the accompanying header file.
 
 #pragma once
 #include "arhosek.h"
+#include "cuda_util.h"
 
-__device__ float ArHosekSkyModel_GetRadianceInternal(
+CUDA_DEVICE float ArHosekSkyModel_GetRadianceInternal(
     ArHosekSkyModelConfiguration configuration, float theta, float gamma)
 {
     const float expM = expf(configuration[4] * gamma);
@@ -118,9 +119,9 @@ __device__ float ArHosekSkyModel_GetRadianceInternal(
             configuration[7] * zenith);
 }
 
-__device__ float arhosek_tristim_skymodel_radiance(ArHosekSkyModelState *state,
-                                                   float theta, float gamma,
-                                                   int channel)
+CUDA_DEVICE float arhosek_tristim_skymodel_radiance(ArHosekSkyModelState *state,
+                                                    float theta, float gamma,
+                                                    int channel)
 {
     return ArHosekSkyModel_GetRadianceInternal(state->configs[channel], theta,
                                                gamma) *

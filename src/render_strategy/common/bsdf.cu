@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bxdf.cu"
+#include "cuda_util.h"
 #include "lut.cu"
 #include "math.cu"
 #include "shared.h"
@@ -9,8 +10,9 @@
 class BSDF
 {
    public:
-    __device__ BSDF(const float3& wo, const ShadingParams& shading_params,
-                    bool is_entering)
+    CUDA_INLINE CUDA_DEVICE BSDF(const float3& wo,
+                                 const ShadingParams& shading_params,
+                                 bool is_entering)
 
         : m_params(shading_params), m_is_entering(is_entering)
     {
@@ -136,7 +138,8 @@ class BSDF
             OrenNayar(m_params.base_color, m_params.diffuse_roughness);
     }
 
-    __device__ float3 eval(const float3& wo, const float3& wi) const
+    CUDA_INLINE CUDA_DEVICE float3 eval(const float3& wo,
+                                        const float3& wi) const
     {
         float3 coat = make_float3(0.0f);
         if (m_params.coat * m_coat_color_luminance > 0.0f)
@@ -230,8 +233,9 @@ class BSDF
         return ret;
     }
 
-    __device__ float3 sample(const float3& wo, float u, const float2& v,
-                             float3& f, float& pdf) const
+    CUDA_INLINE CUDA_DEVICE float3 sample(const float3& wo, float u,
+                                          const float2& v, float3& f,
+                                          float& pdf) const
     {
         // sample BxDF
         float bxdf_pdf;
@@ -326,7 +330,8 @@ class BSDF
         return make_float3(0.0f);
     }
 
-    __device__ float eval_pdf(const float3& wo, const float3& wi) const
+    CUDA_INLINE CUDA_DEVICE float eval_pdf(const float3& wo,
+                                           const float3& wi) const
     {
         // evaluate each BxDF pdf
         float coat = 0.0f;
@@ -415,7 +420,7 @@ class BSDF
 
     DiscreteDistribution1D m_dist;
 
-    static __device__ float compute_F0(float ior_i, float ior_t)
+    static CUDA_INLINE CUDA_DEVICE float compute_F0(float ior_i, float ior_t)
     {
         const float t = (ior_t - ior_i) / (ior_t + ior_i);
         return t * t;

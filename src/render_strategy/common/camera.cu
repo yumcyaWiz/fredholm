@@ -6,7 +6,7 @@
 
 using namespace fredholm;
 
-static __forceinline__ __device__ void sample_ray_pinhole_camera(
+static CUDA_INLINE CUDA_DEVICE void sample_ray_pinhole_camera(
     const CameraParams& params, const float2& uv, float3& origin,
     float3& direction, float& pdf)
 {
@@ -22,7 +22,7 @@ static __forceinline__ __device__ void sample_ray_pinhole_camera(
     pdf = 1.0f / abs(dir.z);
 }
 
-static __forceinline__ __device__ void sample_ray_thinlens_camera(
+static CUDA_INLINE CUDA_DEVICE void sample_ray_thinlens_camera(
     const CameraParams& params, const float2& uv, const float2& u,
     float3& origin, float3& direction, float& pdf)
 {
