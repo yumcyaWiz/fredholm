@@ -142,12 +142,88 @@ struct BlueNoiseState
     int dimension = 0;
 };
 
+// *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
+// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
+static CUDA_INLINE CUDA_HOST_DEVICE uint pcg32_random_r(PCGState* rng)
+{
+    unsigned long long oldstate = rng->state;
+    // Advance internal state
+    rng->state = oldstate * 6364136223846793005ULL + (rng->inc | 1);
+    // Calculate output function (XSH RR), uses old state for max ILP
+    uint xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+    uint rot = oldstate >> 59u;
+    return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
+
+// https://www.shadertoy.com/view/XlGcRh
+static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(uint p)
+{
+    const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
+    const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
+    uint h32 = p + PRIME32_5;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
+    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
+    return h32 ^ (h32 >> 16);
+}
+
+static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(const uint3& p)
+{
+    const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
+    const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
+    uint h32 = p.z + PRIME32_5 + p.x * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 += p.y * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
+    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
+    return h32 ^ (h32 >> 16);
+}
+
+static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(const uint4& p)
+{
+    const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
+    const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
+    uint h32 = p.w + PRIME32_5 + p.x * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 += p.y * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 += p.z * PRIME32_3;
+    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
+    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
+    return h32 ^ (h32 >> 16);
+}
+
 struct SamplerState
 {
     PCGState pcg_state;
     SobolState sobol_state;
     CMJState cmj_state;
     BlueNoiseState blue_noise_state;
+
+    CUDA_INLINE CUDA_DEVICE void init(uint width, uint height, const uint2& idx,
+                                      uint n_spp, uint seed)
+    {
+        const uint image_idx = idx.x + width * idx.y;
+
+        pcg_state.state = xxhash32(image_idx + n_spp * width * height);
+        pcg_state.inc = xxhash32(seed);
+
+        sobol_state.index = image_idx + n_spp * width * height;
+        sobol_state.dimension = 1;
+        sobol_state.seed = xxhash32(seed);
+
+        cmj_state.image_idx = image_idx;
+        cmj_state.depth = 0;
+        cmj_state.n_spp = n_spp;
+        cmj_state.scramble = xxhash32(seed);
+
+        blue_noise_state.pixel_i = idx.x;
+        blue_noise_state.pixel_j = idx.y;
+        blue_noise_state.index = n_spp;
+        blue_noise_state.dimension = 0;
+    };
 };
 
 struct TextureHeader
@@ -340,58 +416,5 @@ struct SceneData
 
     TextureHeader envmap;
 };
-
-// *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
-// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-static CUDA_INLINE CUDA_HOST_DEVICE uint pcg32_random_r(PCGState* rng)
-{
-    unsigned long long oldstate = rng->state;
-    // Advance internal state
-    rng->state = oldstate * 6364136223846793005ULL + (rng->inc | 1);
-    // Calculate output function (XSH RR), uses old state for max ILP
-    uint xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
-    uint rot = oldstate >> 59u;
-    return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
-}
-
-// https://www.shadertoy.com/view/XlGcRh
-static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(uint p)
-{
-    const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
-    const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
-    uint h32 = p + PRIME32_5;
-    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
-    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
-    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
-    return h32 ^ (h32 >> 16);
-}
-
-static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(const uint3& p)
-{
-    const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
-    const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
-    uint h32 = p.z + PRIME32_5 + p.x * PRIME32_3;
-    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
-    h32 += p.y * PRIME32_3;
-    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
-    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
-    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
-    return h32 ^ (h32 >> 16);
-}
-
-static CUDA_INLINE CUDA_HOST_DEVICE uint xxhash32(const uint4& p)
-{
-    const uint PRIME32_2 = 2246822519U, PRIME32_3 = 3266489917U;
-    const uint PRIME32_4 = 668265263U, PRIME32_5 = 374761393U;
-    uint h32 = p.w + PRIME32_5 + p.x * PRIME32_3;
-    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
-    h32 += p.y * PRIME32_3;
-    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
-    h32 += p.z * PRIME32_3;
-    h32 = PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
-    h32 = PRIME32_2 * (h32 ^ (h32 >> 15));
-    h32 = PRIME32_3 * (h32 ^ (h32 >> 13));
-    return h32 ^ (h32 >> 16);
-}
 
 }  // namespace fredholm

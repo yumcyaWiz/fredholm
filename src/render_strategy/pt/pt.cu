@@ -42,30 +42,6 @@ static CUDA_INLINE CUDA_DEVICE void trace_radiance(
                OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE, 0, 1, 0, u0, u1);
 }
 
-static CUDA_INLINE CUDA_DEVICE void init_sampler_state(const uint3& idx,
-                                                       unsigned int image_idx,
-                                                       unsigned int n_spp,
-                                                       SamplerState& state)
-{
-    state.pcg_state.state =
-        xxhash32(image_idx + n_spp * params.width * params.height);
-    state.pcg_state.inc = xxhash32(params.seed);
-
-    state.sobol_state.index = image_idx + n_spp * params.width * params.height;
-    state.sobol_state.dimension = 1;
-    state.sobol_state.seed = xxhash32(params.seed);
-
-    state.cmj_state.image_idx = image_idx;
-    state.cmj_state.depth = 0;
-    state.cmj_state.n_spp = n_spp;
-    state.cmj_state.scramble = xxhash32(params.seed);
-
-    state.blue_noise_state.pixel_i = idx.x;
-    state.blue_noise_state.pixel_j = idx.y;
-    state.blue_noise_state.index = n_spp;
-    state.blue_noise_state.dimension = 0;
-}
-
 extern "C" CUDA_KERNEL void __raygen__()
 {
     const uint3 idx = optixGetLaunchIndex();
@@ -79,7 +55,8 @@ extern "C" CUDA_KERNEL void __raygen__()
     {
         // initialize sampler
         const uint n_spp = spp + params.sample_count;
-        init_sampler_state(idx, image_idx, n_spp, payload.sampler);
+        payload.sampler.init(params.width, params.height, make_uint2(idx),
+                             n_spp, params.seed);
 
         // generate initial ray from camera
         float2 u = sample_2d(payload.sampler);
@@ -150,60 +127,14 @@ extern "C" CUDA_KERNEL void __miss__()
     {
         le = fetch_envmap(params.scene.envmap, payload->direction);
     }
-    // else if (params.arhosek) { le = evaluate_arhosek_sky(payload->direction);
-    // } else { le = params.bg_color; }
 
     payload->radiance += payload->throughput * le;
-
     payload->done = true;
 }
 
 extern "C" CUDA_KERNEL void __anyhit__()
 {
-    // const HitGroupSbtRecordData* sbt =
-    //     reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
-    // const uint prim_idx = optixGetPrimitiveIndex();
-
-    // // get material info
-    // const uint material_id = sbt->material_ids[prim_idx];
-    // const Material& material = params.materials[material_id];
-
-    // // fill surface info
-    // const float2 barycentric = optixGetTriangleBarycentrics();
-
-    // // calc texcoord
-    // const uint3 idx = sbt->indices[prim_idx];
-    // const float2 tex0 = params.texcoords[idx.x];
-    // const float2 tex1 = params.texcoords[idx.y];
-    // const float2 tex2 = params.texcoords[idx.z];
-    // const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
-    //                         barycentric.x * tex1 + barycentric.y * tex2;
-
-    // // fetch base color texture
-    // if (material.base_color_texture_id >= 0)
-    // {
-    //     const float alpha =
-    //         tex2D<float4>(
-    //             params.textures[material.base_color_texture_id].texture_object,
-    //             texcoord.x, texcoord.y)
-    //             .w;
-
-    //     // ignore intersection
-    //     if (alpha < 0.5) { optixIgnoreIntersection(); }
-    // }
-
-    // // fetch alpha texture
-    // if (material.alpha_texture_id >= 0)
-    // {
-    //     const float alpha =
-    //         tex2D<float4>(
-    //             params.textures[material.alpha_texture_id].texture_object,
-    //             texcoord.x, texcoord.y)
-    //             .x;
-
-    //     // ignore intersection
-    //     if (alpha < 0.5) { optixIgnoreIntersection(); }
-    // }
+    // TODO: implement alpha test
 }
 
 extern "C" CUDA_KERNEL void __closesthit__()
