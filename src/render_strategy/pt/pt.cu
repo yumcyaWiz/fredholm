@@ -66,16 +66,12 @@ extern "C" CUDA_KERNEL void __raygen__()
         uv.x = -uv.x;
         u = sample_2d(payload.sampler);
         float camera_pdf;
-        // sample_ray_thinlens_camera(params.camera, uv, u, payload.origin,
-        //                            payload.direction, camera_pdf);
-        sample_ray_pinhole_camera(params.camera, uv, payload.origin,
-                                  payload.direction, camera_pdf);
+        sample_ray_thinlens_camera(params.camera, uv, u, payload.origin,
+                                   payload.direction, camera_pdf);
 
         // start ray tracing from the camera
         payload.radiance = make_float3(0);
-        // payload.throughput =
-        //     make_float3(dot(payload.direction, params.camera.forward) /
-        //     camera_pdf);
+        // TODO: multiply cos / pdf
         payload.throughput = make_float3(1.0f);
         payload.done = false;
         for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth)

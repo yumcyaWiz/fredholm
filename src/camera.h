@@ -25,8 +25,8 @@ class Camera
     glm::mat4 m_transform = glm::identity<glm::mat4>();
 
     float m_fov = 0.5f * M_PI;
-    float m_F = 100.0f;       // F number
-    float m_focus = FLT_MAX;  // focus distance
+    float m_F = 100.0f;        // F number
+    float m_focus = 10000.0f;  // focus distance
 
     float m_movement_speed = 1.0f;
     float m_look_around_speed = 0.1f;
