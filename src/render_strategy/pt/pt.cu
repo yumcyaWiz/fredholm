@@ -245,9 +245,9 @@ extern "C" CUDA_KERNEL void __closesthit__()
     // Le
     if (material.has_emission())
     {
-        payload->radiance +=
-            payload->throughput *
-            material.get_emission(params.scene.textures, surf_info.texcoord);
+        payload->radiance += payload->throughput *
+                             material.get_emission_color(params.scene.textures,
+                                                         surf_info.texcoord);
         payload->done = true;
         return;
     }

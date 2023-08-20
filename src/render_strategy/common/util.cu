@@ -223,44 +223,20 @@ struct ShadingParams
         diffuse_roughness = material.diffuse_roughness;
 
         // diffuse color
-        base_color = material.base_color;
-        if (material.base_color_texture_id >= 0)
-        {
-            base_color = make_float3(
-                textures[material.base_color_texture_id].sample<uchar4>(
-                    texcoord));
-        }
+        base_color = material.get_diffuse_color(textures, texcoord);
 
         // specular
         specular = material.specular;
 
         // specular color
-        specular_color = material.specular_color;
-        if (material.specular_color_texture_id >= 0)
-        {
-            specular_color = make_float3(
-                textures[material.specular_color_texture_id].sample<uchar4>(
-                    texcoord));
-        }
+        specular_color = material.get_specular_color(textures, texcoord);
 
         // specular roughness
-        specular_roughness = material.specular_roughness;
-        if (material.specular_roughness_texture_id >= 0)
-        {
-            specular_roughness =
-                textures[material.specular_roughness_texture_id]
-                    .sample<uchar4>(texcoord)
-                    .x;
-        }
+        specular_roughness =
+            material.get_specular_roughness(textures, texcoord);
 
         // metalness
-        metalness = material.metalness;
-        if (material.metalness_texture_id >= 0)
-        {
-            metalness = textures[material.metalness_texture_id]
-                            .sample<uchar4>(texcoord)
-                            .x;
-        }
+        metalness = material.get_metalness(textures, texcoord);
 
         // metallic roughness
         if (material.metallic_roughness_texture_id >= 0)
@@ -273,21 +249,10 @@ struct ShadingParams
         }
 
         // coat
-        coat = material.coat;
-        if (material.coat_texture_id >= 0)
-        {
-            coat =
-                textures[material.coat_texture_id].sample<uchar4>(texcoord).x;
-        }
+        coat = material.get_coat(textures, texcoord);
 
         // coat roughness
-        coat_roughness = material.coat_roughness;
-        if (material.coat_roughness_texture_id >= 0)
-        {
-            coat_roughness = textures[material.coat_roughness_texture_id]
-                                 .sample<uchar4>(texcoord)
-                                 .x;
-        }
+        coat_roughness = material.get_coat_roughness(textures, texcoord);
 
         // transmission
         transmission = material.transmission;

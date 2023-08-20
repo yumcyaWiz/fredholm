@@ -238,14 +238,69 @@ struct Material
     int normalmap_texture_id = FRED_INVALID_ID;
     int alpha_texture_id = FRED_INVALID_ID;
 
+    CUDA_INLINE CUDA_DEVICE float3 get_diffuse_color(
+        const TextureHeader* textures, const float2& texcoord) const
+    {
+        return base_color_texture_id != FRED_INVALID_ID
+                   ? make_float3(textures[base_color_texture_id].sample<uchar4>(
+                         texcoord))
+                   : base_color;
+    }
+
+    CUDA_INLINE CUDA_DEVICE float3 get_specular_color(
+        const TextureHeader* textures, const float2& texcoord) const
+    {
+        return specular_color_texture_id != FRED_INVALID_ID
+                   ? make_float3(
+                         textures[specular_color_texture_id].sample<uchar4>(
+                             texcoord))
+                   : specular_color;
+    }
+
+    CUDA_INLINE CUDA_DEVICE float get_specular_roughness(
+        const TextureHeader* textures, const float2& texcoord) const
+    {
+        return specular_roughness_texture_id != FRED_INVALID_ID
+                   ? textures[specular_roughness_texture_id]
+                         .sample<uchar4>(texcoord)
+                         .x
+                   : specular_roughness;
+    }
+
+    CUDA_INLINE CUDA_DEVICE float get_metalness(const TextureHeader* textures,
+                                                const float2& texcoord) const
+    {
+        return metalness_texture_id != FRED_INVALID_ID
+                   ? textures[metalness_texture_id].sample<uchar4>(texcoord).x
+                   : metalness;
+    }
+
+    CUDA_INLINE CUDA_DEVICE float get_coat(const TextureHeader* textures,
+                                           const float2& texcoord) const
+    {
+        return coat_texture_id != FRED_INVALID_ID
+                   ? textures[coat_texture_id].sample<uchar4>(texcoord).x
+                   : coat;
+    }
+
+    CUDA_INLINE CUDA_DEVICE float get_coat_roughness(
+        const TextureHeader* textures, const float2& texcoord) const
+    {
+        return coat_roughness_texture_id != FRED_INVALID_ID
+                   ? textures[coat_roughness_texture_id]
+                         .sample<uchar4>(texcoord)
+                         .x
+                   : coat_roughness;
+    }
+
     CUDA_INLINE CUDA_DEVICE bool has_emission() const
     {
         return (emission_color.x > 0 || emission_color.y > 0 ||
                 emission_color.z > 0 || emission_texture_id != FRED_INVALID_ID);
     }
 
-    CUDA_INLINE CUDA_DEVICE float3 get_emission(const TextureHeader* textures,
-                                                const float2& texcoord) const
+    CUDA_INLINE CUDA_DEVICE float3 get_emission_color(
+        const TextureHeader* textures, const float2& texcoord) const
     {
         return emission_texture_id >= 0
                    ? make_float3(
