@@ -79,3 +79,6 @@ add_subdirectory("src/")
 
 # app
 add_subdirectory("app/")
+
+# util
+add_subdirectory("util/")
