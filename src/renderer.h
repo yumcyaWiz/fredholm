@@ -7,7 +7,6 @@
 #include "cuda_util.h"
 #include "gl_util.h"
 #include "imgui.h"
-#include "io.h"
 #include "optix_util.h"
 #include "post_process/post_process.h"
 #include "render_strategy/hello/hello.h"
@@ -16,6 +15,7 @@
 #include "scene.h"
 #include "shared.h"
 #include "util.h"
+#include "writer.h"
 
 namespace fredholm
 {
@@ -161,7 +161,8 @@ class Renderer
         std::vector<float4> beauty_h(resolution.x * resolution.y);
         get_aov(AOVType::FINAL).copy_d_to_h(beauty_h.data());
 
-        write_image(filepath, resolution.x, resolution.y, beauty_h.data());
+        ImageWriter::write_ldr_image(filepath, resolution.x, resolution.y,
+                                     beauty_h.data());
     }
 
    private:
@@ -192,6 +193,7 @@ class Renderer
     RenderStrategyType m_render_strategy_type =
         RenderStrategyType::N_RENDER_STRATEGIES;
     std::unique_ptr<RenderStrategy> m_render_strategy = nullptr;
+
     std::unique_ptr<PostProcess> m_post_process = nullptr;
     std::unique_ptr<CUDABuffer<float4>> final = nullptr;
 };
