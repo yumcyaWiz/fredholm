@@ -334,6 +334,8 @@ class App
                 {
                     fredholm::SceneLoader::load(
                         SceneList::get_entry(selected_scene).filepath, scene);
+                    fredholm::SceneLoader::load_envmap("uffizi-large.hdr",
+                                                       scene);
                     scene_device->send(context, scene);
                     renderer->clear_render();
                 }

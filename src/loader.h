@@ -67,6 +67,12 @@ class SceneLoader
         }
     }
 
+    static void load_envmap(const std::filesystem::path& filepath,
+                            SceneGraph& scene_graph)
+    {
+        scene_graph.set_envmap(Texture{filepath, ColorSpace::SRGB});
+    }
+
    private:
     static void load_obj(const std::filesystem::path& filepath,
                          SceneGraph& scene_graph)

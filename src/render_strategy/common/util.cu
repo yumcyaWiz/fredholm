@@ -311,3 +311,11 @@ struct ShadingParams
         thin_walled = material.thin_walled;
     }
 };
+
+static __forceinline__ __device__ float3
+fetch_envmap(const TextureHeader& envmap, const float3& v)
+{
+    const float2 thphi = cartesian_to_spherical(v);
+    const float2 uv = make_float2(thphi.y / (2.0f * M_PIf), thphi.x / M_PIf);
+    return make_float3(envmap.sample<float3>(uv));
+}

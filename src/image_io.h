@@ -46,7 +46,7 @@ class ImageLoader
         uint32_t& height)
     {
         int w, h, c;
-        stbi_set_flip_vertically_on_load(true);
+        stbi_set_flip_vertically_on_load(false);
         float* img = stbi_loadf(filepath.c_str(), &w, &h, &c, STBI_rgb);
         if (img == nullptr)
         {

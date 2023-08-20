@@ -201,6 +201,8 @@ struct TextureHeader
     uint height;
     CUdeviceptr data;
 
+    CUDA_INLINE CUDA_DEVICE bool is_valid() const { return data != 0; }
+
     // TODO: implement interpolation
     template <typename T>
     CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const;

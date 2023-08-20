@@ -61,14 +61,6 @@ static __forceinline__ __device__ float3 get_emission(const Material& material,
     return material.emission_color;
 }
 
-static __forceinline__ __device__ float3 fetch_ibl(const float3& v)
-{
-    // const float2 thphi = cartesian_to_spherical(v);
-    // return params.sky_intensity *
-    //        make_float3(tex2D<float4>(params.ibl, thphi.y / (2.0f * M_PIf),
-    //                                  thphi.x / M_PIf));
-}
-
 static __forceinline__ __device__ float3 evaluate_arhosek_sky(const float3& v)
 {
     // const float2 thphi = cartesian_to_spherical(v);
@@ -185,7 +177,10 @@ extern "C" __global__ void __miss__()
 
     // firsthit light case
     float3 le = make_float3(1.0f);
-    // if (params.ibl) { le = fetch_ibl(payload->direction); }
+    if (params.scene.envmap.is_valid())
+    {
+        le = fetch_envmap(params.scene.envmap, payload->direction);
+    }
     // else if (params.arhosek) { le = evaluate_arhosek_sky(payload->direction);
     // } else { le = params.bg_color; }
 
