@@ -63,9 +63,9 @@ class CUDABuffer
             memset(data.data(), 0, size * sizeof(T));
             gl_buffer->setData(data.data(), size, GL_STATIC_DRAW);
 
-            cuda_check(
-                cuGraphicsGLRegisterBuffer(&resource, gl_buffer->getName(),
-                                           CU_GRAPHICS_REGISTER_FLAGS_NONE));
+            cuda_check(cuGraphicsGLRegisterBuffer(
+                &resource, gl_buffer->getName(),
+                CU_GRAPHICS_REGISTER_FLAGS_WRITE_DISCARD));
             cuda_check(cuGraphicsMapResources(1, &resource, 0));
             size_t s = 0;
             cuda_check(cuGraphicsResourceGetMappedPointer(&dptr, &s, resource));
