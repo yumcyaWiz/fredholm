@@ -6,12 +6,9 @@
 #include <vector>
 
 #include "glm/glm.hpp"
-#include "glm/gtx/hash.hpp"
 #include "helper_math.h"
+#include "image_io.h"
 #include "shared.h"
-#include "spdlog/spdlog.h"
-#include "stb_image.h"
-#include "tiny_obj_loader.h"
 #include "util.h"
 
 namespace fredholm
@@ -417,25 +414,17 @@ class SceneDevice
             {
                 TextureHeader header;
 
-                // load texture on host
-                int w, h, c;
-                stbi_set_flip_vertically_on_load(true);
-                unsigned char* img = stbi_load(texture.get_filepath().c_str(),
-                                               &w, &h, &c, STBI_rgb_alpha);
-                if (img == nullptr)
-                {
-                    throw std::runtime_error(
-                        std::format("failed to load texture: {}",
-                                    texture.get_filepath().c_str()));
-                }
-                header.width = w;
-                header.height = h;
+                uint32_t width, height;
+                const std::vector<uchar4> image = ImageLoader::load_ldr_image(
+                    texture.get_filepath(), width, height);
+                header.width = width;
+                header.height = height;
 
                 // load texture on device
-                cuda_check(cuMemAlloc(&header.data, w * h * sizeof(uchar4)));
                 cuda_check(
-                    cuMemcpyHtoD(header.data, img, w * h * sizeof(uchar4)));
-                stbi_image_free(img);
+                    cuMemAlloc(&header.data, width * height * sizeof(uchar4)));
+                cuda_check(cuMemcpyHtoD(header.data, image.data(),
+                                        width * height * sizeof(uchar4)));
 
                 texture_headers.push_back(header);
             }

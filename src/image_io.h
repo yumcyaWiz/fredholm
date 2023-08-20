@@ -1,13 +1,46 @@
 #pragma once
 #include <algorithm>
 #include <filesystem>
+#include <format>
 #include <vector>
 
 #include "helper_math.h"
+#include "stb_image.h"
 #include "stb_image_write.h"
 
 namespace fredholm
 {
+
+class ImageLoader
+{
+   public:
+    static std::vector<uchar4> load_ldr_image(
+        const std::filesystem::path& filepath, uint32_t& width,
+        uint32_t& height)
+    {
+        int w, h, c;
+        stbi_set_flip_vertically_on_load(true);
+        unsigned char* img =
+            stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
+        if (img == nullptr)
+        {
+            throw std::runtime_error(std::format("failed to load texture: {}",
+                                                 filepath.generic_string()));
+        }
+
+        width = w;
+        height = h;
+        std::vector<uchar4> ret(w * h);
+        for (int i = 0; i < width * height; ++i)
+        {
+            ret[i] = make_uchar4(img[4 * i], img[4 * i + 1], img[4 * i + 2],
+                                 img[4 * i + 3]);
+        }
+        stbi_image_free(img);
+
+        return ret;
+    }
+};
 
 class ImageWriter
 {

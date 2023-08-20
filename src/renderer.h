@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "cuda_util.h"
 #include "gl_util.h"
+#include "image_io.h"
 #include "imgui.h"
 #include "optix_util.h"
 #include "post_process/post_process.h"
@@ -15,7 +16,6 @@
 #include "scene.h"
 #include "shared.h"
 #include "util.h"
-#include "writer.h"
 
 namespace fredholm
 {

@@ -8,6 +8,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
 #include "scene.h"
+#include "tiny_obj_loader.h"
 
 namespace fredholm
 {
