@@ -124,6 +124,8 @@ class Renderer
         ImGui::Separator();
 
         if (m_render_strategy) { m_render_strategy->runImGui(); }
+
+        if (m_post_process) { m_post_process->runImGui(); }
     }
 
     void clear_render()
@@ -135,7 +137,7 @@ class Renderer
     void render(const Camera& camera, const SceneDevice& scene)
     {
         m_render_strategy->render(camera, scene, scene.get_ias_handle(), sbt);
-        post_process();
+        run_post_process();
     }
 
     void synchronize() const { cuda_check(cuCtxSynchronize()); }
@@ -163,7 +165,7 @@ class Renderer
             resolution.x * resolution.y, use_gl_interop);
     }
 
-    void post_process()
+    void run_post_process()
     {
         const uint2 resolution =
             m_render_strategy->get_option<uint2>("resolution");

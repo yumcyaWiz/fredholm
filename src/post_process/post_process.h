@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "cuda_util.h"
+#include "imgui.h"
 
 namespace fredholm
 {
@@ -20,13 +21,20 @@ class PostProcess
         if (kernel) kernel.reset();
     }
 
+    void runImGui()
+    {
+        if (ImGui::CollapsingHeader("Post process",
+                                    ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::InputFloat("ISO", &ISO);
+            ImGui::InputFloat("chromatic aberration", &chromatic_aberration);
+        }
+    }
+
     void run(uint32_t width, uint32_t height, float4* input, float4* output)
     {
         uint w = width;
         uint h = height;
-        float chromatic_aberration = 1.0f;
-        float ISO = 100.0f;
-
         const void* args[] = {&w,   &h,     &chromatic_aberration,
                               &ISO, &input, &output};
         constexpr int threads_per_block = 16;
@@ -38,6 +46,9 @@ class PostProcess
 
    private:
     std::unique_ptr<CUDAKernel> kernel = nullptr;
+
+    float chromatic_aberration = 0.0f;
+    float ISO = 100.0f;
 };
 
 }  // namespace fredholm

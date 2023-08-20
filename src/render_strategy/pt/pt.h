@@ -56,7 +56,7 @@ class PtStrategy : public RenderStrategy
                                static_cast<float>(options.n_samples),
                            ImVec2(0.0f, 0.0f));
         ImGui::SameLine();
-        ImGui::Text("%d / %d spp", sample_count, options.n_samples);
+        ImGui::Text("%d/%d spp", sample_count, options.n_samples);
         if (ImGui::Button("clear")) { clear_render(); }
 
         if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&options.n_spp)))

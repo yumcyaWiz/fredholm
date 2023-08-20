@@ -17,6 +17,7 @@ add_library(post_process
 target_link_libraries(post_process PRIVATE
     CUDA::cuda_driver
     fredholm
+    imgui
 )
 target_include_directories(post_process PRIVATE
     "./"
