@@ -19,8 +19,8 @@ extern "C"
 
 struct RadiancePayload
 {
-    float3 origin;
-    float3 direction;
+    float3 origin = make_float3(0.0f);
+    float3 direction = make_float3(0.0f);
 
     float3 throughput = make_float3(1.0f);
     float3 radiance = make_float3(0.0f);
