@@ -145,7 +145,7 @@ extern "C" CUDA_KERNEL void __miss__()
     RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 
     // firsthit light case
-    float3 le = make_float3(1.0f);
+    float3 le = make_float3(0.0f);
     if (params.scene.envmap.is_valid())
     {
         le = fetch_envmap(params.scene.envmap, payload->direction);
