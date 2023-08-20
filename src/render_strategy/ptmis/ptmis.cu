@@ -42,10 +42,10 @@ struct LightPayload
 
     float3 le = make_float3(0.0f);  // emission
 
-    bool hit = false;  // hit area light?
-    float3 p;          // hit position
-    float3 n;          // hit normal
-    float area;        // triangle area
+    bool done = false;  // hit sky?
+    float3 p;           // hit position
+    float3 n;           // hit normal
+    float area;         // triangle area
 };
 
 // trace radiance ray
@@ -85,11 +85,12 @@ static CUDA_INLINE CUDA_DEVICE void trace_light(OptixTraversableHandle& handle,
                OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE, 2, 3, 2, u0, u1);
 }
 
-static __forceinline__ __device__ float3
+static CUDA_INLINE CUDA_DEVICE float3
 sample_position_on_light(const SceneData& scene, float u, const float2& v,
                          float3& le, float3& n, float& pdf)
 {
     // sample light
+    // TODO: implement better light sampling
     const uint light_idx = clamp(static_cast<uint>(u * scene.n_area_lights), 0u,
                                  scene.n_area_lights - 1);
     const AreaLight& light = scene.area_lights[light_idx];
@@ -120,8 +121,8 @@ sample_position_on_light(const SceneData& scene, float u, const float2& v,
 
     const float3 p = (1.0f - barycentric.x - barycentric.y) * v0 +
                      barycentric.x * v1 + barycentric.y * v2;
-    n = (1.0f - barycentric.x - barycentric.y) * n0 + barycentric.x * n1 +
-        barycentric.y * n2;
+    n = normalize((1.0f - barycentric.x - barycentric.y) * n0 +
+                  barycentric.x * n1 + barycentric.y * n2);
     const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                             barycentric.x * tex1 + barycentric.y * tex2;
 
@@ -303,9 +304,8 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
                 const float pdf = abs_cos_theta(wi) / M_PIf;
                 const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
                 const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-                const float3 weight =
-                    regularize_weight(payload->throughput * mis_weight * f *
-                                      abs_cos_theta(wi) / pdf);
+                const float3 weight = payload->throughput * mis_weight * f *
+                                      abs_cos_theta(wi) / pdf;
                 const float3 le =
                     fetch_envmap(params.scene.envmap, shadow_ray_direction);
                 payload->radiance += weight * le;
@@ -340,9 +340,8 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
 
                 const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
                 const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
-                const float3 weight =
-                    regularize_weight(payload->throughput * mis_weight * f *
-                                      abs_cos_theta(wi) / pdf);
+                const float3 weight = payload->throughput * mis_weight * f *
+                                      abs_cos_theta(wi) / pdf;
                 payload->radiance += weight * le;
             }
         }
@@ -350,11 +349,16 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
 
     // BSDF sampling
     {
+        // TODO: create BSDFSample struct
         float3 f;
         float pdf;
         const float3 wi = bsdf.sample(wo, sample_1d(payload->sampler),
                                       sample_2d(payload->sampler), f, pdf);
 
+        // update throughput
+        payload->throughput *= f * abs_cos_theta(wi) / pdf;
+
+        // trace light ray
         const float3 light_ray_direction = local_to_world(
             wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
         const bool is_transmitted = dot(light_ray_direction, surf_info.n_g) < 0;
@@ -366,35 +370,35 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
         trace_light(params.ias_handle, light_ray_origin, light_ray_direction,
                     0.0f, FLT_MAX, &light_payload);
 
-        float pdf_light;
-        if (light_payload.hit)
+        if (light_payload.done)
         {
+            // IBL importance sampling pdf
+            const float pdf_light = abs_cos_theta(wi) / M_PIf;
+
+            const float mis_weight = compute_mis_weight(pdf, pdf_light);
+            const float3 weight = payload->throughput * mis_weight;
+            payload->radiance += weight * light_payload.le;
+            payload->done = true;
+            return;
+        }
+        else
+        {
+            // hit area light
             const float r2 = dot(light_payload.p - light_ray_origin,
                                  light_payload.p - light_ray_origin);
             const float pdf_area =
                 1.0f / (params.scene.n_area_lights * light_payload.area);
-            pdf_light = r2 / fabs(dot(-light_ray_direction, light_payload.n)) *
-                        pdf_area;
+            const float pdf_light =
+                r2 / fabs(dot(-light_ray_direction, light_payload.n)) *
+                pdf_area;
+
+            const float mis_weight = compute_mis_weight(pdf, pdf_light);
+            const float3 weight = payload->throughput * mis_weight;
+            payload->radiance += weight * light_payload.le;
         }
-        else { pdf_light = abs_cos_theta(wi) / M_PIf; }
 
-        const float mis_weight = compute_mis_weight(pdf, pdf_light);
-        const float3 weight = regularize_weight(
-            payload->throughput * mis_weight * f * abs_cos_theta(wi) / pdf);
-        payload->radiance += weight * light_payload.le;
-    }
-
-    // generate next ray direction
-    {
-        float3 f;
-        float pdf;
-        const float3 wi = bsdf.sample(wo, sample_1d(payload->sampler),
-                                      sample_2d(payload->sampler), f, pdf);
         const float3 wi_world = local_to_world(
             wi, surf_info.tangent, surf_info.n_s, surf_info.bitangent);
-
-        // update throughput
-        payload->throughput *= f * abs_cos_theta(wi) / pdf;
 
         // advance ray
         payload->origin =
@@ -423,7 +427,7 @@ extern "C" __global__ void __closesthit__shadow()
 extern "C" __global__ void __miss__light()
 {
     LightPayload* payload = get_payload_ptr<LightPayload>();
-    payload->hit = false;
+    payload->done = true;
 
     float3 le = make_float3(0.0f);
     if (params.scene.envmap.is_valid())
@@ -464,7 +468,7 @@ extern "C" __global__ void __closesthit__light()
     if (material.has_emission() &&
         dot(-payload->direction, surf_info.n_s) > 0.0f)
     {
-        payload->hit = true;
+        payload->done = false;
         payload->le = material.get_emission_color(params.scene.textures,
                                                   surf_info.texcoord);
         payload->p = surf_info.x;
@@ -473,7 +477,7 @@ extern "C" __global__ void __closesthit__light()
     }
     else
     {
-        payload->hit = false;
+        payload->done = false;
         payload->le = make_float3(0.0f);
     }
 }
