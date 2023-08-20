@@ -150,7 +150,6 @@ struct CompiledScene
     std::vector<glm::mat4> instance_transforms = {};
 };
 
-// TODO: add envmap
 // TODO: add lights
 class SceneGraph
 {
@@ -171,6 +170,13 @@ class SceneGraph
     {
         clear();
         root = node;
+    }
+
+    const Texture& get_envmap() const { return envmap; }
+    void set_envmap(const Texture& texture) { envmap = texture; }
+    bool has_envmap() const
+    {
+        return envmap.get_filepath().generic_string().size() > 0;
     }
 
     CompiledScene compile() const
@@ -252,6 +258,7 @@ class SceneGraph
     }
 
     SceneNode* root = nullptr;
+    Texture envmap = {};
 };
 
 // scene data on device
@@ -271,6 +278,9 @@ class SceneDevice
     CUdeviceptr get_geometry_ids() const { return geometry_ids_buffer; }
     CUdeviceptr get_object_to_worlds() const { return object_to_world_buffer; }
     CUdeviceptr get_world_to_objects() const { return world_to_object_buffer; }
+
+    uint2 get_envmap_resolution() const { return envmap_resolution; }
+    CUdeviceptr get_envmap() const { return envmap_buffer; }
 
     uint32_t get_n_vertices() const { return n_vertices; }
     uint32_t get_n_faces() const { return n_faces; }
@@ -414,6 +424,7 @@ class SceneDevice
             {
                 TextureHeader header;
 
+                // TODO: change loading based on texture colorspace
                 uint32_t width, height;
                 const std::vector<uchar4> image = ImageLoader::load_ldr_image(
                     texture.get_filepath(), width, height);
@@ -492,6 +503,23 @@ class SceneDevice
         cuda_check(cuMemcpyHtoD(world_to_object_buffer,
                                 inverse_transforms.data(),
                                 inverse_transforms.size() * sizeof(Matrix3x4)));
+
+        // load envmap
+        if (scene_graph.has_envmap())
+        {
+            const Texture& envmap = scene_graph.get_envmap();
+
+            uint32_t width, height;
+            const std::vector<float3> image = ImageLoader::load_hdr_image(
+                envmap.get_filepath(), width, height);
+            envmap_resolution.x = width;
+            envmap_resolution.y = height;
+
+            cuda_check(
+                cuMemAlloc(&envmap_buffer, width * height * sizeof(float3)));
+            cuda_check(cuMemcpyHtoD(envmap_buffer, image.data(),
+                                    width * height * sizeof(float3)));
+        }
 
         n_vertices = vertices.size();
         n_faces = indices.size();
@@ -606,6 +634,13 @@ class SceneDevice
             world_to_object_buffer = 0;
         }
 
+        if (envmap_buffer != 0)
+        {
+            cuda_check(cuMemFree(envmap_buffer));
+            envmap_buffer = 0;
+            envmap_resolution = make_uint2(0, 0);
+        }
+
         // reset statistics
         n_vertices = 0;
         n_faces = 0;
@@ -629,6 +664,9 @@ class SceneDevice
     CUdeviceptr geometry_ids_buffer = 0;
     CUdeviceptr object_to_world_buffer = 0;
     CUdeviceptr world_to_object_buffer = 0;
+
+    uint2 envmap_resolution = make_uint2(0, 0);
+    CUdeviceptr envmap_buffer = 0;
 
     // statistics
     uint32_t n_vertices = 0;

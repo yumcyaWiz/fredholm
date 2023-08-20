@@ -159,11 +159,11 @@ struct SurfaceInfo
                 textures[material.heightmap_texture_id];
             const float du = 1.0f / heightmap.width;
             const float dv = 1.0f / heightmap.height;
-            const float v = heightmap.sample(texcoord).x;
+            const float v = heightmap.sample<uchar4>(texcoord).x;
             const float dfdu =
-                heightmap.sample(texcoord + make_float2(du, 0)).x - v;
+                heightmap.sample<uchar4>(texcoord + make_float2(du, 0)).x - v;
             const float dfdv =
-                heightmap.sample(texcoord + make_float2(0, dv)).x - v;
+                heightmap.sample<uchar4>(texcoord + make_float2(0, dv)).x - v;
             tangent = normalize(tangent + dfdu * n_s);
             bitangent = normalize(bitangent + dfdv * n_s);
             n_s = normalize(cross(tangent, bitangent));
@@ -176,7 +176,8 @@ struct SurfaceInfo
         if (material.normalmap_texture_id >= 0)
         {
             float3 v = make_float3(
-                textures[material.normalmap_texture_id].sample(texcoord));
+                textures[material.normalmap_texture_id].sample<uchar4>(
+                    texcoord));
             v = 2.0f * v - 1.0f;
             n_s = normalize(local_to_world(v, tangent, bitangent, n_s));
             orthonormal_basis(n_s, tangent, bitangent);
@@ -226,7 +227,8 @@ struct ShadingParams
         if (material.base_color_texture_id >= 0)
         {
             base_color = make_float3(
-                textures[material.base_color_texture_id].sample(texcoord));
+                textures[material.base_color_texture_id].sample<uchar4>(
+                    texcoord));
         }
 
         // specular
@@ -237,7 +239,8 @@ struct ShadingParams
         if (material.specular_color_texture_id >= 0)
         {
             specular_color = make_float3(
-                textures[material.specular_color_texture_id].sample(texcoord));
+                textures[material.specular_color_texture_id].sample<uchar4>(
+                    texcoord));
         }
 
         // specular roughness
@@ -246,7 +249,7 @@ struct ShadingParams
         {
             specular_roughness =
                 textures[material.specular_roughness_texture_id]
-                    .sample(texcoord)
+                    .sample<uchar4>(texcoord)
                     .x;
         }
 
@@ -254,15 +257,16 @@ struct ShadingParams
         metalness = material.metalness;
         if (material.metalness_texture_id >= 0)
         {
-            metalness =
-                textures[material.metalness_texture_id].sample(texcoord).x;
+            metalness = textures[material.metalness_texture_id]
+                            .sample<uchar4>(texcoord)
+                            .x;
         }
 
         // metallic roughness
         if (material.metallic_roughness_texture_id >= 0)
         {
             const float4 mr =
-                textures[material.metallic_roughness_texture_id].sample(
+                textures[material.metallic_roughness_texture_id].sample<uchar4>(
                     texcoord);
             specular_roughness = clamp(mr.y, 0.01f, 1.0f);
             metalness = clamp(mr.z, 0.0f, 1.0f);
@@ -272,15 +276,17 @@ struct ShadingParams
         coat = material.coat;
         if (material.coat_texture_id >= 0)
         {
-            coat = textures[material.coat_texture_id].sample(texcoord).x;
+            coat =
+                textures[material.coat_texture_id].sample<uchar4>(texcoord).x;
         }
 
         // coat roughness
         coat_roughness = material.coat_roughness;
         if (material.coat_roughness_texture_id >= 0)
         {
-            coat_roughness =
-                textures[material.coat_roughness_texture_id].sample(texcoord).x;
+            coat_roughness = textures[material.coat_roughness_texture_id]
+                                 .sample<uchar4>(texcoord)
+                                 .x;
         }
 
         // transmission

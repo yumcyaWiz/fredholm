@@ -40,6 +40,31 @@ class ImageLoader
 
         return ret;
     }
+
+    static std::vector<float3> load_hdr_image(
+        const std::filesystem::path& filepath, uint32_t& width,
+        uint32_t& height)
+    {
+        int w, h, c;
+        stbi_set_flip_vertically_on_load(true);
+        float* img = stbi_loadf(filepath.c_str(), &w, &h, &c, STBI_rgb);
+        if (img == nullptr)
+        {
+            throw std::runtime_error(std::format("failed to load texture: {}",
+                                                 filepath.generic_string()));
+        }
+
+        width = w;
+        height = h;
+        std::vector<float3> ret(w * h);
+        for (int i = 0; i < width * height; ++i)
+        {
+            ret[i] = make_float3(img[3 * i], img[3 * i + 1], img[3 * i + 2]);
+        }
+        stbi_image_free(img);
+
+        return ret;
+    }
 };
 
 class ImageWriter

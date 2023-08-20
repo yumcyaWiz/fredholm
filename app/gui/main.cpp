@@ -291,6 +291,7 @@ class App
             if (ImGui::CollapsingHeader("Camera settings",
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
+                // TODO: place these inside camera
                 const glm::vec3 origin = camera.get_origin();
                 ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y,
                             origin.z);
@@ -323,6 +324,8 @@ class App
             if (ImGui::CollapsingHeader("Scene settings",
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
+                // TODO: add SceneManager
+                // TODO: place these inside SceneManager
                 const std::string scenes_names =
                     SceneList::get_names_for_imgui();
 

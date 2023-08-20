@@ -239,6 +239,11 @@ class RenderStrategy
             reinterpret_cast<Matrix3x4*>(scene.get_object_to_worlds());
         scene_data.world_to_objects =
             reinterpret_cast<Matrix3x4*>(scene.get_world_to_objects());
+
+        scene_data.envmap.width = scene.get_envmap_resolution().x;
+        scene_data.envmap.height = scene.get_envmap_resolution().y;
+        scene_data.envmap.data = scene.get_envmap();
+
         return scene_data;
     }
 

@@ -202,19 +202,38 @@ struct TextureHeader
     CUdeviceptr data;
 
     // TODO: implement interpolation
-    CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const
-    {
-        const int i = clamp(static_cast<int>(uv.x * width), 0,
-                            static_cast<int>(width - 1));
-        const int j = clamp(static_cast<int>(uv.y * height), 0,
-                            static_cast<int>(height - 1));
-
-        const uchar4* ptr = reinterpret_cast<const uchar4*>(data);
-        const uchar4 v = ptr[j * width + i];
-        constexpr float c = 1.0f / 255.0f;
-        return make_float4(c * v.x, c * v.y, c * v.z, c * v.w);
-    }
+    template <typename T>
+    CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const;
 };
+
+template <>
+CUDA_INLINE CUDA_DEVICE float4
+TextureHeader::sample<uchar4>(const float2& uv) const
+{
+    const int i =
+        clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
+    const int j =
+        clamp(static_cast<int>(uv.y * height), 0, static_cast<int>(height - 1));
+
+    const uchar4* ptr = reinterpret_cast<const uchar4*>(data);
+    const uchar4 v = ptr[j * width + i];
+    constexpr float c = 1.0f / 255.0f;
+    return make_float4(c * v.x, c * v.y, c * v.z, c * v.w);
+}
+
+template <>
+CUDA_INLINE CUDA_DEVICE float4
+TextureHeader::sample<float3>(const float2& uv) const
+{
+    const int i =
+        clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
+    const int j =
+        clamp(static_cast<int>(uv.y * height), 0, static_cast<int>(height - 1));
+
+    const float3* ptr = reinterpret_cast<const float3*>(data);
+    const float3 v = ptr[j * width + i];
+    return make_float4(v, 1.0f);
+}
 
 struct AreaLight
 {
@@ -244,6 +263,8 @@ struct SceneData
     uint* geometry_ids;
     Matrix3x4* object_to_worlds;
     Matrix3x4* world_to_objects;
+
+    TextureHeader envmap;
 };
 
 // *Really* minimal PCG32 code / (c) 2014 M.E. O'Neill / pcg-random.org
