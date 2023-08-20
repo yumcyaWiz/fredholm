@@ -232,7 +232,10 @@ struct TextureHeader
     uint height;
     CUdeviceptr data;
 
-    CUDA_INLINE CUDA_DEVICE bool is_valid() const { return data != 0; }
+    CUDA_INLINE CUDA_DEVICE bool is_valid() const
+    {
+        return width != 0 && height != 0 && data != 0;
+    }
 
     // TODO: implement interpolation
     template <typename T>
@@ -414,6 +417,9 @@ struct SceneData
     uint* geometry_ids;           // key: instance id
     Matrix3x4* object_to_worlds;  // key: instance id
     Matrix3x4* world_to_objects;  // key: instance id
+
+    AreaLight* area_lights;  // key: light  id
+    uint n_area_lights;
 
     TextureHeader envmap;
 };

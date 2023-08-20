@@ -46,6 +46,23 @@ static CUDA_INLINE CUDA_DEVICE Payload* get_payload_ptr()
 
 // Ray Tracing Gems Chapter 6
 static CUDA_INLINE CUDA_DEVICE float3 ray_origin_offset(const float3& p,
+                                                        const float3& n)
+{
+    constexpr float origin = 1.0f / 32.0f;
+    constexpr float float_scale = 1.0f / 65536.0f;
+    constexpr float int_scale = 256.0f;
+    const int3 of_i = make_int3(int_scale * n);
+    const float3 p_i = make_float3(
+        __int_as_float(__float_as_int(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
+        __int_as_float(__float_as_int(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
+        __int_as_float(__float_as_int(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
+    return make_float3(fabsf(p.x) < origin ? p.x + float_scale * n.x : p_i.x,
+                       fabsf(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
+                       fabsf(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
+}
+
+// Ray Tracing Gems Chapter 6
+static CUDA_INLINE CUDA_DEVICE float3 ray_origin_offset(const float3& p,
                                                         const float3& n,
                                                         const float3& wi)
 {
@@ -89,6 +106,7 @@ struct SurfaceInfo
     float2 texcoord = make_float2(0, 0);      // texture coordinate
     float3 tangent = make_float3(0, 0, 0);    // tangent vector in world space
     float3 bitangent = make_float3(0, 0, 0);  // bitangent vector in world space
+    float area = 0.0f;                        // triangle area
     bool is_entering = true;
 
     CUDA_INLINE CUDA_DEVICE SurfaceInfo() {}
@@ -134,6 +152,8 @@ struct SurfaceInfo
         const float2 tex2 = scene.texcoords[idx.z];
         texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                    barycentric.x * tex1 + barycentric.y * tex2;
+
+        area = 0.5f * length(cross(v1 - v0, v2 - v0));
 
         // flip normal
         is_entering = dot(-direction, n_g) > 0;

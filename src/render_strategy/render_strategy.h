@@ -242,6 +242,10 @@ class RenderStrategy
         scene_data.world_to_objects =
             reinterpret_cast<Matrix3x4*>(scene.get_world_to_objects());
 
+        scene_data.area_lights =
+            reinterpret_cast<AreaLight*>(scene.get_area_lights());
+        scene_data.n_area_lights = scene.get_n_area_lights();
+
         scene_data.envmap.width = scene.get_envmap_resolution().x;
         scene_data.envmap.height = scene.get_envmap_resolution().y;
         scene_data.envmap.data = scene.get_envmap();

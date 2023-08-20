@@ -280,6 +280,8 @@ class SceneDevice
     CUdeviceptr get_object_to_worlds() const { return object_to_world_buffer; }
     CUdeviceptr get_world_to_objects() const { return world_to_object_buffer; }
 
+    CUdeviceptr get_area_lights() const { return area_lights_buffer; }
+
     uint2 get_envmap_resolution() const { return envmap_resolution; }
     CUdeviceptr get_envmap() const { return envmap_buffer; }
 

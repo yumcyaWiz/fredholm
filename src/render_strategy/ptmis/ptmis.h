@@ -3,7 +3,7 @@
 
 #include "cuda_util.h"
 #include "imgui.h"
-#include "render_strategy/pt/pt_shared.h"
+#include "render_strategy/ptmis/ptmis_shared.h"
 #include "render_strategy/render_strategy.h"
 
 namespace fredholm
@@ -68,7 +68,7 @@ class PTMISStrategy : public RenderStrategy
     {
         if (sample_count >= options.n_samples) return;
 
-        PtStrategyParams params;
+        PTMISStrategyParams params;
         params.width = options.resolution.x;
         params.height = options.resolution.y;
         params.camera = get_camera_params(camera);
@@ -80,10 +80,10 @@ class PTMISStrategy : public RenderStrategy
         params.sample_count = sample_count;
         params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
-            cuMemcpyHtoD(params_buffer, &params, sizeof(PtStrategyParams)));
+            cuMemcpyHtoD(params_buffer, &params, sizeof(PTMISStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(PtStrategyParams), &sbt,
+                                sizeof(PTMISStrategyParams), &sbt,
                                 options.resolution.x, options.resolution.y, 1));
         sample_count += options.n_spp;
     }
@@ -95,8 +95,12 @@ class PTMISStrategy : public RenderStrategy
 
         const std::vector<ProgramGroupEntry> program_group_entries = {
             {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "", m_module},
-            {OPTIX_PROGRAM_GROUP_KIND_MISS, "", m_module},
-            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_MISS, "radiance", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "radiance", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_MISS, "shadow", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "shadow", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_MISS, "light", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "light", m_module},
         };
 
         m_program_group_sets =
@@ -105,7 +109,7 @@ class PTMISStrategy : public RenderStrategy
         m_pipeline =
             optix_create_pipeline(context, m_program_group_sets, 2, 2, debug);
 
-        cuda_check(cuMemAlloc(&params_buffer, sizeof(PtStrategyParams)));
+        cuda_check(cuMemAlloc(&params_buffer, sizeof(PTMISStrategyParams)));
     }
 
     uint32_t seed = 1;
