@@ -70,10 +70,8 @@ extern "C" CUDA_KERNEL void __raygen__()
                                    payload.direction, camera_pdf);
 
         // start ray tracing from the camera
-        payload.radiance = make_float3(0);
         // TODO: multiply cos / pdf
         payload.throughput = make_float3(1.0f);
-        payload.done = false;
         for (int ray_depth = 0; ray_depth < params.max_depth; ++ray_depth)
         {
             // russian roulette
