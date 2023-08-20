@@ -387,8 +387,8 @@ struct Material
 
 struct AreaLight
 {
-    uint3 indices;
-    uint material_id;
+    uint3 indices;      // vertex indices
+    uint material_id;   // material id
     uint instance_idx;  // instance id
 };
 

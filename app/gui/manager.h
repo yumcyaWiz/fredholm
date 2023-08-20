@@ -92,6 +92,7 @@ class SceneManager
         ImGui::Text("# of textures: %d", scene_device->get_n_textures());
         ImGui::Text("# of geometries: %d", scene_device->get_n_geometries());
         ImGui::Text("# of instances: %d", scene_device->get_n_instances());
+        ImGui::Text("# of area lights: %d", scene_device->get_n_area_lights());
     }
 
     const SceneDevice& get_scene_device() const { return *scene_device; }

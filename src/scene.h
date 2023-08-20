@@ -289,6 +289,7 @@ class SceneDevice
     uint32_t get_n_geometries() const { return n_geometries; }
     uint32_t get_n_instances() const { return n_instances; }
     uint32_t get_n_textures() const { return n_textures; }
+    uint32_t get_n_area_lights() const { return n_area_lights; }
 
     void send(const OptixDeviceContext& context, const SceneGraph& scene_graph)
     {
@@ -445,6 +446,31 @@ class SceneDevice
             }
         }
 
+        // load area lights
+        std::vector<AreaLight> area_lights;
+        for (int geom_id = 0; geom_id < compiled_scene.geometry_nodes.size();
+             ++geom_id)
+        {
+            const uint vertices_offset = n_vertices_buffer_h[geom_id];
+            const uint indices_offset = n_faces_buffer_h[geom_id];
+            for (int prim_id = 0;
+                 prim_id <
+                 compiled_scene.geometry_nodes[geom_id]->get_indices().size();
+                 ++prim_id)
+            {
+                const uint material_id = material_ids[indices_offset + prim_id];
+                const auto& material = materials[material_id];
+                if (material.has_emission())
+                {
+                    AreaLight light;
+                    light.indices = indices[indices_offset + prim_id];
+                    light.material_id = material_id;
+                    light.instance_idx = geom_id;
+                    area_lights.push_back(light);
+                }
+            }
+        }
+
         // allocate scene data on device
         destroy_scene_data();
 
@@ -515,6 +541,15 @@ class SceneDevice
                                 inverse_transforms.data(),
                                 inverse_transforms.size() * sizeof(Matrix3x4)));
 
+        if (area_lights.size() > 0)
+        {
+            cuda_check(cuMemAlloc(&area_lights_buffer,
+                                  area_lights.size() * sizeof(AreaLight)));
+            cuda_check(cuMemcpyHtoD(area_lights_buffer, area_lights.data(),
+                                    area_lights.size() * sizeof(AreaLight)));
+            n_area_lights = area_lights.size();
+        }
+
         // load envmap
         if (scene_graph.has_envmap())
         {
@@ -581,8 +616,10 @@ class SceneDevice
             {
                 // TODO: fix segfault
                 // TextureHeader* header =
-                //     reinterpret_cast<TextureHeader*>(textures_buffer) + i;
-                // if (header != nullptr && header->data != 0)
+                //     reinterpret_cast<TextureHeader*>(textures_buffer)
+                //     + i;
+                // if (header != nullptr && header->data
+                // != 0)
                 // {
                 //     cuda_check(cuMemFree(header->data));
                 //     header->data = 0;
@@ -650,6 +687,13 @@ class SceneDevice
             world_to_object_buffer = 0;
         }
 
+        if (area_lights_buffer != 0)
+        {
+            cuda_check(cuMemFree(area_lights_buffer));
+            area_lights_buffer = 0;
+            n_area_lights = 0;
+        }
+
         if (envmap_buffer != 0)
         {
             cuda_check(cuMemFree(envmap_buffer));
@@ -681,6 +725,9 @@ class SceneDevice
     CUdeviceptr geometry_ids_buffer = 0;     // key: instance id
     CUdeviceptr object_to_world_buffer = 0;  // key: instance id
     CUdeviceptr world_to_object_buffer = 0;  // key: instance id
+
+    CUdeviceptr area_lights_buffer = 0;  // key: light id
+    uint n_area_lights = 0;
 
     uint2 envmap_resolution = make_uint2(0, 0);
     CUdeviceptr envmap_buffer = 0;
