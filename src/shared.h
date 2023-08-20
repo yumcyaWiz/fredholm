@@ -402,17 +402,18 @@ struct DirectionalLight
 // TODO: maybe this could be removed and use SceneDevice instead?
 struct SceneData
 {
-    float3* vertices;
-    uint3* indices;
-    float3* normals;
-    float2* texcoords;
-    Material* materials;
-    TextureHeader* textures;
-    uint* material_ids;
-    uint* indices_offsets;
-    uint* geometry_ids;
-    Matrix3x4* object_to_worlds;
-    Matrix3x4* world_to_objects;
+    float3* vertices;             // key: vertex id
+    uint3* indices;               // key: vertex id
+    float3* normals;              // key: vertex id
+    float2* texcoords;            // key: vertex id
+    Material* materials;          // key: material id
+    TextureHeader* textures;      // key: texture id
+    uint* material_ids;           // key: face id
+    uint* n_vertices;             // key: geometry id
+    uint* n_faces;                // key: geometry id
+    uint* geometry_ids;           // key: instance id
+    Matrix3x4* object_to_worlds;  // key: instance id
+    Matrix3x4* world_to_objects;  // key: instance id
 
     TextureHeader envmap;
 };

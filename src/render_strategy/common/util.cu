@@ -71,11 +71,10 @@ static CUDA_INLINE CUDA_DEVICE float3 regularize_weight(const float3& weight)
     return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
-// TODO: remove double fetch of indices_offset
 static CUDA_INLINE CUDA_DEVICE Material get_material(const SceneData& scene,
-                                                     uint prim_id, uint geom_id)
+                                                     uint prim_id,
+                                                     uint indices_offset)
 {
-    const uint indices_offset = scene.indices_offsets[geom_id];
     const uint material_id = scene.material_ids[indices_offset + prim_id];
     return scene.materials[material_id];
 }
@@ -94,18 +93,17 @@ struct SurfaceInfo
 
     CUDA_INLINE CUDA_DEVICE SurfaceInfo() {}
 
-    CUDA_INLINE CUDA_DEVICE SurfaceInfo(const float3& origin,
-                                        const float3& direction, float tmax,
-                                        const float2& barycentric,
-                                        const SceneData& scene,
-                                        const Material& material, uint prim_idx,
-                                        uint indices_offset, uint instance_idx,
-                                        uint geom_id)
+    CUDA_INLINE CUDA_DEVICE
+    SurfaceInfo(const float3& origin, const float3& direction, float tmax,
+                const float2& barycentric, const SceneData& scene,
+                const Material& material, uint prim_idx, uint vertices_offset,
+                uint indices_offset, uint instance_idx, uint geom_id)
     {
         this->t = tmax;
         this->barycentric = barycentric;
 
-        const uint3 idx = scene.indices[indices_offset + prim_idx];
+        const uint3 idx =
+            scene.indices[indices_offset + prim_idx] + vertices_offset;
         const Matrix3x4& object_to_world = scene.object_to_worlds[instance_idx];
         const Matrix3x4& world_to_object = scene.world_to_objects[instance_idx];
 

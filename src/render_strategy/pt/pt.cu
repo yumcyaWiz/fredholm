@@ -140,9 +140,11 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const uint prim_idx = optixGetPrimitiveIndex();
     const uint instance_idx = optixGetInstanceIndex();
     const uint geom_id = params.scene.geometry_ids[instance_idx];
-    const uint indices_offset = params.scene.indices_offsets[geom_id];
+    const uint vertices_offset = params.scene.n_vertices[geom_id];
+    const uint indices_offset = params.scene.n_faces[geom_id];
 
-    const Material material = get_material(params.scene, prim_idx, geom_id);
+    const Material material =
+        get_material(params.scene, prim_idx, indices_offset);
 
     const float3 ray_origin = optixGetWorldRayOrigin();
     const float3 ray_direction = optixGetWorldRayDirection();
@@ -150,8 +152,8 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const float2 barycentric = optixGetTriangleBarycentrics();
 
     SurfaceInfo surf_info(ray_origin, ray_direction, ray_tmax, barycentric,
-                          params.scene, material, prim_idx, indices_offset,
-                          instance_idx, geom_id);
+                          params.scene, material, prim_idx, vertices_offset,
+                          indices_offset, instance_idx, geom_id);
 
     ShadingParams shading_params(material, surf_info.texcoord,
                                  params.scene.textures);

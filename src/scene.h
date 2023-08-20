@@ -274,7 +274,8 @@ class SceneDevice
     CUdeviceptr get_materials() const { return materials_buffer; }
     CUdeviceptr get_material_ids() const { return material_ids_buffer; }
     CUdeviceptr get_textures() const { return textures_buffer; }
-    CUdeviceptr get_indices_offset() const { return indices_offset_buffer; }
+    CUdeviceptr get_n_vertices_buffer() const { return n_vertices_buffer; }
+    CUdeviceptr get_n_faces_buffer() const { return n_faces_buffer; }
     CUdeviceptr get_geometry_ids() const { return geometry_ids_buffer; }
     CUdeviceptr get_object_to_worlds() const { return object_to_world_buffer; }
     CUdeviceptr get_world_to_objects() const { return world_to_object_buffer; }
@@ -326,6 +327,7 @@ class SceneDevice
         // build IAS
         destroy_ias();
 
+        // TODO: add instanced geometry after this loop(use instance_nodes)
         std::vector<IASBuildEntry> ias_build_entries;
         for (int i = 0; i < compiled_scene.geometry_nodes.size(); ++i)
         {
@@ -363,16 +365,18 @@ class SceneDevice
         std::vector<float2> texcoords;
         std::vector<Material> materials;
         std::vector<uint> material_ids;
-        std::vector<uint> indices_offset;           // key: geometry id
-        std::vector<uint> geometry_ids;             // key: instance id(OptiX)
-        std::vector<Matrix3x4> transforms;          // key: instance id(OptiX)
-        std::vector<Matrix3x4> inverse_transforms;  // key: instance id(OptiX)
+        std::vector<uint> n_vertices_buffer_h;
+        std::vector<uint> n_faces_buffer_h;
+        std::vector<uint> geometry_ids;
+        std::vector<Matrix3x4> transforms;
+        std::vector<Matrix3x4> inverse_transforms;
 
         for (int i = 0; i < compiled_scene.geometry_nodes.size(); ++i)
         {
             const auto& geometry = compiled_scene.geometry_nodes[i];
 
-            indices_offset.push_back(indices.size());
+            n_vertices_buffer_h.push_back(vertices.size());
+            n_faces_buffer_h.push_back(indices.size());
             geometry_ids.push_back(i);
 
             vertices.insert(vertices.end(), geometry->get_vertices().begin(),
@@ -483,10 +487,17 @@ class SceneDevice
             n_textures = texture_headers.size();
         }
 
-        cuda_check(cuMemAlloc(&indices_offset_buffer,
-                              indices_offset.size() * sizeof(uint)));
-        cuda_check(cuMemcpyHtoD(indices_offset_buffer, indices_offset.data(),
-                                indices_offset.size() * sizeof(uint)));
+        // TODO: use uint64 for big scenes
+        cuda_check(cuMemAlloc(&n_vertices_buffer,
+                              n_vertices_buffer_h.size() * sizeof(uint)));
+        cuda_check(cuMemcpyHtoD(n_vertices_buffer, n_vertices_buffer_h.data(),
+                                n_vertices_buffer_h.size() * sizeof(uint)));
+
+        // TODO: use uint64 for big scenes
+        cuda_check(cuMemAlloc(&n_faces_buffer,
+                              n_faces_buffer_h.size() * sizeof(uint)));
+        cuda_check(cuMemcpyHtoD(n_faces_buffer, n_faces_buffer_h.data(),
+                                n_faces_buffer_h.size() * sizeof(uint)));
 
         cuda_check(cuMemAlloc(&geometry_ids_buffer,
                               geometry_ids.size() * sizeof(uint)));
@@ -613,10 +624,15 @@ class SceneDevice
             cuda_check(cuMemFree(material_ids_buffer));
             material_ids_buffer = 0;
         }
-        if (indices_offset_buffer != 0)
+        if (n_vertices_buffer != 0)
         {
-            cuda_check(cuMemFree(indices_offset_buffer));
-            indices_offset_buffer = 0;
+            cuda_check(cuMemFree(n_vertices_buffer));
+            n_vertices_buffer = 0;
+        }
+        if (n_faces_buffer != 0)
+        {
+            cuda_check(cuMemFree(n_faces_buffer));
+            n_faces_buffer = 0;
         }
         if (geometry_ids_buffer != 0)
         {
@@ -653,17 +669,18 @@ class SceneDevice
     std::vector<GASBuildOutput> gas_build_outputs = {};
     IASBuildOutput ias_build_output = {};
 
-    CUdeviceptr vertices_buffer = 0;
-    CUdeviceptr indices_buffer = 0;
-    CUdeviceptr normals_buffer = 0;
-    CUdeviceptr texcoords_buffer = 0;
-    CUdeviceptr materials_buffer = 0;
-    CUdeviceptr textures_buffer = 0;
-    CUdeviceptr material_ids_buffer = 0;
-    CUdeviceptr indices_offset_buffer = 0;
-    CUdeviceptr geometry_ids_buffer = 0;
-    CUdeviceptr object_to_world_buffer = 0;
-    CUdeviceptr world_to_object_buffer = 0;
+    CUdeviceptr vertices_buffer = 0;         // key: vertex id
+    CUdeviceptr indices_buffer = 0;          // key: face id
+    CUdeviceptr normals_buffer = 0;          // key: vertex id
+    CUdeviceptr texcoords_buffer = 0;        // key: vertex id
+    CUdeviceptr materials_buffer = 0;        // key: material id
+    CUdeviceptr textures_buffer = 0;         // key: vertex id
+    CUdeviceptr material_ids_buffer = 0;     // key: face id
+    CUdeviceptr n_vertices_buffer = 0;       // key: geometry id
+    CUdeviceptr n_faces_buffer = 0;          // key: geometry id
+    CUdeviceptr geometry_ids_buffer = 0;     // key: instance id
+    CUdeviceptr object_to_world_buffer = 0;  // key: instance id
+    CUdeviceptr world_to_object_buffer = 0;  // key: instance id
 
     uint2 envmap_resolution = make_uint2(0, 0);
     CUdeviceptr envmap_buffer = 0;

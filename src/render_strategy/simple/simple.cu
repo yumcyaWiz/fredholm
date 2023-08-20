@@ -66,8 +66,10 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const float2 barycentric = optixGetTriangleBarycentrics();
 
     const uint geom_id = params.scene.geometry_ids[instance_id];
-    const uint indices_offset = params.scene.indices_offsets[geom_id];
-    const uint3 idx = params.scene.indices[indices_offset + prim_id];
+    const uint vertices_offset = params.scene.n_vertices[geom_id];
+    const uint indices_offset = params.scene.n_faces[geom_id];
+    const uint3 idx =
+        params.scene.indices[indices_offset + prim_id] + vertices_offset;
 
     const Matrix3x4 world_to_object =
         params.scene.world_to_objects[instance_id];
