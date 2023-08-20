@@ -11,40 +11,9 @@
 #include "spdlog/spdlog.h"
 //
 #include "loader.h"
+#include "manager.h"
 #include "render_strategy/pt/pt.h"
 #include "renderer.h"
-
-struct SceneListEntry
-{
-    std::string name;
-    std::filesystem::path filepath;
-};
-
-class SceneList
-{
-   public:
-    static std::string get_names_for_imgui()
-    {
-        std::string names;
-        for (const auto& entry : m_entries) { names += entry.name + '\0'; }
-        names += '\0';
-        return names;
-    }
-
-    static SceneListEntry get_entry(uint32_t idx) { return m_entries[idx]; }
-
-   private:
-    static std::vector<SceneListEntry> m_entries;
-};
-
-std::vector<SceneListEntry> SceneList::m_entries = {
-    {"CornellBox-Original",
-     std::filesystem::path(CMAKE_SOURCE_DIR) /
-         "resources/scenes/cornellbox/CornellBox-Original.obj"},
-    {"CornellBox-Texture",
-     std::filesystem::path(CMAKE_SOURCE_DIR) /
-         "resources/scenes/cornellbox/CornellBox-Texture.obj"},
-};
 
 void glfw_error_callback(int error, const char* description)
 {
@@ -172,7 +141,7 @@ class App
             if (renderer)
             {
                 // render
-                renderer->render(camera, *scene_device);
+                renderer->render(camera, scene_manager->get_scene_device());
                 renderer->synchronize();
 
                 // show image
@@ -221,9 +190,7 @@ class App
 
         camera = fredholm::Camera(glm::vec3(0, 1, 2), glm::vec3(0, 0, -1));
 
-        fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
-        scene_device = std::make_unique<fredholm::SceneDevice>();
-        scene_device->send(context, scene);
+        scene_manager = std::make_unique<fredholm::SceneManager>(context);
 
         fredholm::RenderOptions options;
         options.use_gl_interop = true;
@@ -321,35 +288,10 @@ class App
                 }
             }
 
-            if (ImGui::CollapsingHeader("Scene settings",
+            if (ImGui::CollapsingHeader("Scene",
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
-                // TODO: add SceneManager
-                // TODO: place these inside SceneManager
-                const std::string scenes_names =
-                    SceneList::get_names_for_imgui();
-
-                if (ImGui::Combo("Scene", &selected_scene,
-                                 scenes_names.c_str()))
-                {
-                    fredholm::SceneLoader::load(
-                        SceneList::get_entry(selected_scene).filepath, scene);
-                    fredholm::SceneLoader::load_envmap("uffizi-large.hdr",
-                                                       scene);
-                    scene_device->send(context, scene);
-                    renderer->clear_render();
-                }
-                ImGui::Text("# of vertices: %d",
-                            scene_device->get_n_vertices());
-                ImGui::Text("# of faces: %d", scene_device->get_n_faces());
-                ImGui::Text("# of materials: %d",
-                            scene_device->get_n_materials());
-                ImGui::Text("# of textures: %d",
-                            scene_device->get_n_textures());
-                ImGui::Text("# of geometries: %d",
-                            scene_device->get_n_geometries());
-                ImGui::Text("# of instances: %d",
-                            scene_device->get_n_instances());
+                scene_manager->run_imgui(*renderer);
             }
 
             if (ImGui::CollapsingHeader(("Render settings"),
@@ -388,7 +330,7 @@ class App
         if (pipeline) { pipeline.reset(); }
         if (quad) { quad.reset(); }
 
-        if (scene_device) { scene_device.reset(); }
+        if (scene_manager) { scene_manager.reset(); }
         if (renderer) { renderer.reset(); }
 
         fredholm::optix_check(optixDeviceContextDestroy(context));
@@ -409,8 +351,7 @@ class App
     std::unique_ptr<fredholm::CUDADevice> device = nullptr;
     OptixDeviceContext context = nullptr;
     fredholm::Camera camera;
-    fredholm::SceneGraph scene;
-    std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
+    std::unique_ptr<fredholm::SceneManager> scene_manager = nullptr;
     std::unique_ptr<fredholm::Renderer> renderer = nullptr;
 
     std::unique_ptr<fredholm::GLPipeline> pipeline = nullptr;
@@ -420,8 +361,6 @@ class App
     float camera_fov = 90.0f;
     float camera_F = 1.0f;
     float camera_focus = 1.0f;
-
-    int selected_scene = 0;
 
     int resolution[2] = {512, 512};
     int selected_render_strategy = 0;
