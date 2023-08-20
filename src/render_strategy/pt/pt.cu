@@ -14,7 +14,7 @@ using namespace fredholm;
 
 extern "C"
 {
-    __constant__ PtStrategyParams params;
+    CUDA_CONSTANT PtStrategyParams params;
 }
 
 struct RadiancePayload
@@ -31,7 +31,7 @@ struct RadiancePayload
 };
 
 // trace radiance ray
-static __forceinline__ __device__ void trace_radiance(
+static CUDA_INLINE CUDA_DEVICE void trace_radiance(
     OptixTraversableHandle& handle, const float3& ray_origin,
     const float3& ray_direction, float tmin, float tmax,
     RadiancePayload* payload_ptr)
@@ -42,15 +42,15 @@ static __forceinline__ __device__ void trace_radiance(
                OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE, 0, 1, 0, u0, u1);
 }
 
-static __forceinline__ __device__ bool has_emission(const Material& material)
+static CUDA_INLINE CUDA_DEVICE bool has_emission(const Material& material)
 {
     return (material.emission_color.x > 0 || material.emission_color.y > 0 ||
             material.emission_color.z > 0 ||
             material.emission_texture_id != -1);
 }
 
-static __forceinline__ __device__ float3 get_emission(const Material& material,
-                                                      const float2& texcoord)
+static CUDA_INLINE CUDA_DEVICE float3 get_emission(const Material& material,
+                                                   const float2& texcoord)
 {
     // return material.emission_texture_id >= 0
     //            ? make_float3(
@@ -61,7 +61,7 @@ static __forceinline__ __device__ float3 get_emission(const Material& material,
     return material.emission_color;
 }
 
-static __forceinline__ __device__ float3 evaluate_arhosek_sky(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 evaluate_arhosek_sky(const float3& v)
 {
     // const float2 thphi = cartesian_to_spherical(v);
     // const float gamma = acosf(dot(params.sun_direction, v));
@@ -74,9 +74,10 @@ static __forceinline__ __device__ float3 evaluate_arhosek_sky(const float3& v)
     //                                                      thphi.x, gamma, 2));
 }
 
-static __forceinline__ __device__ void init_sampler_state(
-    const uint3& idx, unsigned int image_idx, unsigned int n_spp,
-    SamplerState& state)
+static CUDA_INLINE CUDA_DEVICE void init_sampler_state(const uint3& idx,
+                                                       unsigned int image_idx,
+                                                       unsigned int n_spp,
+                                                       SamplerState& state)
 {
     state.pcg_state.state =
         xxhash32(image_idx + n_spp * params.width * params.height);
@@ -97,7 +98,7 @@ static __forceinline__ __device__ void init_sampler_state(
     state.blue_noise_state.dimension = 0;
 }
 
-extern "C" __global__ void __raygen__()
+extern "C" CUDA_KERNEL void __raygen__()
 {
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
@@ -171,7 +172,7 @@ extern "C" __global__ void __raygen__()
     params.output[image_idx] = make_float4(beauty, 1.0f);
 }
 
-extern "C" __global__ void __miss__()
+extern "C" CUDA_KERNEL void __miss__()
 {
     RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 
@@ -189,7 +190,7 @@ extern "C" __global__ void __miss__()
     payload->done = true;
 }
 
-extern "C" __global__ void __anyhit__()
+extern "C" CUDA_KERNEL void __anyhit__()
 {
     // const HitGroupSbtRecordData* sbt =
     //     reinterpret_cast<HitGroupSbtRecordData*>(optixGetSbtDataPointer());
@@ -237,7 +238,7 @@ extern "C" __global__ void __anyhit__()
     // }
 }
 
-extern "C" __global__ void __closesthit__()
+extern "C" CUDA_KERNEL void __closesthit__()
 {
     RadiancePayload* payload = get_payload_ptr<RadiancePayload>();
 

@@ -4,6 +4,9 @@
 #define CUDA_DEVICE __device__
 #define CUDA_HOST_DEVICE __host__ __device__
 #define CUDA_INLINE __forceinline__
+#define CUDA_CONSTANT __constant__
+#define CUDA_SHARED __shared__
+#define CUDA_KERNEL __global__
 
 #ifndef __CUDACC__
 #include <cuda.h>
