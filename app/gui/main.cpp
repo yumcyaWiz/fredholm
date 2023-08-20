@@ -288,7 +288,7 @@ class App
                 }
             }
 
-            if (ImGui::CollapsingHeader("Scene",
+            if (ImGui::CollapsingHeader("Scene settings",
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
                 scene_manager->run_imgui(*renderer);

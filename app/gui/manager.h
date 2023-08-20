@@ -74,13 +74,13 @@ class SceneManager
         const std::string scene_list = get_scene_list_for_imgui();
         const std::string envmap_list = get_envmap_list_for_imgui();
 
-        // TODO: fix this combo box
+        // if CollapsingHeader and Combo box has the same name, the combo box
+        // doesn't work
         if (ImGui::Combo("Scene", &m_scene_index, scene_list.c_str()))
         {
             load_scene();
             renderer.clear_render();
         }
-
         if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
         {
             load_envmap();
