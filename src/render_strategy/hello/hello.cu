@@ -6,7 +6,7 @@ using namespace fredholm;
 
 extern "C"
 {
-    __constant__ HelloStrategyParams params;
+    CUDA_CONSTANT HelloStrategyParams params;
 }
 
 struct RayPayload
@@ -14,7 +14,7 @@ struct RayPayload
     float3 color = make_float3(0.0f, 0.0f, 0.0f);
 };
 
-extern "C" __global__ void __raygen__rg()
+extern "C" CUDA_KERNEL void __raygen__rg()
 {
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
@@ -24,4 +24,4 @@ extern "C" __global__ void __raygen__rg()
         make_float4(idx.x / (float)dim.x, idx.y / (float)dim.y, 1.0f, 1.0f);
 }
 
-extern "C" __global__ void __miss__() {}
+extern "C" CUDA_KERNEL void __miss__() {}

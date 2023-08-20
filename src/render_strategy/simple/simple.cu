@@ -9,7 +9,7 @@ using namespace fredholm;
 
 extern "C"
 {
-    __constant__ SimpleStrategyParams params;
+    CUDA_CONSTANT SimpleStrategyParams params;
 }
 
 struct RayPayload
@@ -17,7 +17,7 @@ struct RayPayload
     float3 color = make_float3(0.0f, 0.0f, 0.0f);
 };
 
-static __forceinline__ __device__ void trace_ray(
+static CUDA_INLINE CUDA_DEVICE void trace_ray(
     const OptixTraversableHandle& handle, const Ray& ray,
     RayPayload* payload_ptr)
 {
@@ -27,7 +27,7 @@ static __forceinline__ __device__ void trace_ray(
                OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE, 0, 1, 0, u0, u1);
 }
 
-extern "C" __global__ void __raygen__rg()
+extern "C" CUDA_KERNEL void __raygen__rg()
 {
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
@@ -49,15 +49,15 @@ extern "C" __global__ void __raygen__rg()
     params.output[image_idx] = make_float4(payload.color, 1.0f);
 }
 
-extern "C" __global__ void __miss__()
+extern "C" CUDA_KERNEL void __miss__()
 {
     RayPayload* payload_ptr = get_payload_ptr<RayPayload>();
     payload_ptr->color = make_float3(0.0f, 0.0f, 0.0f);
 }
 
-extern "C" __global__ void __anyhit__() {}
+extern "C" CUDA_KERNEL void __anyhit__() {}
 
-extern "C" __global__ void __closesthit__()
+extern "C" CUDA_KERNEL void __closesthit__()
 {
     RayPayload* payload_ptr = get_payload_ptr<RayPayload>();
 
