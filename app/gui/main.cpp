@@ -285,14 +285,14 @@ class App
     {
         ImGui::Begin("fredholm");
         {
-            ImGui::Combo("AOV", &selected_aov, "Final\0Beauty\0\0");
-
-            if (ImGui::CollapsingHeader("Camera settings"))
+            if (ImGui::CollapsingHeader("Camera settings",
+                                        ImGuiTreeNodeFlags_DefaultOpen))
             {
                 // TODO: show camera settings
             }
 
-            if (ImGui::CollapsingHeader("Scene settings"))
+            if (ImGui::CollapsingHeader("Scene settings",
+                                        ImGuiTreeNodeFlags_DefaultOpen))
             {
                 const std::string scenes_names =
                     SceneList::get_names_for_imgui();
@@ -318,7 +318,8 @@ class App
                             scene_device->get_n_instances());
             }
 
-            if (ImGui::CollapsingHeader(("Render settings")))
+            if (ImGui::CollapsingHeader(("Render settings"),
+                                        ImGuiTreeNodeFlags_DefaultOpen))
             {
                 const uint2 res = renderer->get_option<uint2>("resolution");
                 resolution[0] = res.x;
@@ -329,6 +330,8 @@ class App
                     renderer->set_option<uint2>(
                         "resolution", make_uint2(resolution[0], resolution[1]));
                 }
+
+                ImGui::Combo("AOV", &selected_aov, "Final\0Beauty\0\0");
 
                 selected_render_strategy =
                     static_cast<int>(renderer->get_render_strategy_type());
