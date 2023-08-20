@@ -121,6 +121,8 @@ class Renderer
 
     void runImGui()
     {
+        ImGui::Separator();
+
         if (m_render_strategy) { m_render_strategy->runImGui(); }
     }
 

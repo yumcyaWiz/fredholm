@@ -22,34 +22,24 @@ enum class CameraMovement
 class Camera
 {
    private:
-    glm::mat4 m_transform;
+    glm::mat4 m_transform = glm::identity<glm::mat4>();
 
-    float m_fov;
-    float m_F;      // F number
-    float m_focus;  // focus distance
+    float m_fov = 0.5f * M_PI;
+    float m_F = 100.0f;       // F number
+    float m_focus = FLT_MAX;  // focus distance
 
-    float m_movement_speed;
-    float m_look_around_speed;
+    float m_movement_speed = 1.0f;
+    float m_look_around_speed = 0.1f;
 
-    glm::vec3 m_origin;
-    glm::vec3 m_forward;
-    glm::vec3 m_right;
-    glm::vec3 m_up;
-    float m_phi;
-    float m_theta;
+    glm::vec3 m_origin = glm::vec3(0.0f);
+    glm::vec3 m_forward = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 m_right = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    float m_phi = 270.0f;
+    float m_theta = 90.0f;
 
    public:
-    Camera()
-        : m_fov(0.5f * M_PI),
-          m_F(8.0f),
-          m_focus(10000.0f),
-          m_movement_speed(10.0f),
-          m_look_around_speed(0.1f),
-          m_phi(270.0f),
-          m_theta(90.0f)
-    {
-        m_transform = glm::identity<glm::mat4>();
-    }
+    Camera() {}
 
     Camera(const glm::vec3& origin, float fov = 0.5f * M_PI, float F = 8.0f,
            float focus = 10000.0f, float movement_speed = 1.0f,
@@ -66,17 +56,29 @@ class Camera
         m_forward = glm::vec3(0, 0, -1);
         m_right = glm::normalize(glm::cross(m_forward, glm::vec3(0, 1, 0)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
-        m_transform = glm::inverse(
-            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
 
-    glm::mat4 get_transform() const { return m_transform; }
+    glm::vec3 get_origin() const { return m_origin; }
+
+    glm::vec3 get_forward() const { return m_forward; }
+
+    glm::mat4 get_transform() const
+    {
+        return glm::inverse(
+            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
+    }
 
     float get_fov() const { return m_fov; }
 
     float get_F() const { return m_F; }
 
     float get_focus() const { return m_focus; }
+
+    void set_fov(float fov) { m_fov = fov; }
+
+    void set_F(float F) { m_F = F; }
+
+    void set_focus(float focus) { m_focus = focus; }
 
     void move(const CameraMovement& direction, float dt)
     {
@@ -115,9 +117,6 @@ class Camera
             }
             break;
         }
-
-        m_transform = glm::inverse(
-            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
 
     void look_around(float d_phi, float d_theta)
@@ -140,9 +139,6 @@ class Camera
         m_right =
             glm::normalize(glm::cross(m_forward, glm::vec3(0.0f, 1.0f, 0.0f)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
-
-        m_transform = glm::inverse(
-            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
 };
 

@@ -118,6 +118,9 @@ void handle_input(GLFWwindow* window, const ImGuiIO& io,
     }
 }
 
+float deg_to_rad(float deg) { return deg / 180.0f * M_PI; }
+float rad_to_deg(float rad) { return rad / M_PI * 180.0f; }
+
 class App
 {
    public:
@@ -288,7 +291,33 @@ class App
             if (ImGui::CollapsingHeader("Camera settings",
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
-                // TODO: show camera settings
+                const glm::vec3 origin = camera.get_origin();
+                ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y,
+                            origin.z);
+                const glm::vec3 forward = camera.get_forward();
+                ImGui::Text("forward: (%f, %f, %f)", forward.x, forward.y,
+                            forward.z);
+
+                camera_fov = rad_to_deg(camera.get_fov());
+                if (ImGui::InputFloat("fov", &camera_fov))
+                {
+                    camera.set_fov(deg_to_rad(camera_fov));
+                    renderer->clear_render();
+                }
+
+                camera_F = camera.get_F();
+                if (ImGui::InputFloat("F", &camera_F))
+                {
+                    camera.set_F(camera_F);
+                    renderer->clear_render();
+                }
+
+                camera_focus = camera.get_focus();
+                if (ImGui::InputFloat("focus", &camera_focus))
+                {
+                    camera.set_focus(camera_focus);
+                    renderer->clear_render();
+                }
             }
 
             if (ImGui::CollapsingHeader("Scene settings",
@@ -382,6 +411,10 @@ class App
     std::unique_ptr<fredholm::GLQuad> quad = nullptr;
 
     // for imgui
+    float camera_fov = 90.0f;
+    float camera_F = 1.0f;
+    float camera_focus = 1.0f;
+
     int selected_scene = 0;
 
     int resolution[2] = {512, 512};
