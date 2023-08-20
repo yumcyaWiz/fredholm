@@ -12,6 +12,7 @@
 #include "post_process/post_process.h"
 #include "render_strategy/hello/hello.h"
 #include "render_strategy/pt/pt.h"
+#include "render_strategy/ptmis/ptmis.h"
 #include "render_strategy/simple/simple.h"
 #include "scene.h"
 #include "shared.h"
@@ -25,6 +26,7 @@ enum class RenderStrategyType
     HELLO = 0,
     SIMPLE,
     PT,
+    PTMIS,
     N_RENDER_STRATEGIES,
 };
 
@@ -53,11 +55,18 @@ class RenderStrategyFactory
                 return strategy;
                 break;
             }
-
             case RenderStrategyType::PT:
             {
                 auto strategy =
                     std::make_unique<PtStrategy>(context, debug, options);
+                strategy->init();
+                return strategy;
+                break;
+            }
+            case RenderStrategyType::PTMIS:
+            {
+                auto strategy =
+                    std::make_unique<PTMISStrategy>(context, debug, options);
                 strategy->init();
                 return strategy;
                 break;

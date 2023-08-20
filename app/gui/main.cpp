@@ -313,7 +313,7 @@ class App
                 selected_render_strategy =
                     static_cast<int>(renderer->get_render_strategy_type());
                 if (ImGui::Combo("Render strategy", &selected_render_strategy,
-                                 "Hello\0Simple\0PT\0\0"))
+                                 "Hello\0Simple\0PT\0PTMIS\0\0"))
                 {
                     renderer->set_render_strategy(
                         fredholm::RenderStrategyType(selected_render_strategy));
