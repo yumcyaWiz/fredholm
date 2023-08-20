@@ -219,7 +219,7 @@ class App
     {
         renderer = std::make_unique<fredholm::Renderer>(context, debug);
 
-        camera = fredholm::Camera(glm::vec3(0, 1, 2));
+        camera = fredholm::Camera(glm::vec3(0, 1, 2), glm::vec3(0, 0, -1));
 
         fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
         scene_device = std::make_unique<fredholm::SceneDevice>();

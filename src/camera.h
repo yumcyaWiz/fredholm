@@ -41,19 +41,9 @@ class Camera
    public:
     Camera() {}
 
-    Camera(const glm::vec3& origin, float fov = 0.5f * M_PI, float F = 8.0f,
-           float focus = 10000.0f, float movement_speed = 1.0f,
-           float look_around_speed = 0.1f)
-        : m_origin(origin),
-          m_fov(fov),
-          m_F(F),
-          m_focus(focus),
-          m_movement_speed(movement_speed),
-          m_look_around_speed(look_around_speed),
-          m_phi(270.0f),
-          m_theta(90.0f)
+    Camera(const glm::vec3& origin, const glm::vec3& forward)
+        : m_origin(origin), m_forward(glm::normalize(forward))
     {
-        m_forward = glm::vec3(0, 0, -1);
         m_right = glm::normalize(glm::cross(m_forward, glm::vec3(0, 1, 0)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
     }

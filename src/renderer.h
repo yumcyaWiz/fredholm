@@ -145,8 +145,10 @@ class Renderer
         const uint2 resolution =
             m_render_strategy->get_option<uint2>("resolution");
 
+        // copy image from device to host
         std::vector<float4> beauty_h(resolution.x * resolution.y);
-        m_render_strategy->get_aov(AOVType::FINAL).copy_d_to_h(beauty_h.data());
+        get_aov(AOVType::FINAL).copy_d_to_h(beauty_h.data());
+
         write_image(filepath, resolution.x, resolution.y, beauty_h.data());
     }
 
