@@ -17,8 +17,8 @@ struct Ray
 };
 
 // upper-32bit + lower-32bit -> 64bit
-static __forceinline__ __device__ void* unpack_ptr(unsigned int i0,
-                                                   unsigned int i1)
+static CUDA_INLINE CUDA_DEVICE void* unpack_ptr(unsigned int i0,
+                                                unsigned int i1)
 {
     const unsigned long long uptr =
         static_cast<unsigned long long>(i0) << 32 | i1;
@@ -27,8 +27,8 @@ static __forceinline__ __device__ void* unpack_ptr(unsigned int i0,
 }
 
 // 64bit -> upper-32bit + lower-32bit
-static __forceinline__ __device__ void pack_ptr(void* ptr, unsigned int& i0,
-                                                unsigned int& i1)
+static CUDA_INLINE CUDA_DEVICE void pack_ptr(void* ptr, unsigned int& i0,
+                                             unsigned int& i1)
 {
     const unsigned long long uptr = reinterpret_cast<unsigned long long>(ptr);
     i0 = uptr >> 32;
@@ -37,7 +37,7 @@ static __forceinline__ __device__ void pack_ptr(void* ptr, unsigned int& i0,
 
 // u0, u1 is upper-32bit, lower-32bit of ptr of Payload
 template <typename Payload>
-static __forceinline__ __device__ Payload* get_payload_ptr()
+static CUDA_INLINE CUDA_DEVICE Payload* get_payload_ptr()
 {
     const unsigned int u0 = optixGetPayload_0();
     const unsigned int u1 = optixGetPayload_1();
@@ -45,9 +45,9 @@ static __forceinline__ __device__ Payload* get_payload_ptr()
 }
 
 // Ray Tracing Gems Chapter 6
-static __forceinline__ __device__ float3 ray_origin_offset(const float3& p,
-                                                           const float3& n,
-                                                           const float3& wi)
+static CUDA_INLINE CUDA_DEVICE float3 ray_origin_offset(const float3& p,
+                                                        const float3& n,
+                                                        const float3& wi)
 {
     // flip normal
     const float3 t = copysignf(1.0f, dot(wi, n)) * n;
@@ -66,15 +66,14 @@ static __forceinline__ __device__ float3 ray_origin_offset(const float3& p,
 }
 
 // TODO: need more nice way to suppress firefly
-static __forceinline__ __device__ float3 regularize_weight(const float3& weight)
+static CUDA_INLINE CUDA_DEVICE float3 regularize_weight(const float3& weight)
 {
     return clamp(weight, make_float3(0.0f), make_float3(1.0f));
 }
 
 // TODO: remove double fetch of indices_offset
-static __forceinline__ __device__ Material get_material(const SceneData& scene,
-                                                        uint prim_id,
-                                                        uint geom_id)
+static CUDA_INLINE CUDA_DEVICE Material get_material(const SceneData& scene,
+                                                     uint prim_id, uint geom_id)
 {
     const uint indices_offset = scene.indices_offsets[geom_id];
     const uint material_id = scene.material_ids[indices_offset + prim_id];
@@ -213,8 +212,9 @@ struct ShadingParams
 
     float thin_walled = 0.0f;
 
-    CUDA_DEVICE ShadingParams(const Material& material, const float2& texcoord,
-                              const TextureHeader* textures)
+    CUDA_INLINE CUDA_DEVICE ShadingParams(const Material& material,
+                                          const float2& texcoord,
+                                          const TextureHeader* textures)
     {
         // diffuse
         diffuse = material.diffuse;
@@ -312,8 +312,8 @@ struct ShadingParams
     }
 };
 
-static __forceinline__ __device__ float3
-fetch_envmap(const TextureHeader& envmap, const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 fetch_envmap(const TextureHeader& envmap,
+                                                   const float3& v)
 {
     const float2 thphi = cartesian_to_spherical(v);
     const float2 uv = make_float2(thphi.y / (2.0f * M_PIf), thphi.x / M_PIf);
