@@ -350,6 +350,7 @@ class App
             if (ImGui::CollapsingHeader(("Render settings"),
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
+                // TODO: place these inside renderer
                 const uint2 res = renderer->get_option<uint2>("resolution");
                 resolution[0] = res.x;
                 resolution[1] = res.y;

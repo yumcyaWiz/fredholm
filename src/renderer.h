@@ -114,6 +114,9 @@ class Renderer
         return m_render_strategy_type;
     }
 
+    bool get_paused() const { return paused; }
+    void set_paused(bool paused) { this->paused = paused; }
+
     void set_render_strategy(const RenderStrategyType& type,
                              const RenderOptions& options)
     {
@@ -133,6 +136,8 @@ class Renderer
     {
         ImGui::Separator();
 
+        if (ImGui::Button(paused ? "resume" : "pause")) { paused = !paused; }
+
         if (m_render_strategy) { m_render_strategy->run_imgui(); }
 
         if (m_post_process) { m_post_process->run_imgui(); }
@@ -146,6 +151,7 @@ class Renderer
     // TODO: renderer should manage camera and scene?
     void render(const Camera& camera, const SceneDevice& scene)
     {
+        if (paused) return;
         m_render_strategy->render(camera, scene, scene.get_ias_handle());
         run_post_process();
     }
@@ -190,6 +196,7 @@ class Renderer
     OptixDeviceContext context = nullptr;
     bool debug = false;
 
+    bool paused = false;
     RenderStrategyType m_render_strategy_type =
         RenderStrategyType::N_RENDER_STRATEGIES;
     std::unique_ptr<RenderStrategy> m_render_strategy = nullptr;
