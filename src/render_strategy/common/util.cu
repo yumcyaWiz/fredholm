@@ -152,7 +152,7 @@ struct SurfaceInfo
     CUDA_INLINE CUDA_DEVICE void bump_mapping(const TextureHeader* textures,
                                               const Material& material)
     {
-        if (material.heightmap_texture_id >= 0)
+        if (material.heightmap_texture_id != FRED_INVALID_ID)
         {
             const TextureHeader& heightmap =
                 textures[material.heightmap_texture_id];
@@ -172,7 +172,7 @@ struct SurfaceInfo
     CUDA_INLINE CUDA_DEVICE void normal_mapping(const TextureHeader* textures,
                                                 const Material& material)
     {
-        if (material.normalmap_texture_id >= 0)
+        if (material.normalmap_texture_id != FRED_INVALID_ID)
         {
             float3 v = make_float3(
                 textures[material.normalmap_texture_id].sample<uchar4>(
