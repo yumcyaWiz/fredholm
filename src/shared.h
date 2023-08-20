@@ -150,6 +150,48 @@ struct SamplerState
     BlueNoiseState blue_noise_state;
 };
 
+struct TextureHeader
+{
+    uint width;
+    uint height;
+    CUdeviceptr data;
+
+    CUDA_INLINE CUDA_DEVICE bool is_valid() const { return data != 0; }
+
+    // TODO: implement interpolation
+    template <typename T>
+    CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const;
+};
+
+template <>
+CUDA_INLINE CUDA_DEVICE float4
+TextureHeader::sample<uchar4>(const float2& uv) const
+{
+    const int i =
+        clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
+    const int j =
+        clamp(static_cast<int>(uv.y * height), 0, static_cast<int>(height - 1));
+
+    const uchar4* ptr = reinterpret_cast<const uchar4*>(data);
+    const uchar4 v = ptr[j * width + i];
+    constexpr float c = 1.0f / 255.0f;
+    return make_float4(c * v.x, c * v.y, c * v.z, c * v.w);
+}
+
+template <>
+CUDA_INLINE CUDA_DEVICE float4
+TextureHeader::sample<float3>(const float2& uv) const
+{
+    const int i =
+        clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
+    const int j =
+        clamp(static_cast<int>(uv.y * height), 0, static_cast<int>(height - 1));
+
+    const float3* ptr = reinterpret_cast<const float3*>(data);
+    const float3 v = ptr[j * width + i];
+    return make_float4(v, 1.0f);
+}
+
 // similar to arnold standard surface
 // https://autodesk.github.io/standard-surface/
 struct Material
@@ -195,49 +237,22 @@ struct Material
     int heightmap_texture_id = FRED_INVALID_ID;
     int normalmap_texture_id = FRED_INVALID_ID;
     int alpha_texture_id = FRED_INVALID_ID;
+
+    CUDA_INLINE CUDA_DEVICE bool has_emission() const
+    {
+        return (emission_color.x > 0 || emission_color.y > 0 ||
+                emission_color.z > 0 || emission_texture_id != FRED_INVALID_ID);
+    }
+
+    CUDA_INLINE CUDA_DEVICE float3 get_emission(const TextureHeader* textures,
+                                                const float2& texcoord) const
+    {
+        return emission_texture_id >= 0
+                   ? make_float3(
+                         textures[emission_texture_id].sample<uchar4>(texcoord))
+                   : emission_color;
+    }
 };
-
-struct TextureHeader
-{
-    uint width;
-    uint height;
-    CUdeviceptr data;
-
-    CUDA_INLINE CUDA_DEVICE bool is_valid() const { return data != 0; }
-
-    // TODO: implement interpolation
-    template <typename T>
-    CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const;
-};
-
-template <>
-CUDA_INLINE CUDA_DEVICE float4
-TextureHeader::sample<uchar4>(const float2& uv) const
-{
-    const int i =
-        clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
-    const int j =
-        clamp(static_cast<int>(uv.y * height), 0, static_cast<int>(height - 1));
-
-    const uchar4* ptr = reinterpret_cast<const uchar4*>(data);
-    const uchar4 v = ptr[j * width + i];
-    constexpr float c = 1.0f / 255.0f;
-    return make_float4(c * v.x, c * v.y, c * v.z, c * v.w);
-}
-
-template <>
-CUDA_INLINE CUDA_DEVICE float4
-TextureHeader::sample<float3>(const float2& uv) const
-{
-    const int i =
-        clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
-    const int j =
-        clamp(static_cast<int>(uv.y * height), 0, static_cast<int>(height - 1));
-
-    const float3* ptr = reinterpret_cast<const float3*>(data);
-    const float3 v = ptr[j * width + i];
-    return make_float4(v, 1.0f);
-}
 
 struct AreaLight
 {

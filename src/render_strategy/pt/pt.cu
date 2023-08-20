@@ -42,25 +42,6 @@ static CUDA_INLINE CUDA_DEVICE void trace_radiance(
                OptixVisibilityMask(1), OPTIX_RAY_FLAG_NONE, 0, 1, 0, u0, u1);
 }
 
-static CUDA_INLINE CUDA_DEVICE bool has_emission(const Material& material)
-{
-    return (material.emission_color.x > 0 || material.emission_color.y > 0 ||
-            material.emission_color.z > 0 ||
-            material.emission_texture_id != -1);
-}
-
-static CUDA_INLINE CUDA_DEVICE float3 get_emission(const Material& material,
-                                                   const float2& texcoord)
-{
-    // return material.emission_texture_id >= 0
-    //            ? make_float3(
-    //                  tex2D<float4>(params.textures[material.emission_texture_id]
-    //                                    .texture_object,
-    //                                texcoord.x, texcoord.y))
-    //            : material.emission_color;
-    return material.emission_color;
-}
-
 static CUDA_INLINE CUDA_DEVICE float3 evaluate_arhosek_sky(const float3& v)
 {
     // const float2 thphi = cartesian_to_spherical(v);
@@ -262,10 +243,11 @@ extern "C" CUDA_KERNEL void __closesthit__()
                                  params.scene.textures);
 
     // Le
-    if (has_emission(material))
+    if (material.has_emission())
     {
         payload->radiance +=
-            payload->throughput * get_emission(material, surf_info.texcoord);
+            payload->throughput *
+            material.get_emission(params.scene.textures, surf_info.texcoord);
         payload->done = true;
         return;
     }
