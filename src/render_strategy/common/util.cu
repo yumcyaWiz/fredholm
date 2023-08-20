@@ -239,7 +239,8 @@ struct ShadingParams
         metalness = material.get_metalness(textures, texcoord);
 
         // metallic roughness
-        if (material.metallic_roughness_texture_id >= 0)
+        // TODO: implement this in Material
+        if (material.metallic_roughness_texture_id != FRED_INVALID_ID)
         {
             const float4 mr =
                 textures[material.metallic_roughness_texture_id].sample<uchar4>(
