@@ -388,19 +388,19 @@ class App
         if (pipeline) { pipeline.reset(); }
         if (quad) { quad.reset(); }
 
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-
-        glfwDestroyWindow(window);
-        glfwTerminate();
-
         if (scene_device) { scene_device.reset(); }
         if (renderer) { renderer.reset(); }
 
         fredholm::optix_check(optixDeviceContextDestroy(context));
 
         if (device) { device.reset(); }
+
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+
+        glfwDestroyWindow(window);
+        glfwTerminate();
     }
 
     GLFWwindow* window = nullptr;
