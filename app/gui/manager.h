@@ -26,6 +26,36 @@ struct EnvmapListEntry
     bool is_valid() const { return !filepath.empty(); }
 };
 
+// https://qiita.com/syoyo/items/f6c219f243c3527f6121
+static bool ImGuiComboUI(const std::string& caption, int current_idx,
+                         const std::vector<std::string>& items)
+{
+    bool changed = false;
+
+    if (ImGui::BeginCombo(caption.c_str(), items[current_idx].c_str()))
+    {
+        for (int n = 0; n < items.size(); n++)
+        {
+            bool is_selected = (current_idx == n);
+            if (ImGui::Selectable(items[n].c_str(), is_selected))
+            {
+                current_idx = n;
+                changed = true;
+            }
+            if (is_selected)
+            {
+                // Set the initial focus when opening the combo (scrolling + for
+                // keyboard navigation support in the upcoming navigation
+                // branch)
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
 class SceneManager
 {
    public:
@@ -41,14 +71,16 @@ class SceneManager
 
     void run_imgui(Renderer& renderer)
     {
-        const auto scene_list = get_scene_list_for_imgui();
-        const auto envmap_list = get_envmap_list_for_imgui();
+        const std::string scene_list = get_scene_list_for_imgui();
+        const std::string envmap_list = get_envmap_list_for_imgui();
 
+        // TODO: fix this combo box
         if (ImGui::Combo("Scene", &m_scene_index, scene_list.c_str()))
         {
             load_scene();
             renderer.clear_render();
         }
+
         if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
         {
             load_envmap();
@@ -108,7 +140,7 @@ class SceneManager
     fredholm::SceneGraph scene_graph;
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
 
-    int m_scene_index = 1;
+    int m_scene_index = 0;
     int m_envmap_index = 0;
 
     const std::vector<SceneListEntry> m_scenes = {
