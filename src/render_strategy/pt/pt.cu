@@ -50,9 +50,10 @@ extern "C" CUDA_KERNEL void __raygen__()
 
     float3 beauty = make_float3(params.output[image_idx]);
 
-    RadiancePayload payload;
     for (int spp = 0; spp < params.n_samples; ++spp)
     {
+        RadiancePayload payload;
+
         // initialize sampler
         const uint n_spp = spp + params.sample_count;
         payload.sampler.init(params.width, params.height, make_uint2(idx),
