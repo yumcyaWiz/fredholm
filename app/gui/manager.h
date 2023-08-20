@@ -153,7 +153,10 @@ class SceneManager
     };
 
     const std::vector<EnvmapListEntry> m_envmaps = {
-        {"None", ""},
+        {"Black", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                      "resources/envmap/black.hdr"},
+        {"White", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                      "resources/envmap/white.hdr"},
         {"Uffizi", std::filesystem::path(CMAKE_SOURCE_DIR) /
                        "resources/envmap/uffizi-large.hdr"}};
 };
