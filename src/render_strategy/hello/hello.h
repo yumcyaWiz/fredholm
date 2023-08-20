@@ -10,9 +10,38 @@ namespace fredholm
 class HelloStrategy : public RenderStrategy
 {
    public:
-    HelloStrategy(const RenderOptions& options,
-                  const OptixDeviceContext& context, bool debug = false)
-        : RenderStrategy(options)
+    HelloStrategy(const OptixDeviceContext& context, bool debug,
+                  const RenderOptions& options)
+        : RenderStrategy(context, debug, options)
+    {
+    }
+
+    ~HelloStrategy()
+    {
+        if (params_buffer != 0)
+        {
+            cuda_check(cuMemFree(params_buffer));
+            params_buffer = 0;
+        }
+    }
+
+    void render(const Camera& camera, const SceneDevice& scene,
+                const OptixTraversableHandle& ias_handle) override
+    {
+        HelloStrategyParams params;
+        params.width = options.resolution.x;
+        params.height = options.resolution.y;
+        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
+        cuda_check(
+            cuMemcpyHtoD(params_buffer, &params, sizeof(HelloStrategyParams)));
+
+        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
+                                sizeof(HelloStrategyParams), &sbt,
+                                options.resolution.x, options.resolution.y, 1));
+    }
+
+   private:
+    void init_render_strategy() override
     {
         m_module = optix_create_module(context, "hello.ptx", debug);
 
@@ -30,32 +59,6 @@ class HelloStrategy : public RenderStrategy
         cuda_check(cuMemAlloc(&params_buffer, sizeof(HelloStrategyParams)));
     }
 
-    ~HelloStrategy()
-    {
-        if (params_buffer != 0)
-        {
-            cuda_check(cuMemFree(params_buffer));
-            params_buffer = 0;
-        }
-    }
-
-    void render(const Camera& camera, const SceneDevice& scene,
-                const OptixTraversableHandle& ias_handle,
-                const OptixShaderBindingTable& sbt) override
-    {
-        HelloStrategyParams params;
-        params.width = options.resolution.x;
-        params.height = options.resolution.y;
-        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
-        cuda_check(
-            cuMemcpyHtoD(params_buffer, &params, sizeof(HelloStrategyParams)));
-
-        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(HelloStrategyParams), &sbt,
-                                options.resolution.x, options.resolution.y, 1));
-    }
-
-   private:
     CUdeviceptr params_buffer = 0;
 };
 

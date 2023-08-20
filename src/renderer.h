@@ -32,18 +32,36 @@ class RenderStrategyFactory
 {
    public:
     static std::unique_ptr<RenderStrategy> create(
-        const RenderStrategyType& type, const RenderOptions& options,
-        const OptixDeviceContext& context, bool debug)
+        const RenderStrategyType& type, const OptixDeviceContext& context,
+        bool debug, const RenderOptions& options)
     {
         switch (type)
         {
             case RenderStrategyType::HELLO:
-                return std::make_unique<HelloStrategy>(options, context, debug);
+            {
+                auto strategy =
+                    std::make_unique<HelloStrategy>(context, debug, options);
+                strategy->init();
+                return strategy;
+                break;
+            }
             case RenderStrategyType::SIMPLE:
-                return std::make_unique<SimpleStrategy>(options, context,
-                                                        debug);
+            {
+                auto strategy =
+                    std::make_unique<SimpleStrategy>(context, debug, options);
+                strategy->init();
+                return strategy;
+                break;
+            }
+
             case RenderStrategyType::PT:
-                return std::make_unique<PtStrategy>(options, context, debug);
+            {
+                auto strategy =
+                    std::make_unique<PtStrategy>(context, debug, options);
+                strategy->init();
+                return strategy;
+                break;
+            }
             default:
                 throw std::runtime_error("unknown render strategy type");
         }
@@ -61,10 +79,6 @@ class Renderer
 
     ~Renderer()
     {
-        cuda_check(cuMemFree(sbt_record_set.raygen_records));
-        cuda_check(cuMemFree(sbt_record_set.miss_records));
-        cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
-
         if (m_render_strategy) { m_render_strategy.reset(); }
         if (m_post_process) { m_post_process.reset(); }
         if (final) { final.reset(); }
@@ -104,14 +118,10 @@ class Renderer
                              const RenderOptions& options)
     {
         m_render_strategy =
-            RenderStrategyFactory::create(type, options, context, debug);
+            RenderStrategyFactory::create(type, context, debug, options);
         m_render_strategy_type = type;
 
         init_final_buffer();
-
-        sbt_record_set = optix_create_sbt_records(
-            m_render_strategy->get_program_group_sets());
-        sbt = optix_create_sbt(sbt_record_set);
     }
 
     void set_render_strategy(const RenderStrategyType& type)
@@ -136,7 +146,7 @@ class Renderer
     // TODO: renderer should manage camera and scene?
     void render(const Camera& camera, const SceneDevice& scene)
     {
-        m_render_strategy->render(camera, scene, scene.get_ias_handle(), sbt);
+        m_render_strategy->render(camera, scene, scene.get_ias_handle());
         run_post_process();
     }
 
@@ -178,10 +188,6 @@ class Renderer
 
     OptixDeviceContext context = nullptr;
     bool debug = false;
-
-    // TODO: this could be placed in render strategy?
-    SbtRecordSet sbt_record_set;
-    OptixShaderBindingTable sbt;
 
     RenderStrategyType m_render_strategy_type =
         RenderStrategyType::N_RENDER_STRATEGIES;

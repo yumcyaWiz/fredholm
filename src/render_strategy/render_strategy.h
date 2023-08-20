@@ -23,6 +23,8 @@ struct RenderOptions
     bool use_gl_interop = false;
 
     // TODO: hide these options inside path tracing strategy
+    // define RenderOptions interface: get_option, set_option
+    // have a pointer to hello, simple, path tracing render options
     uint32_t n_samples = 512;
     uint32_t n_spp = 1;
     uint32_t max_depth = 100;
@@ -83,18 +85,22 @@ struct RenderOptions
     }
 };
 
-// TODO: change AOV based on strategy
 class RenderStrategy
 {
    public:
-    RenderStrategy(const RenderOptions& options) : options(options)
+    RenderStrategy(const OptixDeviceContext& context, bool debug,
+                   const RenderOptions& options)
+        : context(context), debug(debug), options(options)
     {
-        init_render_layers();
     }
 
     virtual ~RenderStrategy()
     {
         if (beauty) { beauty.reset(); }
+
+        cuda_check(cuMemFree(sbt_record_set.raygen_records));
+        cuda_check(cuMemFree(sbt_record_set.miss_records));
+        cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
 
         if (m_pipeline != nullptr)
         {
@@ -137,9 +143,14 @@ class RenderStrategy
         }
     }
 
-    const ProgramGroupSet& get_program_group_sets() const
+    // must be called before render
+    // this cannot be placed in constructor since init_render_strategy is pure
+    // virtual
+    void init()
     {
-        return m_program_group_sets;
+        init_render_layers();
+        init_render_strategy();
+        init_sbt();
     }
 
     const RenderOptions& get_options() const { return options; }
@@ -157,7 +168,7 @@ class RenderStrategy
         clear_render();
     }
 
-    const CUDABuffer<float4>& get_aov(const AOVType& type) const
+    virtual CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
         switch (type)
         {
@@ -176,10 +187,17 @@ class RenderStrategy
     virtual void run_imgui() {}
 
     virtual void render(const Camera& camera, const SceneDevice& scene,
-                        const OptixTraversableHandle& ias_handle,
-                        const OptixShaderBindingTable& sbt) = 0;
+                        const OptixTraversableHandle& ias_handle) = 0;
 
    protected:
+    virtual void init_render_strategy() = 0;
+
+    void init_sbt()
+    {
+        sbt_record_set = optix_create_sbt_records(m_program_group_sets);
+        sbt = optix_create_sbt(sbt_record_set);
+    }
+
     void init_render_layers()
     {
         beauty = std::make_unique<CUDABuffer<float4>>(
@@ -187,7 +205,7 @@ class RenderStrategy
             options.use_gl_interop);
     }
 
-    // this should be defined on Camera
+    // TODO: this should be defined on Camera
     static CameraParams get_camera_params(const Camera& camera)
     {
         CameraParams camera_params;
@@ -224,9 +242,14 @@ class RenderStrategy
         return scene_data;
     }
 
+    OptixDeviceContext context;
+    bool debug = false;
     OptixModule m_module = nullptr;
     ProgramGroupSet m_program_group_sets = {};
     OptixPipeline m_pipeline = nullptr;
+
+    SbtRecordSet sbt_record_set;
+    OptixShaderBindingTable sbt;
 
     RenderOptions options = {};
     std::unique_ptr<CUDABuffer<float4>> beauty = nullptr;

@@ -12,25 +12,10 @@ namespace fredholm
 class PtStrategy : public RenderStrategy
 {
    public:
-    PtStrategy(const RenderOptions& options, const OptixDeviceContext& context,
-               bool debug = false)
-        : RenderStrategy(options)
+    PtStrategy(const OptixDeviceContext& context, bool debug,
+               const RenderOptions& options)
+        : RenderStrategy(context, debug, options)
     {
-        m_module = optix_create_module(context, "pt.ptx", debug);
-
-        const std::vector<ProgramGroupEntry> program_group_entries = {
-            {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "", m_module},
-            {OPTIX_PROGRAM_GROUP_KIND_MISS, "", m_module},
-            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "", m_module},
-        };
-
-        m_program_group_sets =
-            optix_create_program_group(context, program_group_entries);
-
-        m_pipeline =
-            optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
-
-        cuda_check(cuMemAlloc(&params_buffer, sizeof(PtStrategyParams)));
     }
 
     ~PtStrategy()
@@ -79,8 +64,7 @@ class PtStrategy : public RenderStrategy
     }
 
     void render(const Camera& camera, const SceneDevice& scene,
-                const OptixTraversableHandle& ias_handle,
-                const OptixShaderBindingTable& sbt) override
+                const OptixTraversableHandle& ias_handle) override
     {
         if (sample_count >= options.n_samples) return;
 
@@ -105,6 +89,25 @@ class PtStrategy : public RenderStrategy
     }
 
    private:
+    void init_render_strategy() override
+    {
+        m_module = optix_create_module(context, "pt.ptx", debug);
+
+        const std::vector<ProgramGroupEntry> program_group_entries = {
+            {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_MISS, "", m_module},
+            {OPTIX_PROGRAM_GROUP_KIND_HITGROUP, "", m_module},
+        };
+
+        m_program_group_sets =
+            optix_create_program_group(context, program_group_entries);
+
+        m_pipeline =
+            optix_create_pipeline(context, m_program_group_sets, 1, 2, debug);
+
+        cuda_check(cuMemAlloc(&params_buffer, sizeof(PtStrategyParams)));
+    }
+
     uint32_t seed = 1;
     uint32_t sample_count = 0;
 

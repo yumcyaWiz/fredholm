@@ -9,9 +9,41 @@ namespace fredholm
 class SimpleStrategy : public RenderStrategy
 {
    public:
-    SimpleStrategy(const RenderOptions& options,
-                   const OptixDeviceContext& context, bool debug = false)
-        : RenderStrategy(options)
+    SimpleStrategy(const OptixDeviceContext& context, bool debug,
+                   const RenderOptions& options)
+        : RenderStrategy(context, debug, options)
+    {
+    }
+
+    ~SimpleStrategy()
+    {
+        if (params_buffer != 0)
+        {
+            cuda_check(cuMemFree(params_buffer));
+            params_buffer = 0;
+        }
+    }
+
+    void render(const Camera& camera, const SceneDevice& scene,
+                const OptixTraversableHandle& ias_handle) override
+    {
+        SimpleStrategyParams params;
+        params.width = options.resolution.x;
+        params.height = options.resolution.y;
+        params.camera = get_camera_params(camera);
+        params.scene = get_scene_data(scene);
+        params.ias_handle = ias_handle;
+        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
+        cuda_check(
+            cuMemcpyHtoD(params_buffer, &params, sizeof(SimpleStrategyParams)));
+
+        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
+                                sizeof(SimpleStrategyParams), &sbt,
+                                options.resolution.x, options.resolution.y, 1));
+    }
+
+   private:
+    void init_render_strategy() override
     {
         m_module = optix_create_module(context, "simple.ptx", debug);
 
@@ -30,35 +62,6 @@ class SimpleStrategy : public RenderStrategy
         cuda_check(cuMemAlloc(&params_buffer, sizeof(SimpleStrategyParams)));
     }
 
-    ~SimpleStrategy()
-    {
-        if (params_buffer != 0)
-        {
-            cuda_check(cuMemFree(params_buffer));
-            params_buffer = 0;
-        }
-    }
-
-    void render(const Camera& camera, const SceneDevice& scene,
-                const OptixTraversableHandle& ias_handle,
-                const OptixShaderBindingTable& sbt) override
-    {
-        SimpleStrategyParams params;
-        params.width = options.resolution.x;
-        params.height = options.resolution.y;
-        params.camera = get_camera_params(camera);
-        params.scene = get_scene_data(scene);
-        params.ias_handle = ias_handle;
-        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
-        cuda_check(
-            cuMemcpyHtoD(params_buffer, &params, sizeof(SimpleStrategyParams)));
-
-        optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(SimpleStrategyParams), &sbt,
-                                options.resolution.x, options.resolution.y, 1));
-    }
-
-   private:
     CUdeviceptr params_buffer = 0;
 };
 
