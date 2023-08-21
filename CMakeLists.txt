@@ -35,24 +35,6 @@ find_package(OpenGL REQUIRED)
 # external
 add_subdirectory("externals/")
 
-# optix kernel
-add_library(optix_kernel OBJECT
-    "src/render_strategy/hello/hello.cu"
-    "src/render_strategy/simple/simple.cu"
-    "src/render_strategy/pt/pt.cu"
-    "src/render_strategy/ptmis/ptmis.cu"
-)
-set_target_properties(optix_kernel PROPERTIES
-    CUDA_PTX_COMPILATION ON
-)
-target_compile_options(optix_kernel PRIVATE
-    --optix-ir
-)
-target_include_directories(optix_kernel PRIVATE
-    "src/"
-    ${OptiX_INCLUDE}
-)
-
 # fredholm
 add_library(fredholm
     "src/fredholm.cpp"
@@ -73,6 +55,36 @@ target_link_libraries(fredholm PUBLIC
     spdlog::spdlog
     glsl-shader-includes
     imgui
+)
+
+# fredholm optix kernel
+add_library(fredholm-kernel
+    "src/render_strategy/hello/hello.cu"
+    "src/render_strategy/simple/simple.cu"
+    "src/render_strategy/pt/pt.cu"
+    "src/render_strategy/ptmis/ptmis.cu"
+)
+target_compile_options(fredholm-kernel PRIVATE
+    --optix-ir
+)
+target_include_directories(fredholm-kernel PRIVATE
+    "src/"
+    ${OptiX_INCLUDE}
+)
+set_target_properties(fredholm-kernel PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+)
+add_dependencies(fredholm-kernel
+    fredholm
+)
+
+# copy ptx files
+add_custom_command(
+    TARGET fredholm-kernel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fredholm-kernel.dir/src/render_strategy
+    ${CMAKE_CURRENT_BINARY_DIR}/optixir
+    COMMENT "Copying ptx files" VERBATIM
 )
 
 # fredholm

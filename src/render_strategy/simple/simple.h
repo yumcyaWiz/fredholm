@@ -45,7 +45,8 @@ class SimpleStrategy : public RenderStrategy
    private:
     void init_render_strategy() override
     {
-        m_module = optix_create_module(context, "simple.ptx", debug);
+        m_module =
+            optix_create_module(context, "optixir/simple/simple.cu.o", debug);
 
         const std::vector<ProgramGroupEntry> program_group_entries = {
             {OPTIX_PROGRAM_GROUP_KIND_RAYGEN, "rg", m_module},
