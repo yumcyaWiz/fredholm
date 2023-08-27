@@ -85,6 +85,7 @@ struct RenderOptions
     }
 };
 
+// TODO: use observer pattern to detect changes in RenderOptions
 class RenderStrategy
 {
    public:

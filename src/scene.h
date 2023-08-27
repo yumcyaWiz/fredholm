@@ -91,20 +91,16 @@ class GeometryNode : public SceneNode
         type = SceneNodeType::GEOMETRY;
     }
 
-    GeometryNode(const std::vector<float3>& vertices,
-                 const std::vector<uint3>& indices,
-                 const std::vector<float3>& normals,
-                 const std::vector<float2>& texcoords,
-                 const std::vector<Material>& materials,
-                 const std::vector<uint>& material_ids,
-                 const std::vector<Texture>& textures)
+    GeometryNode(const std::vector<float3>&& vertices,
+                 const std::vector<uint3>&& indices,
+                 const std::vector<float3>&& normals,
+                 const std::vector<float2>&& texcoords,
+                 const std::vector<uint>&& material_ids)
         : m_vertices(vertices),
           m_indices(indices),
           m_normals(normals),
           m_texcoords(texcoords),
-          m_materials(materials),
-          m_material_ids(material_ids),
-          m_textures(textures)
+          m_material_ids(material_ids)
     {
         name = "GeometryNode";
         type = SceneNodeType::GEOMETRY;
@@ -114,18 +110,14 @@ class GeometryNode : public SceneNode
     const std::vector<uint3>& get_indices() const { return m_indices; }
     const std::vector<float3>& get_normals() const { return m_normals; }
     const std::vector<float2>& get_texcoords() const { return m_texcoords; }
-    const std::vector<Material>& get_materials() const { return m_materials; }
     const std::vector<uint>& get_material_ids() const { return m_material_ids; }
-    const std::vector<Texture>& get_textures() const { return m_textures; }
 
    private:
     std::vector<float3> m_vertices = {};
     std::vector<uint3> m_indices = {};
     std::vector<float3> m_normals = {};
     std::vector<float2> m_texcoords = {};
-    std::vector<Material> m_materials = {};
     std::vector<uint> m_material_ids = {};  // per face material ids
-    std::vector<Texture> m_textures = {};
 };
 
 // always leaf node
@@ -148,6 +140,9 @@ struct CompiledScene
     std::vector<glm::mat4> geometry_transforms = {};
     std::vector<const InstanceNode*> instance_nodes = {};
     std::vector<glm::mat4> instance_transforms = {};
+
+    std::vector<Material> m_materials = {};
+    std::vector<Texture> m_textures = {};
 };
 
 // TODO: add lights
@@ -156,21 +151,32 @@ class SceneGraph
    public:
     SceneGraph() {}
 
-    ~SceneGraph() { destroy(root); }
+    ~SceneGraph() { clear(); }
 
     bool is_empty() const { return root == nullptr; }
+
+    uint32_t n_materials() const { return m_materials.size(); }
+    uint32_t n_textures() const { return m_textures.size(); }
 
     void clear()
     {
         destroy(root);
         root = nullptr;
+
+        m_materials.clear();
+        m_textures.clear();
+
+        envmap = {};
     }
 
-    void set_root(SceneNode* node)
+    void set_root(SceneNode* node) { root = node; }
+
+    void add_material(const Material& material)
     {
-        clear();
-        root = node;
+        m_materials.push_back(material);
     }
+
+    void add_texture(const Texture& texture) { m_textures.push_back(texture); }
 
     const Texture& get_envmap() const { return envmap; }
     void set_envmap(const Texture& texture) { envmap = texture; }
@@ -182,7 +188,9 @@ class SceneGraph
     CompiledScene compile() const
     {
         CompiledScene ret;
-        compile(root, glm::mat4(1.0f), ret);
+        compile_nodes(root, glm::mat4(1.0f), ret);
+        ret.m_materials = m_materials;
+        ret.m_textures = m_textures;
         return ret;
     }
 
@@ -197,8 +205,8 @@ class SceneGraph
         delete node;
     }
 
-    void compile(const SceneNode* node, const glm::mat4& transform,
-                 CompiledScene& compiled_scene) const
+    void compile_nodes(const SceneNode* node, const glm::mat4& transform,
+                       CompiledScene& compiled_scene) const
     {
         if (node == nullptr) return;
 
@@ -214,7 +222,7 @@ class SceneGraph
 
                 for (const auto& child : transform_node->get_children())
                 {
-                    compile(child, transform_new, compiled_scene);
+                    compile_nodes(child, transform_new, compiled_scene);
                 }
                 break;
             }
@@ -258,6 +266,10 @@ class SceneGraph
     }
 
     SceneNode* root = nullptr;
+
+    std::vector<Material> m_materials = {};
+    std::vector<Texture> m_textures = {};
+
     Texture envmap = {};
 };
 
@@ -390,8 +402,6 @@ class SceneDevice
                            geometry->get_normals().end());
             texcoords.insert(texcoords.end(), geometry->get_texcoords().begin(),
                              geometry->get_texcoords().end());
-            materials.insert(materials.end(), geometry->get_materials().begin(),
-                             geometry->get_materials().end());
             material_ids.insert(material_ids.end(),
                                 geometry->get_material_ids().begin(),
                                 geometry->get_material_ids().end());
@@ -423,29 +433,28 @@ class SceneDevice
                 glm::inverse(compiled_scene.instance_transforms[i])));
         }
 
+        materials = compiled_scene.m_materials;
+
         // load textures on device
         std::vector<TextureHeader> texture_headers;
-        for (const auto& geometry : compiled_scene.geometry_nodes)
+        for (const auto& texture : compiled_scene.m_textures)
         {
-            for (const auto& texture : geometry->get_textures())
-            {
-                TextureHeader header;
+            TextureHeader header;
 
-                // TODO: change loading based on texture colorspace
-                uint32_t width, height;
-                const std::vector<uchar4> image = ImageLoader::load_ldr_image(
-                    texture.get_filepath(), width, height);
-                header.width = width;
-                header.height = height;
+            // TODO: change loading based on texture colorspace
+            uint32_t width, height;
+            const std::vector<uchar4> image = ImageLoader::load_ldr_image(
+                texture.get_filepath(), width, height);
+            header.width = width;
+            header.height = height;
 
-                // load texture on device
-                cuda_check(
-                    cuMemAlloc(&header.data, width * height * sizeof(uchar4)));
-                cuda_check(cuMemcpyHtoD(header.data, image.data(),
-                                        width * height * sizeof(uchar4)));
+            // load texture on device
+            cuda_check(
+                cuMemAlloc(&header.data, width * height * sizeof(uchar4)));
+            cuda_check(cuMemcpyHtoD(header.data, image.data(),
+                                    width * height * sizeof(uchar4)));
 
-                texture_headers.push_back(header);
-            }
+            texture_headers.push_back(header);
         }
 
         // load area lights

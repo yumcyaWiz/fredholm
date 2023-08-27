@@ -8,6 +8,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
 #include "scene.h"
+#include "tiny_gltf.h"
 #include "tiny_obj_loader.h"
 
 namespace fredholm
@@ -77,29 +78,11 @@ class SceneLoader
     static void load_obj(const std::filesystem::path& filepath,
                          SceneGraph& scene_graph)
     {
-        GeometryNode* geometry = new GeometryNode;
-        *geometry = load_obj(filepath);
-
-        TransformNode* transform = new TransformNode;
-        transform->add_children(geometry);
-
-        scene_graph.set_root(transform);
-    }
-
-    static void load_gltf(const std::filesystem::path& filepath,
-                          SceneGraph& scene_graph)
-    {
-    }
-
-    static GeometryNode load_obj(const std::filesystem::path& filepath)
-    {
         std::vector<float3> m_vertices = {};
         std::vector<uint3> m_indices = {};
         std::vector<float3> m_normals = {};
         std::vector<float2> m_texcoords = {};
-        std::vector<Material> m_materials = {};
         std::vector<uint> m_material_ids = {};
-        std::vector<Texture> m_textures = {};
 
         tinyobj::ObjReaderConfig reader_config;
         reader_config.triangulate = true;
@@ -136,9 +119,9 @@ class SceneLoader
             if (unique_textures.count(filepath) == 0)
             {
                 // load texture id
-                unique_textures[filepath] = m_textures.size();
+                unique_textures[filepath] = scene_graph.n_textures();
                 // load texture
-                m_textures.push_back(
+                scene_graph.add_texture(
                     Texture(parent_filepath / filepath, color_space));
             }
         };
@@ -338,7 +321,7 @@ class SceneLoader
                 mat.alpha_texture_id = unique_textures[m.alpha_texname];
             }
 
-            m_materials.push_back(mat);
+            scene_graph.add_material(mat);
         }
 
         std::vector<Vertex> unique_vertices = {};
@@ -455,13 +438,148 @@ class SceneLoader
         spdlog::info("loaded obj file {}", filepath.generic_string());
         spdlog::info("# of vertices: {}", m_vertices.size());
         spdlog::info("# of faces: {}", m_indices.size());
-        spdlog::info("# of materials: {}", m_materials.size());
-        spdlog::info("# of textures: {}", m_textures.size());
+        spdlog::info("# of materials: {}", scene_graph.n_materials());
+        spdlog::info("# of textures: {}", scene_graph.n_textures());
 
-        return GeometryNode(std::move(m_vertices), std::move(m_indices),
-                            std::move(m_normals), std::move(m_texcoords),
-                            std::move(m_materials), std::move(m_material_ids),
-                            std::move(m_textures));
+        GeometryNode* geometry = new GeometryNode(
+            std::move(m_vertices), std::move(m_indices), std::move(m_normals),
+            std::move(m_texcoords), std::move(m_material_ids));
+
+        TransformNode* transform = new TransformNode;
+        transform->add_children(geometry);
+
+        scene_graph.set_root(transform);
+    }
+
+    static void load_gltf(const std::filesystem::path& filepath,
+                          SceneGraph& scene_graph)
+    {
+        tinygltf::Model model;
+        tinygltf::TinyGLTF loader;
+        std::string err;
+        std::string warn;
+
+        const bool ret = loader.LoadASCIIFromFile(&model, &err, &warn,
+                                                  filepath.generic_string());
+        if (!warn.empty()) { spdlog::warn("tinygltf: {}", warn); }
+        if (!err.empty()) { spdlog::error("tinygltf: {}", err); }
+        if (!ret)
+        {
+            throw std::runtime_error(std::format(
+                "failed to load gltf file {}\n", filepath.generic_string()));
+        }
+
+        spdlog::info("number of nodes: {}", model.nodes.size());
+        spdlog::info("number of buffers: {}", model.buffers.size());
+        spdlog::info("number of buffer views: {}", model.bufferViews.size());
+        spdlog::info("number of meshes: {}", model.meshes.size());
+        spdlog::info("number of accessors: {}", model.accessors.size());
+        spdlog::info("number of images: {}", model.images.size());
+        spdlog::info("number of samplers: {}", model.samplers.size());
+
+        spdlog::info("number of scenes: {}", model.scenes.size());
+        spdlog::info("number of cameras: {}", model.cameras.size());
+        spdlog::info("number of lights: {}", model.lights.size());
+        spdlog::info("number of animations: {}", model.animations.size());
+        spdlog::info("number of materials: {}", model.materials.size());
+        spdlog::info("number of textures: {}", model.textures.size());
+
+        // load materials
+        for (int i = 0; i < model.materials.size(); ++i)
+        {
+            const auto& material = model.materials[i];
+            spdlog::info("loading material: {}", material.name);
+
+            Material ret;
+
+            const auto& pmr = material.pbrMetallicRoughness;
+
+            // base color
+            ret.base_color =
+                make_float3(pmr.baseColorFactor[0], pmr.baseColorFactor[1],
+                            pmr.baseColorFactor[2]);
+
+            // base color(texture)
+            if (pmr.baseColorTexture.index != -1)
+            {
+                ret.base_color_texture_id = pmr.baseColorTexture.index;
+            }
+
+            // specular roughness
+            ret.specular_roughness = pmr.roughnessFactor;
+
+            // metalness
+            ret.metalness = pmr.metallicFactor;
+
+            // metallic roughness(texture)
+            if (pmr.metallicRoughnessTexture.index != -1)
+            {
+                ret.metalness_texture_id = pmr.metallicRoughnessTexture.index;
+            }
+
+            // clearcoat
+            if (material.extensions.contains("KHR_materials_clearcoat"))
+            {
+                const auto& p =
+                    material.extensions.at("KHR_materials_clearcoat");
+
+                // coat
+                if (p.Has("clearcoatFactor"))
+                {
+                    ret.coat = p.Get("clearcoatFactor").GetNumberAsDouble();
+                }
+
+                // coat(texture)
+                if (p.Has("clearcoatTexture"))
+                {
+                    ret.coat_texture_id =
+                        p.Get("clearcoatTexture").GetNumberAsInt();
+                }
+
+                // coat roughness
+                if (p.Has("clearcoatRoughnessFactor"))
+                {
+                    ret.coat_roughness =
+                        p.Get("clearcoatRoughnessFactor").GetNumberAsDouble();
+                }
+
+                // coat roughness(texture)
+                if (p.Has("clearcoatRoughnessTexture"))
+                {
+                    ret.coat_roughness_texture_id =
+                        p.Get("clearcoatRoughnessTexture").GetNumberAsInt();
+                }
+            }
+
+            // TODO: load KHR_materials_anisotropy
+            // TODO: load KHR_materials_ior
+            // TODO: load KHR_materials_iridescence
+            // TODO: load KHR_materials_sheen
+            // TODO: load KHR_materials_specular
+            // TODO: load KHR_materials_transmission
+            // TODO: load KHR_materials_volume
+
+            // emission
+            if (material.emissiveFactor.size() == 3)
+            {
+                ret.emission = 1.0f;
+                ret.emission_color = make_float3(material.emissiveFactor[0],
+                                                 material.emissiveFactor[1],
+                                                 material.emissiveFactor[2]);
+            }
+
+            // emission texture
+            if (material.emissiveTexture.index != -1)
+            {
+                ret.emission_texture_id = material.emissiveTexture.index;
+            }
+
+            // normal texture
+            if (material.normalTexture.index != -1)
+            {
+                ret.normalmap_texture_id = material.normalTexture.index;
+            }
+        }
     }
 };
 
