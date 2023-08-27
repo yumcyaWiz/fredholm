@@ -20,7 +20,6 @@ struct PtStrategyParams
     uint n_samples;
     uint max_depth;
     uint seed;
-    uint sample_count;
 
     float4* output;
 };

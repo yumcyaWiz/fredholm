@@ -77,7 +77,6 @@ class PTMISStrategy : public RenderStrategy
         params.n_samples = options.n_spp;
         params.max_depth = options.max_depth;
         params.seed = seed;
-        params.sample_count = sample_count;
         params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(PTMISStrategyParams)));

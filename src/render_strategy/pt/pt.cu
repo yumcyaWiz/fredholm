@@ -49,13 +49,14 @@ extern "C" CUDA_KERNEL void __raygen__()
     const uint image_idx = idx.x + params.width * idx.y;
 
     float3 beauty = make_float3(params.output[image_idx]);
+    uint sample_count = params.output[image_idx].w;
 
     for (int spp = 0; spp < params.n_samples; ++spp)
     {
         RadiancePayload payload;
 
         // initialize sampler
-        const uint n_spp = spp + params.sample_count;
+        const uint n_spp = spp + sample_count;
         payload.sampler.init(params.width, params.height, make_uint2(idx),
                              n_spp, params.seed);
 
@@ -109,7 +110,8 @@ extern "C" CUDA_KERNEL void __raygen__()
     }
 
     // write results in render layers
-    params.output[image_idx] = make_float4(beauty, 1.0f);
+    params.output[image_idx] =
+        make_float4(beauty, sample_count + params.n_samples);
 }
 
 extern "C" CUDA_KERNEL void __miss__()
