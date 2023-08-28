@@ -7,9 +7,12 @@
 
 #include "glm/glm.hpp"
 #include "glm/gtx/hash.hpp"
+#include "nlohmann/json.hpp"
 #include "scene.h"
 #include "tiny_gltf.h"
 #include "tiny_obj_loader.h"
+
+using json = nlohmann::json;
 
 namespace fredholm
 {
@@ -75,6 +78,41 @@ class SceneLoader
     }
 
    private:
+    static void load_json(const std::filesystem::path& filepath,
+                          SceneGraph& scene_graph)
+    {
+        /*
+        const std::ifstream file(filepath);
+        if (!file.is_open())
+        {
+            throw std::runtime_error(std::format(
+                "failed to open json file {}\n", filepath.generic_string()));
+        }
+
+        const json data = json::parse(file);
+
+                for (const auto& o : data["scene"])
+                {
+                    const auto filepath =
+           o["file"].get<std::filesystem::path>(); if (filepath.extension() ==
+           ".obj")
+                    {
+                        load_obj(filepath, scene_graph);
+                    }
+                    else if (filepath.extension() == ".gltf")
+                    {
+                        load_gltf(filepath, scene_graph);
+                    }
+                    else
+                    {
+                        throw std::runtime_error(
+                            std::format("unsupported file format: {}",
+                                        filepath.extension().generic_string()));
+                    }
+                }
+        */
+    }
+
     static void load_obj(const std::filesystem::path& filepath,
                          SceneGraph& scene_graph)
     {
@@ -445,7 +483,7 @@ class SceneLoader
             std::move(m_vertices), std::move(m_indices), std::move(m_normals),
             std::move(m_texcoords), std::move(m_material_ids));
 
-        scene_graph.set_root(geometry);
+        scene_graph.add_root(geometry);
     }
 
     static void load_gltf(const std::filesystem::path& filepath,
@@ -497,14 +535,14 @@ class SceneLoader
             scene_graph.add_texture(t);
         }
 
-        SceneNode* root = new SceneNode();
-        scene_graph.set_root(root);
-
         // load nodes
         for (const auto& node_idx : model.scenes[0].nodes)
         {
+            SceneNode* root = new SceneNode();
+            scene_graph.add_root(root);
+
             const auto& node = model.nodes[node_idx];
-            load_gltf_node(node, model, scene_graph.get_root());
+            load_gltf_node(node, model, root);
         }
     }
 

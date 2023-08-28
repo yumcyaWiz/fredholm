@@ -140,15 +140,15 @@ class SceneGraph
 
     ~SceneGraph() { clear(); }
 
-    bool is_empty() const { return root == nullptr; }
+    bool is_empty() const { return root_nodes.size() == 0; }
 
     uint32_t n_materials() const { return m_materials.size(); }
     uint32_t n_textures() const { return m_textures.size(); }
 
     void clear()
     {
-        destroy(root);
-        root = nullptr;
+        for (const auto& root : root_nodes) { destroy(root); }
+        root_nodes.clear();
 
         m_materials.clear();
         m_textures.clear();
@@ -156,8 +156,7 @@ class SceneGraph
         envmap = {};
     }
 
-    SceneNode* get_root() const { return root; }
-    void set_root(SceneNode* node) { root = node; }
+    void add_root(SceneNode* node) { root_nodes.push_back(node); }
 
     void add_material(const Material& material)
     {
@@ -176,13 +175,19 @@ class SceneGraph
     CompiledScene compile() const
     {
         CompiledScene ret;
-        compile_nodes(root, glm::mat4(1.0f), ret);
+        for (const auto& root : root_nodes)
+        {
+            compile_nodes(root, glm::mat4(1.0f), ret);
+        }
         ret.m_materials = m_materials;
         ret.m_textures = m_textures;
         return ret;
     }
 
-    void print_tree() const { print_tree(root, ""); }
+    void print_tree() const
+    {
+        for (const auto& root : root_nodes) { print_tree(root, ""); }
+    }
 
    private:
     void destroy(SceneNode* node)
@@ -248,7 +253,7 @@ class SceneGraph
         }
     }
 
-    SceneNode* root = nullptr;
+    std::vector<SceneNode*> root_nodes = {};
 
     std::vector<Material> m_materials = {};
     std::vector<Texture> m_textures = {};
