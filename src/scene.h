@@ -177,7 +177,7 @@ class SceneGraph
         CompiledScene ret;
         for (const auto& root : root_nodes)
         {
-            compile_nodes(root, glm::mat4(1.0f), ret);
+            compile_nodes(root, glm::identity<glm::mat4>(), ret);
         }
         ret.m_materials = m_materials;
         ret.m_textures = m_textures;
@@ -462,13 +462,26 @@ class SceneDevice
                 if (material.has_emission())
                 {
                     AreaLight light;
-                    light.indices = indices[indices_offset + prim_id];
+                    light.indices =
+                        indices[indices_offset + prim_id] + vertices_offset;
                     light.material_id = material_id;
                     light.instance_idx = geom_id;
                     area_lights.push_back(light);
                 }
             }
         }
+
+        spdlog::info("===scene device info===");
+        spdlog::info("# of vertices: {}", vertices.size());
+        spdlog::info("# of faces: {}", indices.size());
+        spdlog::info("# of materials: {}", materials.size());
+        spdlog::info("# of textures: {}", texture_headers.size());
+        spdlog::info("# of geometries: {}",
+                     compiled_scene.geometry_nodes.size());
+        spdlog::info("# of instances: {}",
+                     compiled_scene.instance_nodes.size());
+        spdlog::info("# of area lights: {}", area_lights.size());
+        spdlog::info("======");
 
         // allocate scene data on device
         destroy_scene_data();
