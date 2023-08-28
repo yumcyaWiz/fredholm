@@ -444,11 +444,7 @@ class SceneLoader
         GeometryNode* geometry = new GeometryNode(
             std::move(m_vertices), std::move(m_indices), std::move(m_normals),
             std::move(m_texcoords), std::move(m_material_ids));
-
-        TransformNode* transform = new TransformNode;
-        transform->add_children(geometry);
-
-        scene_graph.set_root(transform);
+        scene_graph.set_root(geometry);
     }
 
     static void load_gltf(const std::filesystem::path& filepath,
@@ -578,6 +574,47 @@ class SceneLoader
             if (material.normalTexture.index != -1)
             {
                 ret.normalmap_texture_id = material.normalTexture.index;
+            }
+
+            scene_graph.add_material(ret);
+        }
+
+        // load nodes
+        for (const auto& node_idx : model.scenes[0].nodes)
+        {
+            const auto& node = model.nodes[node_idx];
+            spdlog::info("loading node: {}", node.name);
+
+            // load transform
+            glm::vec3 translation = {0, 0, 0};
+            if (node.translation.size() == 3)
+            {
+                translation = {node.translation[0], node.translation[1],
+                               node.translation[2]};
+            }
+
+            glm::quat rotation = glm::quat(1, 0, 0, 0);
+            if (node.rotation.size() == 4)
+            {
+                rotation = {static_cast<float>(node.rotation[0]),
+                            static_cast<float>(node.rotation[1]),
+                            static_cast<float>(node.rotation[2]),
+                            static_cast<float>(node.rotation[3])};
+            }
+
+            glm::vec3 scale = {1, 1, 1};
+            if (node.scale.size() == 3)
+            {
+                scale = {node.scale[0], node.scale[1], node.scale[2]};
+            }
+
+            glm::mat4 transform =
+                glm::translate(glm::identity<glm::mat4>(), translation) *
+                glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
+
+            if (node.matrix.size() == 16)
+            {
+                transform = glm::make_mat4(node.matrix.data());
             }
         }
     }

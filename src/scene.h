@@ -39,8 +39,7 @@ class Texture
 
 enum class SceneNodeType
 {
-    NONE,
-    TRANSFORM,
+    DEFAULT,
     GEOMETRY,
     INSTANCE,
 };
@@ -50,35 +49,16 @@ class SceneNode
    public:
     std::string get_name() const { return name; }
     SceneNodeType get_type() const { return type; }
+    glm::mat4 get_transform() const { return transform; }
     std::vector<SceneNode*> get_children() const { return children; }
 
     void add_children(SceneNode* node) { children.push_back(node); }
 
    protected:
     std::string name = "SceneNode";
-    SceneNodeType type = SceneNodeType::NONE;
+    SceneNodeType type = SceneNodeType::DEFAULT;
+    glm::mat4 transform = glm::identity<glm::mat4>();
     std::vector<SceneNode*> children = {};
-};
-
-// always internal node
-class TransformNode : public SceneNode
-{
-   public:
-    TransformNode()
-    {
-        name = "TransformNode";
-        type = SceneNodeType::TRANSFORM;
-    }
-
-    glm::mat4 get_transform() const { return transform; }
-
-    void set_transform(const glm::mat4& transform)
-    {
-        this->transform = transform;
-    }
-
-   private:
-    glm::mat4 transform = glm::mat4(1.0f);
 };
 
 // always leaf node
@@ -210,17 +190,13 @@ class SceneGraph
     {
         if (node == nullptr) return;
 
+        const glm::mat4 transform_new = transform * node->get_transform();
+
         switch (node->get_type())
         {
-            case SceneNodeType::TRANSFORM:
+            case SceneNodeType::DEFAULT:
             {
-                const TransformNode* transform_node =
-                    static_cast<const TransformNode*>(node);
-
-                const glm::mat4 transform_new =
-                    transform * transform_node->get_transform();
-
-                for (const auto& child : transform_node->get_children())
+                for (const auto& child : node->get_children())
                 {
                     compile_nodes(child, transform_new, compiled_scene);
                 }
@@ -230,9 +206,8 @@ class SceneGraph
             {
                 const GeometryNode* geometry_node =
                     static_cast<const GeometryNode*>(node);
-
                 compiled_scene.geometry_nodes.push_back(geometry_node);
-                compiled_scene.geometry_transforms.push_back(transform);
+                compiled_scene.geometry_transforms.push_back(transform_new);
                 break;
             }
             case SceneNodeType::INSTANCE:
@@ -241,7 +216,7 @@ class SceneGraph
                     static_cast<const InstanceNode*>(node);
 
                 compiled_scene.instance_nodes.push_back(instance_node);
-                compiled_scene.instance_transforms.push_back(transform);
+                compiled_scene.instance_transforms.push_back(transform_new);
                 break;
             }
             default:
