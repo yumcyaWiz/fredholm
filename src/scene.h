@@ -156,6 +156,7 @@ class SceneGraph
         envmap = {};
     }
 
+    SceneNode* get_root() const { return root; }
     void set_root(SceneNode* node) { root = node; }
 
     void add_material(const Material& material)

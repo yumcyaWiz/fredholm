@@ -485,138 +485,325 @@ class SceneLoader
         for (int i = 0; i < model.materials.size(); ++i)
         {
             const auto& material = model.materials[i];
-            spdlog::info("loading material: {}", material.name);
-
-            Material ret;
-
-            const auto& pmr = material.pbrMetallicRoughness;
-
-            // base color
-            ret.base_color =
-                make_float3(pmr.baseColorFactor[0], pmr.baseColorFactor[1],
-                            pmr.baseColorFactor[2]);
-
-            // base color(texture)
-            if (pmr.baseColorTexture.index != -1)
-            {
-                ret.base_color_texture_id = pmr.baseColorTexture.index;
-            }
-
-            // specular roughness
-            ret.specular_roughness = pmr.roughnessFactor;
-
-            // metalness
-            ret.metalness = pmr.metallicFactor;
-
-            // metallic roughness(texture)
-            if (pmr.metallicRoughnessTexture.index != -1)
-            {
-                ret.metalness_texture_id = pmr.metallicRoughnessTexture.index;
-            }
-
-            // clearcoat
-            if (material.extensions.contains("KHR_materials_clearcoat"))
-            {
-                const auto& p =
-                    material.extensions.at("KHR_materials_clearcoat");
-
-                // coat
-                if (p.Has("clearcoatFactor"))
-                {
-                    ret.coat = p.Get("clearcoatFactor").GetNumberAsDouble();
-                }
-
-                // coat(texture)
-                if (p.Has("clearcoatTexture"))
-                {
-                    ret.coat_texture_id =
-                        p.Get("clearcoatTexture").GetNumberAsInt();
-                }
-
-                // coat roughness
-                if (p.Has("clearcoatRoughnessFactor"))
-                {
-                    ret.coat_roughness =
-                        p.Get("clearcoatRoughnessFactor").GetNumberAsDouble();
-                }
-
-                // coat roughness(texture)
-                if (p.Has("clearcoatRoughnessTexture"))
-                {
-                    ret.coat_roughness_texture_id =
-                        p.Get("clearcoatRoughnessTexture").GetNumberAsInt();
-                }
-            }
-
-            // TODO: load KHR_materials_anisotropy
-            // TODO: load KHR_materials_ior
-            // TODO: load KHR_materials_iridescence
-            // TODO: load KHR_materials_sheen
-            // TODO: load KHR_materials_specular
-            // TODO: load KHR_materials_transmission
-            // TODO: load KHR_materials_volume
-
-            // emission
-            if (material.emissiveFactor.size() == 3)
-            {
-                ret.emission = 1.0f;
-                ret.emission_color = make_float3(material.emissiveFactor[0],
-                                                 material.emissiveFactor[1],
-                                                 material.emissiveFactor[2]);
-            }
-
-            // emission texture
-            if (material.emissiveTexture.index != -1)
-            {
-                ret.emission_texture_id = material.emissiveTexture.index;
-            }
-
-            // normal texture
-            if (material.normalTexture.index != -1)
-            {
-                ret.normalmap_texture_id = material.normalTexture.index;
-            }
-
-            scene_graph.add_material(ret);
+            const Material& m = load_gltf_material(material);
+            scene_graph.add_material(m);
         }
+
+        // load textures
+        for (int i = 0; i < model.textures.size(); ++i)
+        {
+            const auto& texture = model.textures[i];
+            const Texture t = load_gltf_texture(texture, model, filepath);
+            scene_graph.add_texture(t);
+        }
+
+        SceneNode* root = new SceneNode();
+        scene_graph.set_root(root);
 
         // load nodes
         for (const auto& node_idx : model.scenes[0].nodes)
         {
             const auto& node = model.nodes[node_idx];
-            spdlog::info("loading node: {}", node.name);
+            load_gltf_node(node, model, scene_graph.get_root());
+        }
+    }
 
-            // load transform
-            glm::vec3 translation = {0, 0, 0};
-            if (node.translation.size() == 3)
+    static Texture load_gltf_texture(
+        const tinygltf::Texture& texture, const tinygltf::Model& model,
+        const std::filesystem::path& parent_filepath)
+    {
+        spdlog::info("loading texture: {}", texture.name);
+        const auto& image = model.images[texture.source];
+        // TODO: set colorspace correctly
+        return Texture(parent_filepath / image.uri, ColorSpace::SRGB);
+    }
+
+    static Material load_gltf_material(const tinygltf::Material& material)
+    {
+        spdlog::info("loading material: {}", material.name);
+
+        Material ret;
+
+        const auto& pmr = material.pbrMetallicRoughness;
+
+        // base color
+        ret.base_color =
+            make_float3(pmr.baseColorFactor[0], pmr.baseColorFactor[1],
+                        pmr.baseColorFactor[2]);
+
+        // base color(texture)
+        if (pmr.baseColorTexture.index != -1)
+        {
+            ret.base_color_texture_id = pmr.baseColorTexture.index;
+        }
+
+        // specular roughness
+        ret.specular_roughness = pmr.roughnessFactor;
+
+        // metalness
+        ret.metalness = pmr.metallicFactor;
+
+        // metallic roughness(texture)
+        if (pmr.metallicRoughnessTexture.index != -1)
+        {
+            ret.metalness_texture_id = pmr.metallicRoughnessTexture.index;
+        }
+
+        // clearcoat
+        if (material.extensions.contains("KHR_materials_clearcoat"))
+        {
+            const auto& p = material.extensions.at("KHR_materials_clearcoat");
+
+            // coat
+            if (p.Has("clearcoatFactor"))
             {
-                translation = {node.translation[0], node.translation[1],
-                               node.translation[2]};
+                ret.coat = p.Get("clearcoatFactor").GetNumberAsDouble();
             }
 
-            glm::quat rotation = glm::quat(1, 0, 0, 0);
-            if (node.rotation.size() == 4)
+            // coat(texture)
+            if (p.Has("clearcoatTexture"))
             {
-                rotation = {static_cast<float>(node.rotation[0]),
-                            static_cast<float>(node.rotation[1]),
-                            static_cast<float>(node.rotation[2]),
-                            static_cast<float>(node.rotation[3])};
+                ret.coat_texture_id =
+                    p.Get("clearcoatTexture").GetNumberAsInt();
             }
 
-            glm::vec3 scale = {1, 1, 1};
-            if (node.scale.size() == 3)
+            // coat roughness
+            if (p.Has("clearcoatRoughnessFactor"))
             {
-                scale = {node.scale[0], node.scale[1], node.scale[2]};
+                ret.coat_roughness =
+                    p.Get("clearcoatRoughnessFactor").GetNumberAsDouble();
             }
 
-            glm::mat4 transform =
-                glm::translate(glm::identity<glm::mat4>(), translation) *
-                glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
-
-            if (node.matrix.size() == 16)
+            // coat roughness(texture)
+            if (p.Has("clearcoatRoughnessTexture"))
             {
-                transform = glm::make_mat4(node.matrix.data());
+                ret.coat_roughness_texture_id =
+                    p.Get("clearcoatRoughnessTexture").GetNumberAsInt();
             }
+        }
+
+        // TODO: load KHR_materials_anisotropy
+        // TODO: load KHR_materials_ior
+        // TODO: load KHR_materials_iridescence
+        // TODO: load KHR_materials_sheen
+        // TODO: load KHR_materials_specular
+        // TODO: load KHR_materials_transmission
+        // TODO: load KHR_materials_volume
+
+        // emission
+        if (material.emissiveFactor.size() == 3)
+        {
+            ret.emission = 1.0f;
+            ret.emission_color = make_float3(material.emissiveFactor[0],
+                                             material.emissiveFactor[1],
+                                             material.emissiveFactor[2]);
+        }
+
+        // emission texture
+        if (material.emissiveTexture.index != -1)
+        {
+            ret.emission_texture_id = material.emissiveTexture.index;
+        }
+
+        // normal texture
+        if (material.normalTexture.index != -1)
+        {
+            ret.normalmap_texture_id = material.normalTexture.index;
+        }
+
+        return ret;
+    }
+
+    static glm::mat4 load_gltf_transform(const tinygltf::Node& node)
+    {
+        glm::vec3 translation = {0, 0, 0};
+        if (node.translation.size() == 3)
+        {
+            translation = {node.translation[0], node.translation[1],
+                           node.translation[2]};
+        }
+
+        glm::quat rotation = glm::quat(1, 0, 0, 0);
+        if (node.rotation.size() == 4)
+        {
+            rotation = {static_cast<float>(node.rotation[0]),
+                        static_cast<float>(node.rotation[1]),
+                        static_cast<float>(node.rotation[2]),
+                        static_cast<float>(node.rotation[3])};
+        }
+
+        glm::vec3 scale = {1, 1, 1};
+        if (node.scale.size() == 3)
+        {
+            scale = {node.scale[0], node.scale[1], node.scale[2]};
+        }
+
+        glm::mat4 transform =
+            glm::translate(glm::identity<glm::mat4>(), translation) *
+            glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
+
+        if (node.matrix.size() == 16)
+        {
+            transform = glm::make_mat4(node.matrix.data());
+        }
+
+        return transform;
+    }
+
+    static const unsigned char* get_gltf_buffer_data(
+        const tinygltf::Model& model, int accessor_id, uint32_t& stride,
+        uint32_t& count)
+    {
+        const auto& accessor = model.accessors[accessor_id];
+        const auto& buffer_view = model.bufferViews[accessor.bufferView];
+        const auto& buffer = model.buffers[buffer_view.buffer];
+
+        stride = accessor.ByteStride(buffer_view);
+        count = accessor.count;
+
+        return buffer.data.data() + accessor.byteOffset +
+               buffer_view.byteOffset;
+    }
+
+    static GeometryNode* load_gltf_mesh(const tinygltf::Mesh& mesh,
+                                        const tinygltf::Model& model)
+    {
+        spdlog::info("loading mesh: {}", mesh.name);
+        spdlog::info("number of primitives: {}", mesh.primitives.size());
+
+        std::vector<float3> vertices = {};
+        std::vector<uint3> indices = {};
+        std::vector<float3> normals = {};
+        std::vector<float2> texcoords = {};
+        std::vector<uint> material_ids = {};
+
+        for (const auto& primitive : mesh.primitives)
+        {
+            // indices
+            {
+                uint32_t indices_stride, indices_count = 0;
+                const auto buffer_raw = get_gltf_buffer_data(
+                    model, primitive.indices, indices_stride, indices_count);
+                if (indices_stride != 2)
+                {
+                    throw std::runtime_error("indices stride must be 2 bytes");
+                }
+                const auto buffer =
+                    reinterpret_cast<const unsigned short*>(buffer_raw);
+                for (int i = 0; i < indices_count / 3; ++i)
+                {
+                    const uint3 idx = {buffer[3 * i + 0], buffer[3 * i + 1],
+                                       buffer[3 * i + 2]};
+                    indices.push_back(idx);
+                }
+            }
+
+            // positions
+            {
+                uint32_t positions_stride, positions_count = 0;
+                const auto buffer_raw = get_gltf_buffer_data(
+                    model, primitive.attributes.at("POSITION"),
+                    positions_stride, positions_count);
+                if (positions_stride != 12)
+                {
+                    throw std::runtime_error(
+                        "positions stride must be 12 bytes");
+                }
+                const auto buffer = reinterpret_cast<const float*>(buffer_raw);
+                for (int i = 0; i < positions_count; ++i)
+                {
+                    const float3 pos = {buffer[3 * i + 0], buffer[3 * i + 1],
+                                        buffer[3 * i + 2]};
+                    vertices.push_back(pos);
+                }
+            }
+
+            // normals
+            {
+                uint32_t normals_stride, normals_count = 0;
+                const auto buffer_raw = get_gltf_buffer_data(
+                    model, primitive.attributes.at("NORMAL"), normals_stride,
+                    normals_count);
+                if (normals_stride != 12)
+                {
+                    throw std::runtime_error("normals stride must be 12 bytes");
+                }
+                const auto buffer = reinterpret_cast<const float*>(buffer_raw);
+                for (int i = 0; i < normals_count; ++i)
+                {
+                    const float3 normal = {buffer[3 * i + 0], buffer[3 * i + 1],
+                                           buffer[3 * i + 2]};
+                    normals.push_back(normal);
+                }
+            }
+
+            // texcoords
+            {
+                uint32_t texcoords_stride, texcoords_count = 0;
+                const auto buffer_raw = get_gltf_buffer_data(
+                    model, primitive.attributes.at("TEXCOORD_0"),
+                    texcoords_stride, texcoords_count);
+                if (texcoords_stride != 8)
+                {
+                    throw std::runtime_error(
+                        "texcoords stride must be 8 bytes");
+                }
+                const auto buffer = reinterpret_cast<const float*>(buffer_raw);
+                for (int i = 0; i < texcoords_count; ++i)
+                {
+                    const float2 texcoord = {buffer[2 * i + 0],
+                                             buffer[2 * i + 1]};
+                    texcoords.push_back(texcoord);
+                }
+            }
+
+            // material ids
+            {
+                const auto& material_id = primitive.material;
+                for (int i = 0; i < indices.size(); ++i)
+                {
+                    material_ids.push_back(material_id);
+                }
+            }
+        }
+
+        return new GeometryNode(std::move(vertices), std::move(indices),
+                                std::move(normals), std::move(texcoords),
+                                std::move(material_ids));
+    }
+
+    static void load_gltf_node(const tinygltf::Node& node,
+                               const tinygltf::Model& model, SceneNode* parent)
+    {
+        spdlog::info("loading node: {}", node.name);
+
+        glm::mat4 transform = load_gltf_transform(node);
+
+        SceneNode* scene_node = nullptr;
+        if (node.mesh != -1)
+        {
+            GeometryNode* geometry =
+                load_gltf_mesh(model.meshes[node.mesh], model);
+            geometry->set_transform(transform);
+            parent->add_children(geometry);
+            scene_node = geometry;
+        }
+        else if (node.camera != -1)
+        {
+            // TODO: load gltf camera
+        }
+        else
+        {
+            scene_node = new SceneNode();
+            scene_node->set_transform(transform);
+            parent->add_children(scene_node);
+        }
+
+        // load children
+        for (const auto& child_idx : node.children)
+        {
+            const auto& child = model.nodes[child_idx];
+            load_gltf_node(child, model, scene_node);
         }
     }
 };
