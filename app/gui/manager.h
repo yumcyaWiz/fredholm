@@ -151,6 +151,8 @@ class SceneManager
         {"CornellBox-Texture",
          std::filesystem::path(CMAKE_SOURCE_DIR) /
              "resources/scenes/cornellbox/CornellBox-Texture.obj"},
+        {"CornellBox(gltf)", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                                 "resources/scenes/cornellbox/CornellBox.gltf"},
     };
 
     const std::vector<EnvmapListEntry> m_envmaps = {

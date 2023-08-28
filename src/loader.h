@@ -684,6 +684,7 @@ class SceneLoader
                 uint32_t indices_stride, indices_count = 0;
                 const auto buffer_raw = get_gltf_buffer_data(
                     model, primitive.indices, indices_stride, indices_count);
+                // TODO: support 32bit indices
                 if (indices_stride != 2)
                 {
                     throw std::runtime_error("indices stride must be 2 bytes");
