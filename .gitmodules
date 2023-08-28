@@ -25,3 +25,6 @@
 [submodule "externals/GLSL-Shader-Includes"]
 	path = externals/GLSL-Shader-Includes
 	url = git@github.com:tntmeijs/GLSL-Shader-Includes.git
+[submodule "externals/json"]
+	path = externals/json
+	url = git@github.com:nlohmann/json.git
