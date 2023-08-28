@@ -737,10 +737,10 @@ class SceneLoader
         glm::quat rotation = glm::quat(1, 0, 0, 0);
         if (node.rotation.size() == 4)
         {
-            rotation = {static_cast<float>(node.rotation[0]),
+            rotation = {static_cast<float>(node.rotation[3]),
+                        static_cast<float>(node.rotation[0]),
                         static_cast<float>(node.rotation[1]),
-                        static_cast<float>(node.rotation[2]),
-                        static_cast<float>(node.rotation[3])};
+                        static_cast<float>(node.rotation[2])};
         }
 
         glm::vec3 scale = {1, 1, 1};
