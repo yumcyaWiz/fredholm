@@ -55,6 +55,7 @@ target_link_libraries(fredholm PUBLIC
     spdlog::spdlog
     glsl-shader-includes
     imgui
+    nlohmann_json::nlohmann_json
 )
 
 # fredholm optix kernel
