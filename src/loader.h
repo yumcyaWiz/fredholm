@@ -444,6 +444,7 @@ class SceneLoader
         GeometryNode* geometry = new GeometryNode(
             std::move(m_vertices), std::move(m_indices), std::move(m_normals),
             std::move(m_texcoords), std::move(m_material_ids));
+
         scene_graph.set_root(geometry);
     }
 

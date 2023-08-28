@@ -48,8 +48,15 @@ class SceneNode
 {
    public:
     std::string get_name() const { return name; }
+
     SceneNodeType get_type() const { return type; }
+
     glm::mat4 get_transform() const { return transform; }
+    void set_transform(const glm::mat4& transform)
+    {
+        this->transform = transform;
+    }
+
     std::vector<SceneNode*> get_children() const { return children; }
 
     void add_children(SceneNode* node) { children.push_back(node); }
