@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -58,10 +59,19 @@ class SceneLoader
     {
         if (!scene_graph.is_empty()) { scene_graph.clear(); }
 
-        if (filepath.extension() == ".obj") { load_obj(filepath, scene_graph); }
+        if (filepath.extension() == ".obj")
+        {
+            SceneNode* node = load_obj(filepath, scene_graph);
+            scene_graph.add_root(node);
+        }
         else if (filepath.extension() == ".gltf")
         {
-            load_gltf(filepath, scene_graph);
+            std::vector<SceneNode*> nodes = load_gltf(filepath, scene_graph);
+            for (const auto& node : nodes) { scene_graph.add_root(node); }
+        }
+        else if (filepath.extension() == ".json")
+        {
+            load_json(filepath, scene_graph);
         }
         else
         {
@@ -81,40 +91,91 @@ class SceneLoader
     static void load_json(const std::filesystem::path& filepath,
                           SceneGraph& scene_graph)
     {
-        /*
-        const std::ifstream file(filepath);
-        if (!file.is_open())
+        std::ifstream ifs(filepath);
+        if (!ifs.is_open())
         {
             throw std::runtime_error(std::format(
                 "failed to open json file {}\n", filepath.generic_string()));
         }
 
-        const json data = json::parse(file);
+        json data = json::parse(ifs);
 
-                for (const auto& o : data["scene"])
+        if (data.contains("scene"))
+        {
+            for (const auto& scene_entry : data["scene"])
+            {
+                std::vector<SceneNode*> nodes = {};
+                if (scene_entry.contains("file"))
                 {
-                    const auto filepath =
-           o["file"].get<std::filesystem::path>(); if (filepath.extension() ==
-           ".obj")
+                    const std::filesystem::path file =
+                        scene_entry["file"].get<std::string>();
+                    if (file.extension() == ".obj")
                     {
-                        load_obj(filepath, scene_graph);
+                        SceneNode* ret = load_obj(filepath.parent_path() / file,
+                                                  scene_graph);
+                        nodes.push_back(ret);
                     }
-                    else if (filepath.extension() == ".gltf")
+                    else if (file.extension() == ".gltf")
                     {
-                        load_gltf(filepath, scene_graph);
+                        std::vector<SceneNode*> ret = load_gltf(
+                            filepath.parent_path() / file, scene_graph);
+                        for (const auto& node : ret) { nodes.push_back(node); }
                     }
                     else
                     {
                         throw std::runtime_error(
                             std::format("unsupported file format: {}",
-                                        filepath.extension().generic_string()));
+                                        file.extension().generic_string()));
                     }
                 }
-        */
+                else { throw std::runtime_error("file path is not specified"); }
+
+                if (scene_entry.contains("transform"))
+                {
+                    const auto& transform = scene_entry["transform"];
+
+                    glm::vec3 translate = {0, 0, 0};
+                    if (transform.contains("translate"))
+                    {
+                        const auto& t = transform["translate"];
+                        translate = {t[0], t[1], t[2]};
+                    }
+                    glm::quat rotate = glm::quat(1, 0, 0, 0);
+                    if (transform.contains("rotate"))
+                    {
+                        const auto& r = transform["rotate"];
+                        rotate = {r[0], r[1], r[2], r[3]};
+                    }
+
+                    glm::vec3 scale = {1, 1, 1};
+                    if (transform.contains("scale"))
+                    {
+                        const auto& s = transform["scale"];
+                        scale = {s[0], s[1], s[2]};
+                    }
+
+                    const glm::mat4 tmat =
+                        glm::translate(glm::identity<glm::mat4>(), translate) *
+                        glm::mat4_cast(rotate) *
+                        glm::scale(glm::mat4(1.0f), scale);
+                    for (const auto& node : nodes)
+                    {
+                        node->set_transform(tmat);
+                    }
+                }
+
+                if (scene_entry.contains("material"))
+                {
+                    // TODO: load materials
+                }
+
+                for (const auto& node : nodes) { scene_graph.add_root(node); }
+            }
+        }
     }
 
-    static void load_obj(const std::filesystem::path& filepath,
-                         SceneGraph& scene_graph)
+    static SceneNode* load_obj(const std::filesystem::path& filepath,
+                               SceneGraph& scene_graph)
     {
         std::vector<float3> m_vertices = {};
         std::vector<uint3> m_indices = {};
@@ -483,22 +544,22 @@ class SceneLoader
             std::move(m_vertices), std::move(m_indices), std::move(m_normals),
             std::move(m_texcoords), std::move(m_material_ids));
 
-        scene_graph.add_root(geometry);
+        return geometry;
     }
 
-    static void load_gltf(const std::filesystem::path& filepath,
-                          SceneGraph& scene_graph)
+    static std::vector<SceneNode*> load_gltf(
+        const std::filesystem::path& filepath, SceneGraph& scene_graph)
     {
         tinygltf::Model model;
         tinygltf::TinyGLTF loader;
         std::string err;
         std::string warn;
 
-        const bool ret = loader.LoadASCIIFromFile(&model, &err, &warn,
-                                                  filepath.generic_string());
+        const bool loaded = loader.LoadASCIIFromFile(&model, &err, &warn,
+                                                     filepath.generic_string());
         if (!warn.empty()) { spdlog::warn("tinygltf: {}", warn); }
         if (!err.empty()) { spdlog::error("tinygltf: {}", err); }
-        if (!ret)
+        if (!loaded)
         {
             throw std::runtime_error(std::format(
                 "failed to load gltf file {}\n", filepath.generic_string()));
@@ -536,14 +597,17 @@ class SceneLoader
         }
 
         // load nodes
+        std::vector<SceneNode*> ret = {};
         for (const auto& node_idx : model.scenes[0].nodes)
         {
             SceneNode* root = new SceneNode();
-            scene_graph.add_root(root);
+            ret.push_back(root);
 
             const auto& node = model.nodes[node_idx];
             load_gltf_node(node, model, root);
         }
+
+        return ret;
     }
 
     static Texture load_gltf_texture(
