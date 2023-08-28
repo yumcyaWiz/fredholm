@@ -250,6 +250,7 @@ class SceneLoader
         };
 
         // load materials
+        const uint32_t material_id_offset = scene_graph.n_materials();
         for (int i = 0; i < tinyobj_materials.size(); ++i)
         {
             const auto& m = tinyobj_materials[i];
@@ -511,7 +512,8 @@ class SceneLoader
                     indices.push_back(unique_vertex_indices[vertex]);
                 }
 
-                const int material_id = shapes[s].mesh.material_ids[f];
+                const int material_id =
+                    shapes[s].mesh.material_ids[f] + material_id_offset;
                 m_material_ids.push_back(material_id);
 
                 index_offset += fv;
@@ -581,10 +583,12 @@ class SceneLoader
         spdlog::info("number of textures: {}", model.textures.size());
 
         // load materials
+        const uint32_t material_id_offset = scene_graph.n_materials();
+        const uint32_t texture_id_offset = scene_graph.n_textures();
         for (int i = 0; i < model.materials.size(); ++i)
         {
             const auto& material = model.materials[i];
-            const Material& m = load_gltf_material(material);
+            const Material& m = load_gltf_material(material, texture_id_offset);
             scene_graph.add_material(m);
         }
 
@@ -604,7 +608,7 @@ class SceneLoader
             ret.push_back(root);
 
             const auto& node = model.nodes[node_idx];
-            load_gltf_node(node, model, root);
+            load_gltf_node(node, model, root, material_id_offset);
         }
 
         return ret;
@@ -620,7 +624,8 @@ class SceneLoader
         return Texture(parent_filepath / image.uri, ColorSpace::SRGB);
     }
 
-    static Material load_gltf_material(const tinygltf::Material& material)
+    static Material load_gltf_material(const tinygltf::Material& material,
+                                       uint32_t texture_id_offset)
     {
         spdlog::info("loading material: {}", material.name);
 
@@ -636,7 +641,8 @@ class SceneLoader
         // base color(texture)
         if (pmr.baseColorTexture.index != -1)
         {
-            ret.base_color_texture_id = pmr.baseColorTexture.index;
+            ret.base_color_texture_id =
+                pmr.baseColorTexture.index + texture_id_offset;
         }
 
         // specular roughness
@@ -648,7 +654,8 @@ class SceneLoader
         // metallic roughness(texture)
         if (pmr.metallicRoughnessTexture.index != -1)
         {
-            ret.metalness_texture_id = pmr.metallicRoughnessTexture.index;
+            ret.metalness_texture_id =
+                pmr.metallicRoughnessTexture.index + texture_id_offset;
         }
 
         // clearcoat
@@ -704,13 +711,15 @@ class SceneLoader
         // emission texture
         if (material.emissiveTexture.index != -1)
         {
-            ret.emission_texture_id = material.emissiveTexture.index;
+            ret.emission_texture_id =
+                material.emissiveTexture.index + texture_id_offset;
         }
 
         // normal texture
         if (material.normalTexture.index != -1)
         {
-            ret.normalmap_texture_id = material.normalTexture.index;
+            ret.normalmap_texture_id =
+                material.normalTexture.index + texture_id_offset;
         }
 
         return ret;
@@ -768,7 +777,8 @@ class SceneLoader
     }
 
     static GeometryNode* load_gltf_mesh(const tinygltf::Mesh& mesh,
-                                        const tinygltf::Model& model)
+                                        const tinygltf::Model& model,
+                                        uint32_t material_id_offset)
     {
         spdlog::info("loading mesh: {}", mesh.name);
         spdlog::info("number of primitives: {}", mesh.primitives.size());
@@ -862,7 +872,8 @@ class SceneLoader
 
             // material ids
             {
-                const auto& material_id = primitive.material;
+                const auto& material_id =
+                    primitive.material + material_id_offset;
                 for (int i = 0; i < indices.size(); ++i)
                 {
                     material_ids.push_back(material_id);
@@ -876,7 +887,8 @@ class SceneLoader
     }
 
     static void load_gltf_node(const tinygltf::Node& node,
-                               const tinygltf::Model& model, SceneNode* parent)
+                               const tinygltf::Model& model, SceneNode* parent,
+                               uint32_t material_id_offset)
     {
         spdlog::info("loading node: {}", node.name);
 
@@ -885,8 +897,8 @@ class SceneLoader
         SceneNode* scene_node = nullptr;
         if (node.mesh != -1)
         {
-            GeometryNode* geometry =
-                load_gltf_mesh(model.meshes[node.mesh], model);
+            GeometryNode* geometry = load_gltf_mesh(model.meshes[node.mesh],
+                                                    model, material_id_offset);
             geometry->set_transform(transform);
             parent->add_children(geometry);
             scene_node = geometry;
@@ -906,7 +918,7 @@ class SceneLoader
         for (const auto& child_idx : node.children)
         {
             const auto& child = model.nodes[child_idx];
-            load_gltf_node(child, model, scene_node);
+            load_gltf_node(child, model, scene_node, material_id_offset);
         }
     }
 };
