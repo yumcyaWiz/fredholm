@@ -404,6 +404,67 @@ class SceneDevice
     uint32_t get_n_textures() const { return n_textures; }
     uint32_t get_n_area_lights() const { return n_area_lights; }
 
+    void update_transforms(const OptixDeviceContext& context,
+                           const CompiledScene& compiled_scene)
+    {
+        // TODO: do not recreate IAS
+        destroy_ias();
+
+        std::vector<IASBuildEntry> ias_build_entries;
+        for (int i = 0; i < compiled_scene.geometry_nodes.size(); ++i)
+        {
+            const auto& geometry = compiled_scene.geometry_nodes[i];
+            const auto& transform = compiled_scene.geometry_transforms[i];
+
+            IASBuildEntry entry;
+            entry.gas_handle = gas_build_outputs[i].handle;
+
+            entry.transform[0] = transform[0][0];
+            entry.transform[1] = transform[1][0];
+            entry.transform[2] = transform[2][0];
+            entry.transform[3] = transform[3][0];
+            entry.transform[4] = transform[0][1];
+            entry.transform[5] = transform[1][1];
+            entry.transform[6] = transform[2][1];
+            entry.transform[7] = transform[3][1];
+            entry.transform[8] = transform[0][2];
+            entry.transform[9] = transform[1][2];
+            entry.transform[10] = transform[2][2];
+            entry.transform[11] = transform[3][2];
+
+            // TODO: set appriopriate value
+            entry.sbt_offset = 0;
+
+            ias_build_entries.push_back(entry);
+        }
+
+        ias_build_output = optix_create_ias(context, ias_build_entries);
+
+        // TODO: update only affected transforms
+        std::vector<Matrix3x4> transforms;
+        std::vector<Matrix3x4> inverse_transforms;
+        for (int i = 0; i < compiled_scene.geometry_nodes.size(); ++i)
+        {
+            transforms.push_back(
+                create_mat3x4_from_glm(compiled_scene.geometry_transforms[i]));
+            inverse_transforms.push_back(create_mat3x4_from_glm(
+                glm::inverse(compiled_scene.geometry_transforms[i])));
+        }
+        for (int i = 0; i < compiled_scene.instance_nodes.size(); ++i)
+        {
+            transforms.push_back(
+                create_mat3x4_from_glm(compiled_scene.instance_transforms[i]));
+            inverse_transforms.push_back(create_mat3x4_from_glm(
+                glm::inverse(compiled_scene.instance_transforms[i])));
+        }
+
+        cuda_check(cuMemcpyHtoD(object_to_world_buffer, transforms.data(),
+                                transforms.size() * sizeof(Matrix3x4)));
+        cuda_check(cuMemcpyHtoD(world_to_object_buffer,
+                                inverse_transforms.data(),
+                                inverse_transforms.size() * sizeof(Matrix3x4)));
+    }
+
     void send(const OptixDeviceContext& context,
               const CompiledScene& compiled_scene)
     {
