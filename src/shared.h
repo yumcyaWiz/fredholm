@@ -239,13 +239,19 @@ struct TextureHeader
 
     // TODO: implement interpolation
     template <typename T>
-    CUDA_INLINE CUDA_DEVICE float4 sample(const float2& uv) const;
+    CUDA_INLINE CUDA_DEVICE float4 sample(float2 uv) const;
+
+    static CUDA_INLINE CUDA_DEVICE float2 repeat(const float2& uv)
+    {
+        return make_float2(uv.x - floorf(uv.x), uv.y - floorf(uv.y));
+    }
 };
 
 template <>
-CUDA_INLINE CUDA_DEVICE float4
-TextureHeader::sample<uchar4>(const float2& uv) const
+CUDA_INLINE CUDA_DEVICE float4 TextureHeader::sample<uchar4>(float2 uv) const
 {
+    uv = repeat(uv);
+
     const int i =
         clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
     const int j =
@@ -258,9 +264,10 @@ TextureHeader::sample<uchar4>(const float2& uv) const
 }
 
 template <>
-CUDA_INLINE CUDA_DEVICE float4
-TextureHeader::sample<float3>(const float2& uv) const
+CUDA_INLINE CUDA_DEVICE float4 TextureHeader::sample<float3>(float2 uv) const
 {
+    uv = repeat(uv);
+
     const int i =
         clamp(static_cast<int>(uv.x * width), 0, static_cast<int>(width - 1));
     const int j =
