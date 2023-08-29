@@ -891,6 +891,22 @@ class SceneLoader
         return ret;
     }
 
+    static CameraNode* load_gltf_camera(const tinygltf::Camera& camera)
+    {
+        spdlog::info("loading camera: {}", camera.name);
+
+        if (camera.type != "perspective")
+        {
+            throw std::runtime_error("only perspective camera is supported");
+        }
+
+        CameraNode* ret = new CameraNode();
+        ret->set_fov(camera.perspective.yfov);
+        ret->set_aspect_ratio(camera.perspective.aspectRatio);
+
+        return ret;
+    }
+
     static void load_gltf_node(const tinygltf::Node& node,
                                const tinygltf::Model& model, SceneNode* parent,
                                uint32_t material_id_offset)
@@ -913,7 +929,9 @@ class SceneLoader
         }
         else if (node.camera != -1)
         {
-            // TODO: load gltf camera
+            CameraNode* camera = load_gltf_camera(model.cameras[node.camera]);
+            camera->set_transform(transform);
+            parent->add_children(camera);
         }
         else
         {

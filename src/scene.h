@@ -151,6 +151,8 @@ struct CompiledScene
 
     std::vector<Material> m_materials = {};
     std::vector<Texture> m_textures = {};
+
+    Camera camera = {};
 };
 
 // TODO: add lights
@@ -205,16 +207,6 @@ class SceneGraph
         return ret;
     }
 
-    Camera compile_camera() const
-    {
-        Camera ret;
-        for (const auto& root : root_nodes)
-        {
-            compile_camera(root, glm::identity<glm::mat4>(), ret);
-        }
-        return ret;
-    }
-
     void print_tree() const
     {
         for (const auto& root : root_nodes) { print_tree(root, ""); }
@@ -227,47 +219,6 @@ class SceneGraph
 
         for (auto child : node->get_children()) { destroy(child); }
         delete node;
-    }
-
-    void compile_camera(const SceneNode* node, const glm::mat4& transform,
-                        Camera& camera) const
-    {
-        if (node == nullptr) return;
-
-        const glm::mat4 transform_new = transform * node->get_transform();
-
-        switch (node->get_type())
-        {
-            case SceneNodeType::DEFAULT:
-            {
-                for (const auto& child : node->get_children())
-                {
-                    compile_camera(child, transform_new, camera);
-                }
-                break;
-            }
-            case SceneNodeType::CAMERA:
-            {
-                const CameraNode* camera_node =
-                    static_cast<const CameraNode*>(node);
-
-                // TODO: handle multiple camera
-                // TODO: set aspect ratio
-                camera.set_transform(transform_new);
-                camera.set_fov(camera_node->fov);
-
-                return;
-            }
-            case SceneNodeType::GEOMETRY:
-            case SceneNodeType::INSTANCE:
-            {
-                break;
-            }
-            default:
-            {
-                throw std::runtime_error("unknown scene node type");
-            }
-        }
     }
 
     void compile_nodes(const SceneNode* node, const glm::mat4& transform,
@@ -303,6 +254,18 @@ class SceneGraph
                 compiled_scene.instance_nodes.push_back(instance_node);
                 compiled_scene.instance_transforms.push_back(transform_new);
                 break;
+            }
+            case SceneNodeType::CAMERA:
+            {
+                const CameraNode* camera_node =
+                    static_cast<const CameraNode*>(node);
+
+                // TODO: handle multiple camera
+                // TODO: set aspect ratio
+                compiled_scene.camera.set_transform(transform_new);
+                compiled_scene.camera.set_fov(camera_node->fov);
+
+                return;
             }
             default:
             {
