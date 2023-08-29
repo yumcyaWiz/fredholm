@@ -10,6 +10,9 @@
 namespace fredholm
 {
 
+inline float deg_to_rad(float deg) { return deg / 180.0f * M_PI; }
+inline float rad_to_deg(float rad) { return rad / M_PI * 180.0f; }
+
 struct SceneListEntry
 {
     std::string name;
@@ -69,8 +72,42 @@ class SceneManager
         if (scene_device) { scene_device.reset(); }
     }
 
+    fredholm::Camera& get_camera() { return camera; }
+
     void run_imgui(Renderer& renderer)
     {
+        if (ImGui::CollapsingHeader("Camera settings",
+                                    ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            // TODO: place these inside camera?
+            const glm::vec3 origin = camera.get_origin();
+            ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y, origin.z);
+            const glm::vec3 forward = camera.get_forward();
+            ImGui::Text("forward: (%f, %f, %f)", forward.x, forward.y,
+                        forward.z);
+
+            camera_fov = rad_to_deg(camera.get_fov());
+            if (ImGui::InputFloat("fov", &camera_fov))
+            {
+                camera.set_fov(deg_to_rad(camera_fov));
+                renderer.clear_render();
+            }
+
+            camera_F = camera.get_F();
+            if (ImGui::InputFloat("F", &camera_F))
+            {
+                camera.set_F(camera_F);
+                renderer.clear_render();
+            }
+
+            camera_focus = camera.get_focus();
+            if (ImGui::InputFloat("focus", &camera_focus))
+            {
+                camera.set_focus(camera_focus);
+                renderer.clear_render();
+            }
+        }
+
         const std::string scene_list = get_scene_list_for_imgui();
         const std::string envmap_list = get_envmap_list_for_imgui();
 
@@ -105,6 +142,8 @@ class SceneManager
         {
             fredholm::SceneLoader::load(entry.filepath, scene_graph);
             fredholm::CompiledScene compiled_scene = scene_graph.compile();
+
+            camera = compiled_scene.camera;
 
             scene_device = std::make_unique<fredholm::SceneDevice>();
             scene_device->send(context, compiled_scene);
@@ -142,8 +181,14 @@ class SceneManager
     }
 
     OptixDeviceContext context = nullptr;
-    fredholm::SceneGraph scene_graph;
+    fredholm::SceneGraph scene_graph = {};
+    fredholm::Camera camera = {};
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
+
+    // for imgui
+    float camera_fov = 90.0f;
+    float camera_F = 1.0f;
+    float camera_focus = 1.0f;
 
     int m_scene_index = 0;
     int m_envmap_index = 0;

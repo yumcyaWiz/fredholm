@@ -25,13 +25,13 @@ class Camera
     glm::mat4 m_transform = glm::identity<glm::mat4>();
 
     float m_fov = 0.5f * M_PI;
-    float m_F = 100.0f;        // F number
+    float m_F = 10000.0f;      // F number
     float m_focus = 10000.0f;  // focus distance
 
     float m_movement_speed = 1.0f;
     float m_look_around_speed = 0.1f;
 
-    glm::vec3 m_origin = glm::vec3(0.0f);
+    glm::vec3 m_origin = glm::vec3(0.0f, 1.0f, 2.0f);
     glm::vec3 m_forward = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 m_right = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 m_up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -45,7 +45,7 @@ class Camera
     }
 
    public:
-    Camera() {}
+    Camera() { update_transform(); }
 
     Camera(const glm::vec3& origin, const glm::vec3& forward)
         : m_origin(origin), m_forward(glm::normalize(forward))
