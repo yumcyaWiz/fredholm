@@ -38,6 +38,12 @@ class Camera
     float m_phi = 270.0f;
     float m_theta = 90.0f;
 
+    void update_transform()
+    {
+        m_transform = glm::inverse(
+            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
+    }
+
    public:
     Camera() {}
 
@@ -46,17 +52,14 @@ class Camera
     {
         m_right = glm::normalize(glm::cross(m_forward, glm::vec3(0, 1, 0)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
+        update_transform();
     }
 
     glm::vec3 get_origin() const { return m_origin; }
 
     glm::vec3 get_forward() const { return m_forward; }
 
-    glm::mat4 get_transform() const
-    {
-        return glm::inverse(
-            glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
-    }
+    glm::mat4 get_transform() const { return m_transform; }
     void set_transform(const glm::mat4& transform)
     {
         m_transform = transform;
@@ -115,6 +118,8 @@ class Camera
             }
             break;
         }
+
+        update_transform();
     }
 
     void look_around(float d_phi, float d_theta)
@@ -137,6 +142,8 @@ class Camera
         m_right =
             glm::normalize(glm::cross(m_forward, glm::vec3(0.0f, 1.0f, 0.0f)));
         m_up = glm::normalize(glm::cross(m_right, m_forward));
+
+        update_transform();
     }
 };
 
