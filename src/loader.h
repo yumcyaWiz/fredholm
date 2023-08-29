@@ -777,21 +777,23 @@ class SceneLoader
                buffer_view.byteOffset;
     }
 
-    static GeometryNode* load_gltf_mesh(const tinygltf::Mesh& mesh,
-                                        const tinygltf::Model& model,
-                                        uint32_t material_id_offset)
+    static std::vector<GeometryNode*> load_gltf_mesh(
+        const tinygltf::Mesh& mesh, const tinygltf::Model& model,
+        uint32_t material_id_offset)
     {
         spdlog::info("loading mesh: {}", mesh.name);
         spdlog::info("number of primitives: {}", mesh.primitives.size());
 
-        std::vector<float3> vertices = {};
-        std::vector<uint3> indices = {};
-        std::vector<float3> normals = {};
-        std::vector<float2> texcoords = {};
-        std::vector<uint> material_ids = {};
+        std::vector<GeometryNode*> ret = {};
 
         for (const auto& primitive : mesh.primitives)
         {
+            std::vector<float3> vertices = {};
+            std::vector<uint3> indices = {};
+            std::vector<float3> normals = {};
+            std::vector<float2> texcoords = {};
+            std::vector<uint> material_ids = {};
+
             // indices
             {
                 uint32_t indices_stride, indices_count = 0;
@@ -880,11 +882,13 @@ class SceneLoader
                     material_ids.push_back(material_id);
                 }
             }
+
+            ret.push_back(new GeometryNode(
+                std::move(vertices), std::move(indices), std::move(normals),
+                std::move(texcoords), std::move(material_ids)));
         }
 
-        return new GeometryNode(std::move(vertices), std::move(indices),
-                                std::move(normals), std::move(texcoords),
-                                std::move(material_ids));
+        return ret;
     }
 
     static void load_gltf_node(const tinygltf::Node& node,
@@ -898,11 +902,17 @@ class SceneLoader
         SceneNode* scene_node = nullptr;
         if (node.mesh != -1)
         {
-            GeometryNode* geometry = load_gltf_mesh(model.meshes[node.mesh],
-                                                    model, material_id_offset);
-            geometry->set_transform(transform);
-            parent->add_children(geometry);
-            scene_node = geometry;
+            const std::vector<GeometryNode*> geometries = load_gltf_mesh(
+                model.meshes[node.mesh], model, material_id_offset);
+
+            scene_node = new SceneNode();
+            scene_node->set_transform(transform);
+            parent->add_children(scene_node);
+
+            for (const auto& geometry : geometries)
+            {
+                scene_node->add_children(geometry);
+            }
         }
         else if (node.camera != -1)
         {
