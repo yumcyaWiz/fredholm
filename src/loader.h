@@ -833,6 +833,7 @@ class SceneLoader
             }
 
             // positions
+            if (primitive.attributes.contains("POSITION"))
             {
                 uint32_t positions_stride, positions_count = 0;
                 const auto buffer_raw = get_gltf_buffer_data(
@@ -851,8 +852,10 @@ class SceneLoader
                     vertices.push_back(pos);
                 }
             }
+            else { throw std::runtime_error("POSITION attribute is required"); }
 
             // normals
+            if (primitive.attributes.contains("NORMAL"))
             {
                 uint32_t normals_stride, normals_count = 0;
                 const auto buffer_raw = get_gltf_buffer_data(
@@ -870,8 +873,39 @@ class SceneLoader
                     normals.push_back(normal);
                 }
             }
+            else
+            {
+                // use face normal instead
+                uint32_t positions_stride, positions_count = 0;
+                const auto buffer_raw = get_gltf_buffer_data(
+                    model, primitive.attributes.at("POSITION"),
+                    positions_stride, positions_count);
+                if (positions_stride != 12)
+                {
+                    throw std::runtime_error(
+                        "positions stride must be 12 bytes");
+                }
+                const auto buffer = reinterpret_cast<const float*>(buffer_raw);
+                for (int i = 0; i < positions_count; i += 3)
+                {
+                    const glm::vec3 pos0 = {buffer[3 * i + 0],
+                                            buffer[3 * i + 1],
+                                            buffer[3 * i + 2]};
+                    const glm::vec3 pos1 = {buffer[3 * (i + 1) + 0],
+                                            buffer[3 * (i + 1) + 1],
+                                            buffer[3 * (i + 1) + 2]};
+                    const glm::vec3 pos2 = {buffer[3 * (i + 2) + 0],
+                                            buffer[3 * (i + 2) + 1],
+                                            buffer[3 * (i + 2) + 2]};
+                    const glm::vec3 normal =
+                        glm::normalize(glm::cross(pos1 - pos0, pos2 - pos0));
+                    normals.push_back(
+                        make_float3(normal.x, normal.y, normal.z));
+                }
+            }
 
             // texcoords
+            if (primitive.attributes.contains("TEXCOORD_0"))
             {
                 uint32_t texcoords_stride, texcoords_count = 0;
                 const auto buffer_raw = get_gltf_buffer_data(
@@ -888,6 +922,16 @@ class SceneLoader
                     const float2 texcoord = {buffer[2 * i + 0],
                                              buffer[2 * i + 1]};
                     texcoords.push_back(texcoord);
+                }
+            }
+            else
+            {
+                // use barycentric coordinates instead
+                for (int i = 0; i < indices.size(); ++i)
+                {
+                    texcoords.push_back(make_float2(0, 0));
+                    texcoords.push_back(make_float2(1, 0));
+                    texcoords.push_back(make_float2(0, 1));
                 }
             }
 
