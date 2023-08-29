@@ -76,42 +76,37 @@ class SceneManager
 
     void run_imgui(Renderer& renderer)
     {
-        if (ImGui::CollapsingHeader("Camera settings",
-                                    ImGuiTreeNodeFlags_DefaultOpen))
+        // TODO: place these inside camera?
+        const glm::vec3 origin = camera.get_origin();
+        ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y, origin.z);
+        const glm::vec3 forward = camera.get_forward();
+        ImGui::Text("forward: (%f, %f, %f)", forward.x, forward.y, forward.z);
+
+        camera_fov = rad_to_deg(camera.get_fov());
+        if (ImGui::InputFloat("fov", &camera_fov))
         {
-            // TODO: place these inside camera?
-            const glm::vec3 origin = camera.get_origin();
-            ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y, origin.z);
-            const glm::vec3 forward = camera.get_forward();
-            ImGui::Text("forward: (%f, %f, %f)", forward.x, forward.y,
-                        forward.z);
+            camera.set_fov(deg_to_rad(camera_fov));
+            renderer.clear_render();
+        }
 
-            camera_fov = rad_to_deg(camera.get_fov());
-            if (ImGui::InputFloat("fov", &camera_fov))
-            {
-                camera.set_fov(deg_to_rad(camera_fov));
-                renderer.clear_render();
-            }
+        camera_F = camera.get_F();
+        if (ImGui::InputFloat("F", &camera_F))
+        {
+            camera.set_F(camera_F);
+            renderer.clear_render();
+        }
 
-            camera_F = camera.get_F();
-            if (ImGui::InputFloat("F", &camera_F))
-            {
-                camera.set_F(camera_F);
-                renderer.clear_render();
-            }
+        camera_focus = camera.get_focus();
+        if (ImGui::InputFloat("focus", &camera_focus))
+        {
+            camera.set_focus(camera_focus);
+            renderer.clear_render();
+        }
 
-            camera_focus = camera.get_focus();
-            if (ImGui::InputFloat("focus", &camera_focus))
-            {
-                camera.set_focus(camera_focus);
-                renderer.clear_render();
-            }
-
-            camera_movement_speed = camera.get_movement_speed();
-            if (ImGui::InputFloat("movement speed", &camera_movement_speed))
-            {
-                camera.set_movement_speed(camera_movement_speed);
-            }
+        camera_movement_speed = camera.get_movement_speed();
+        if (ImGui::InputFloat("movement speed", &camera_movement_speed))
+        {
+            camera.set_movement_speed(camera_movement_speed);
         }
 
         const std::string scene_list = get_scene_list_for_imgui();
