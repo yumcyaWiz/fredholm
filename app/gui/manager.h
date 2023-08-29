@@ -225,6 +225,9 @@ class SceneManager
         {"CornellBox-Transmission(gltf)",
          std::filesystem::path(CMAKE_SOURCE_DIR) /
              "resources/scenes/cornellbox/CornellBox-Transmission.gltf"},
+        {"CornellBox-Normal(gltf)",
+         std::filesystem::path(CMAKE_SOURCE_DIR) /
+             "resources/scenes/cornellbox/CornellBox-Normal.gltf"},
         {"CornellBox-Camera-Animated(gltf)",
          std::filesystem::path(CMAKE_SOURCE_DIR) /
              "resources/scenes/cornellbox/CornellBox-Camera-Animated.gltf"},
