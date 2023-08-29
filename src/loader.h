@@ -621,7 +621,8 @@ class SceneLoader
         spdlog::info("loading texture: {}", texture.name);
         const auto& image = model.images[texture.source];
         // TODO: set colorspace correctly
-        return Texture(parent_filepath / image.uri, ColorSpace::SRGB);
+        return Texture(parent_filepath.parent_path() / image.uri,
+                       ColorSpace::SRGB);
     }
 
     static Material load_gltf_material(const tinygltf::Material& material,
