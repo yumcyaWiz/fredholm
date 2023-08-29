@@ -109,4 +109,8 @@ extern "C" CUDA_KERNEL void __closesthit__()
     {
         payload_ptr->color = make_float3(texcoord, 0.0f);
     }
+    else if (params.output_mode == 3)
+    {
+        payload_ptr->color = make_float3(barycentric, 0.0f);
+    }
 }
