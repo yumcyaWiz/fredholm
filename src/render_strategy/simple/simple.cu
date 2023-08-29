@@ -100,6 +100,12 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                             barycentric.x * tex1 + barycentric.y * tex2;
 
+    const uint material_id =
+        params.scene.material_ids[indices_offset + prim_id];
+    const Material& material = params.scene.materials[material_id];
+    const float3 diffuse_color =
+        material.get_diffuse_color(params.scene.textures, texcoord);
+
     if (params.output_mode == 0) { payload_ptr->color = x; }
     else if (params.output_mode == 1)
     {
@@ -113,4 +119,5 @@ extern "C" CUDA_KERNEL void __closesthit__()
     {
         payload_ptr->color = make_float3(barycentric, 0.0f);
     }
+    else if (params.output_mode == 4) { payload_ptr->color = diffuse_color; }
 }

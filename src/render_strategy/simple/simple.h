@@ -30,7 +30,7 @@ class SimpleStrategy : public RenderStrategy
         RenderStrategy::run_imgui();
 
         ImGui::Combo("mode", &output_mode,
-                     "Position\0Normal\0Texcoord\0Barycentric\0\0");
+                     "Position\0Normal\0Texcoord\0Barycentric\0Albedo\0\0");
     }
 
     void render(const Camera& camera, const SceneDevice& scene,
