@@ -100,26 +100,66 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
                             barycentric.x * tex1 + barycentric.y * tex2;
 
+    const uint material_id =
+        params.scene.material_ids[indices_offset + prim_id];
+    const Material& material = params.scene.materials[material_id];
+
+    // position
     if (params.output_mode == 0) { payload_ptr->color = x; }
+    // normal
     else if (params.output_mode == 1)
     {
         payload_ptr->color = 0.5f * (ns + 1.0f);
     }
+    // texcoord
     else if (params.output_mode == 2)
     {
         payload_ptr->color = make_float3(texcoord, 0.0f);
     }
+    // barycentric
     else if (params.output_mode == 3)
     {
         payload_ptr->color = make_float3(barycentric, 0.0f);
     }
+    // clearcoat
     else if (params.output_mode == 4)
     {
-        const uint material_id =
-            params.scene.material_ids[indices_offset + prim_id];
-        const Material& material = params.scene.materials[material_id];
+        const float clearcoat =
+            material.get_coat(params.scene.textures, texcoord);
+        payload_ptr->color = make_float3(clearcoat, clearcoat, clearcoat);
+    }
+    // specular
+    else if (params.output_mode == 5)
+    {
+        const float specular = material.specular;
+    }
+    // specular color
+    else if (params.output_mode == 6)
+    {
+        const float3 specular_color =
+            material.get_specular_color(params.scene.textures, texcoord);
+        payload_ptr->color = specular_color;
+    }
+    // transmission
+    else if (params.output_mode == 7)
+    {
+        const float transmission =
+            material.get_transmission(params.scene.textures, texcoord);
+        payload_ptr->color =
+            make_float3(transmission, transmission, transmission);
+    }
+    // diffuse color
+    else if (params.output_mode == 8)
+    {
         const float3 diffuse_color =
             material.get_diffuse_color(params.scene.textures, texcoord);
         payload_ptr->color = diffuse_color;
+    }
+    // emission color
+    else if (params.output_mode == 9)
+    {
+        const float3 emission_color =
+            material.get_emission_color(params.scene.textures, texcoord);
+        payload_ptr->color = emission_color;
     }
 }
