@@ -79,6 +79,9 @@ extern "C" CUDA_KERNEL void __closesthit__()
                           params.scene, material, prim_id, vertices_offset,
                           indices_offset, instance_id, geom_id);
 
+    ShadingParams shading_params(material, surf_info.texcoord,
+                                 params.scene.textures);
+
     // position
     if (params.output_mode == 0) { payload_ptr->color = surf_info.x; }
     // normal
@@ -96,41 +99,40 @@ extern "C" CUDA_KERNEL void __closesthit__()
     {
         payload_ptr->color = make_float3(surf_info.barycentric, 0.0f);
     }
-    // clearcoat
+    // clearcoat color
     else if (params.output_mode == 4)
     {
-        const float3 clearcoat =
-            material.get_coat(params.scene.textures, surf_info.texcoord) *
-            material.coat_color;
-        payload_ptr->color = clearcoat;
+        payload_ptr->color = shading_params.coat * shading_params.coat_color;
     }
     // specular color
     else if (params.output_mode == 5)
     {
-        const float3 specular_color =
-            material.specular * material.get_specular_color(
-                                    params.scene.textures, surf_info.texcoord);
-        payload_ptr->color = specular_color;
+        payload_ptr->color =
+            shading_params.specular * shading_params.specular_color;
     }
-    // transmission
+    // specular roughness
     else if (params.output_mode == 6)
     {
-        const float3 transmission =
-            material.get_transmission(params.scene.textures,
-                                      surf_info.texcoord) *
-            material.transmission_color;
-        payload_ptr->color = transmission;
+        payload_ptr->color = make_float3(shading_params.specular_roughness);
     }
-    // diffuse color
+    // metalness
     else if (params.output_mode == 7)
     {
-        const float3 diffuse_color =
-            material.diffuse * material.get_diffuse_color(params.scene.textures,
-                                                          surf_info.texcoord);
-        payload_ptr->color = diffuse_color;
+        payload_ptr->color = make_float3(shading_params.metalness);
+    }
+    // transmission color
+    else if (params.output_mode == 8)
+    {
+        payload_ptr->color =
+            shading_params.transmission * shading_params.transmission_color;
+    }
+    // diffuse color
+    else if (params.output_mode == 9)
+    {
+        payload_ptr->color = shading_params.diffuse * shading_params.base_color;
     }
     // emission color
-    else if (params.output_mode == 8)
+    else if (params.output_mode == 10)
     {
         const float3 emission_color =
             material.emission * material.get_emission_color(

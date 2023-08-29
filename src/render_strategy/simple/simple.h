@@ -29,9 +29,11 @@ class SimpleStrategy : public RenderStrategy
     {
         RenderStrategy::run_imgui();
 
-        ImGui::Combo("mode", &output_mode,
-                     "Position\0Normal\0Texcoord\0Barycentric\0Clearcoat\0Specu"
-                     "lar\0Transmission\0Diffuse\0Emission\0\0");
+        ImGui::Combo(
+            "mode", &output_mode,
+            "Position\0Normal\0Texcoord\0Barycentric\0Clearcoat\0Specu"
+            "lar\0Specular "
+            "Roughness\0Metalness\0Transmission\0Diffuse\0Emission\0\0");
     }
 
     void render(const Camera& camera, const SceneDevice& scene,
