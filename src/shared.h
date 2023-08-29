@@ -97,6 +97,12 @@ CUDA_INLINE CUDA_DEVICE float3 local_to_world(const float3& v, const float3& t,
                        v.x * t.z + v.y * n.z + v.z * b.z);
 }
 
+CUDA_INLINE CUDA_DEVICE float srgb_to_linear(float srgb)
+{
+    if (srgb <= 0.04045f) { return srgb / 12.92f; }
+    else { return powf((srgb + 0.055f) / 1.055f, 2.4f); }
+}
+
 enum class RayType : unsigned int
 {
     RAY_TYPE_RADIANCE = 0,
@@ -348,9 +354,9 @@ struct Material
         const TextureHeader* textures, const float2& texcoord) const
     {
         return specular_roughness_texture_id != FRED_INVALID_ID
-                   ? textures[specular_roughness_texture_id]
-                         .sample<uchar4>(texcoord)
-                         .x
+                   ? srgb_to_linear(textures[specular_roughness_texture_id]
+                                        .sample<uchar4>(texcoord)
+                                        .x)
                    : specular_roughness;
     }
 
@@ -358,7 +364,9 @@ struct Material
                                                 const float2& texcoord) const
     {
         return metalness_texture_id != FRED_INVALID_ID
-                   ? textures[metalness_texture_id].sample<uchar4>(texcoord).x
+                   ? srgb_to_linear(textures[metalness_texture_id]
+                                        .sample<uchar4>(texcoord)
+                                        .x)
                    : metalness;
     }
 
@@ -366,7 +374,8 @@ struct Material
                                            const float2& texcoord) const
     {
         return coat_texture_id != FRED_INVALID_ID
-                   ? textures[coat_texture_id].sample<uchar4>(texcoord).x
+                   ? srgb_to_linear(
+                         textures[coat_texture_id].sample<uchar4>(texcoord).x)
                    : coat;
     }
 
@@ -374,9 +383,9 @@ struct Material
         const TextureHeader* textures, const float2& texcoord) const
     {
         return coat_roughness_texture_id != FRED_INVALID_ID
-                   ? textures[coat_roughness_texture_id]
-                         .sample<uchar4>(texcoord)
-                         .x
+                   ? srgb_to_linear(textures[coat_roughness_texture_id]
+                                        .sample<uchar4>(texcoord)
+                                        .x)
                    : coat_roughness;
     }
 
@@ -384,9 +393,9 @@ struct Material
         const TextureHeader* textures, const float2& texcoord) const
     {
         return transmission_texture_id != FRED_INVALID_ID
-                   ? textures[transmission_texture_id]
-                         .sample<uchar4>(texcoord)
-                         .x
+                   ? srgb_to_linear(textures[transmission_texture_id]
+                                        .sample<uchar4>(texcoord)
+                                        .x)
                    : transmission;
     }
 

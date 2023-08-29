@@ -260,8 +260,8 @@ struct ShadingParams
             const float4 mr =
                 textures[material.metallic_roughness_texture_id].sample<uchar4>(
                     texcoord);
-            specular_roughness = clamp(mr.y, 0.01f, 1.0f);
-            metalness = clamp(mr.z, 0.0f, 1.0f);
+            specular_roughness = clamp(srgb_to_linear(mr.y), 0.01f, 1.0f);
+            metalness = clamp(srgb_to_linear(mr.z), 0.0f, 1.0f);
         }
 
         // metalness
