@@ -19,7 +19,7 @@ class ImageLoader
         uint32_t& height)
     {
         int w, h, c;
-        stbi_set_flip_vertically_on_load(true);
+        stbi_set_flip_vertically_on_load(false);
         unsigned char* img =
             stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
         if (img == nullptr)
