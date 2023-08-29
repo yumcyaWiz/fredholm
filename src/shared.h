@@ -401,9 +401,9 @@ struct Material
         const TextureHeader* textures, const float2& texcoord) const
     {
         return emission_texture_id >= 0
-                   ? make_float3(
-                         textures[emission_texture_id].sample<uchar4>(texcoord))
-                   : emission_color;
+                   ? emission * make_float3(textures[emission_texture_id]
+                                                .sample<uchar4>(texcoord))
+                   : emission * emission_color;
     }
 };
 

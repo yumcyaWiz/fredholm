@@ -624,7 +624,6 @@ class SceneDevice
 
         // load area lights
         std::vector<AreaLight> area_lights;
-        /*
         for (int geom_id = 0; geom_id < compiled_scene.geometry_nodes.size();
              ++geom_id)
         {
@@ -648,7 +647,6 @@ class SceneDevice
                 }
             }
         }
-        */
 
         spdlog::info("===scene device info===");
         spdlog::info("# of vertices: {}", vertices.size());

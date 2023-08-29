@@ -778,8 +778,19 @@ class SceneLoader
         // emission texture
         if (material.emissiveTexture.index != -1)
         {
+            ret.emission = 1.0f;
             ret.emission_texture_id =
                 material.emissiveTexture.index + texture_id_offset;
+        }
+
+        if (material.extensions.contains("KHR_materials_emissive_strength"))
+        {
+            const auto& p =
+                material.extensions.at("KHR_materials_emissive_strength");
+            if (p.Has("emissiveStrength"))
+            {
+                ret.emission = p.Get("emissiveStrength").GetNumberAsDouble();
+            }
         }
 
         // normal texture
