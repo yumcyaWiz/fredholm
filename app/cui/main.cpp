@@ -43,8 +43,11 @@ int main()
         options.n_spp = 512;
         renderer.set_render_strategy(fredholm::RenderStrategyType::PT, options);
 
+        fredholm::DirectionalLight directional_light;
+        directional_light.le = make_float3(0, 0, 0);
+
         // render
-        renderer.render(camera, scene_device);
+        renderer.render(camera, directional_light, scene_device);
         renderer.synchronize();
         renderer.save_image("output.png");
     }

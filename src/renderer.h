@@ -158,10 +158,12 @@ class Renderer
     }
 
     // TODO: renderer should manage camera and scene?
-    void render(const Camera& camera, const SceneDevice& scene)
+    void render(const Camera& camera, const DirectionalLight& directional_light,
+                const SceneDevice& scene)
     {
         if (paused) return;
-        m_render_strategy->render(camera, scene, scene.get_ias_handle());
+        m_render_strategy->render(camera, directional_light, scene,
+                                  scene.get_ias_handle());
         run_post_process();
     }
 

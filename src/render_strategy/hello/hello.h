@@ -25,7 +25,8 @@ class HelloStrategy : public RenderStrategy
         }
     }
 
-    void render(const Camera& camera, const SceneDevice& scene,
+    void render(const Camera& camera, const DirectionalLight& directional_light,
+                const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle) override
     {
         HelloStrategyParams params;

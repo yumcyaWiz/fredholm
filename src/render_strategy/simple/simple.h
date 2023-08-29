@@ -36,14 +36,15 @@ class SimpleStrategy : public RenderStrategy
             "Roughness\0Metalness\0Transmission\0Diffuse\0Emission\0\0");
     }
 
-    void render(const Camera& camera, const SceneDevice& scene,
+    void render(const Camera& camera, const DirectionalLight& directional_light,
+                const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle) override
     {
         SimpleStrategyParams params;
         params.width = options.resolution.x;
         params.height = options.resolution.y;
         params.camera = get_camera_params(camera);
-        params.scene = get_scene_data(scene);
+        params.scene = get_scene_data(scene, directional_light);
         params.output_mode = output_mode;
         params.ias_handle = ias_handle;
         params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());

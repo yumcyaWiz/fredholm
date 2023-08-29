@@ -63,7 +63,8 @@ class PtStrategy : public RenderStrategy
         }
     }
 
-    void render(const Camera& camera, const SceneDevice& scene,
+    void render(const Camera& camera, const DirectionalLight& directional_light,
+                const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle) override
     {
         if (sample_count >= options.n_samples) return;
@@ -72,7 +73,7 @@ class PtStrategy : public RenderStrategy
         params.width = options.resolution.x;
         params.height = options.resolution.y;
         params.camera = get_camera_params(camera);
-        params.scene = get_scene_data(scene);
+        params.scene = get_scene_data(scene, directional_light);
         params.ias_handle = ias_handle;
         params.n_samples = options.n_spp;
         params.max_depth = options.max_depth;

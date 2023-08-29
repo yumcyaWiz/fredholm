@@ -378,7 +378,7 @@ class SceneGraph
 class SceneDevice
 {
    public:
-    SceneDevice() { directional_light.le = make_float3(0, 0, 0); }
+    SceneDevice() {}
 
     CUdeviceptr get_vertices() const { return vertices_buffer; }
     CUdeviceptr get_indices() const { return indices_buffer; }
@@ -397,12 +397,6 @@ class SceneDevice
 
     uint2 get_envmap_resolution() const { return envmap_resolution; }
     CUdeviceptr get_envmap() const { return envmap_buffer; }
-
-    DirectionalLight get_directional_light() const { return directional_light; }
-    void set_directional_light(const DirectionalLight& light)
-    {
-        directional_light = light;
-    }
 
     uint32_t get_n_vertices() const { return n_vertices; }
     uint32_t get_n_faces() const { return n_faces; }
@@ -930,8 +924,6 @@ class SceneDevice
 
     uint2 envmap_resolution = make_uint2(0, 0);
     CUdeviceptr envmap_buffer = 0;
-
-    DirectionalLight directional_light = {};
 
     // statistics
     uint32_t n_vertices = 0;

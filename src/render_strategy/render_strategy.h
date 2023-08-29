@@ -187,7 +187,9 @@ class RenderStrategy
     // pattern)
     virtual void run_imgui() {}
 
-    virtual void render(const Camera& camera, const SceneDevice& scene,
+    virtual void render(const Camera& camera,
+                        const DirectionalLight& directional_light,
+                        const SceneDevice& scene,
                         const OptixTraversableHandle& ias_handle) = 0;
 
    protected:
@@ -219,7 +221,8 @@ class RenderStrategy
     }
 
     // TODO: this should be defined on SceneDevice
-    static SceneData get_scene_data(const SceneDevice& scene)
+    static SceneData get_scene_data(const SceneDevice& scene,
+                                    const DirectionalLight& directional_light)
     {
         SceneData scene_data;
         scene_data.vertices = reinterpret_cast<float3*>(scene.get_vertices());
@@ -253,7 +256,7 @@ class RenderStrategy
         scene_data.envmap.height = scene.get_envmap_resolution().y;
         scene_data.envmap.data = scene.get_envmap();
 
-        scene_data.directional_light = scene.get_directional_light();
+        scene_data.directional_light = directional_light;
 
         return scene_data;
     }

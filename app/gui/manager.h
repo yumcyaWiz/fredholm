@@ -74,6 +74,11 @@ class SceneManager
 
     fredholm::Camera& get_camera() { return camera; }
 
+    fredholm::DirectionalLight& get_directional_light()
+    {
+        return directional_light;
+    }
+
     void run_imgui(Renderer& renderer)
     {
         // TODO: place these inside camera?
@@ -125,6 +130,32 @@ class SceneManager
             load_envmap();
             renderer.clear_render();
         }
+
+        if (ImGui::InputFloat3("directional light color",
+                               directional_light_color))
+        {
+            directional_light.le = make_float3(directional_light_color[0],
+                                               directional_light_color[1],
+                                               directional_light_color[2]);
+            renderer.clear_render();
+        }
+
+        if (ImGui::InputFloat3("directional light direction",
+                               directional_light_direction))
+        {
+            directional_light.dir = normalize(make_float3(
+                directional_light_direction[0], directional_light_direction[1],
+                directional_light_direction[2]));
+            renderer.clear_render();
+        }
+
+        if (ImGui::InputFloat("directional light angle",
+                              &directional_light_angle))
+        {
+            directional_light.angle = deg_to_rad(directional_light_angle);
+            renderer.clear_render();
+        }
+
         ImGui::Text("# of vertices: %d", scene_device->get_n_vertices());
         ImGui::Text("# of faces: %d", scene_device->get_n_faces());
         ImGui::Text("# of materials: %d", scene_device->get_n_materials());
@@ -188,6 +219,7 @@ class SceneManager
     OptixDeviceContext context = nullptr;
     fredholm::SceneGraph scene_graph = {};
     fredholm::Camera camera = {};
+    fredholm::DirectionalLight directional_light = {};
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
 
     // for imgui
@@ -195,6 +227,10 @@ class SceneManager
     float camera_F = 1.0f;
     float camera_focus = 1.0f;
     float camera_movement_speed = 1.0f;
+
+    float directional_light_color[3] = {0.0f, 0.0f, 0.0f};
+    float directional_light_direction[3] = {0.0f, 0.0f, 0.0f};
+    float directional_light_angle = 0.0f;
 
     int m_scene_index = 0;
     int m_envmap_index = 1;
