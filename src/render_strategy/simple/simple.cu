@@ -99,42 +99,42 @@ extern "C" CUDA_KERNEL void __closesthit__()
     // clearcoat
     else if (params.output_mode == 4)
     {
-        const float clearcoat =
-            material.get_coat(params.scene.textures, surf_info.texcoord);
-        payload_ptr->color = make_float3(clearcoat, clearcoat, clearcoat);
-    }
-    // specular
-    else if (params.output_mode == 5)
-    {
-        const float specular = material.specular;
+        const float3 clearcoat =
+            material.get_coat(params.scene.textures, surf_info.texcoord) *
+            material.coat_color;
+        payload_ptr->color = clearcoat;
     }
     // specular color
-    else if (params.output_mode == 6)
+    else if (params.output_mode == 5)
     {
-        const float3 specular_color = material.get_specular_color(
-            params.scene.textures, surf_info.texcoord);
+        const float3 specular_color =
+            material.specular * material.get_specular_color(
+                                    params.scene.textures, surf_info.texcoord);
         payload_ptr->color = specular_color;
     }
     // transmission
-    else if (params.output_mode == 7)
+    else if (params.output_mode == 6)
     {
-        const float transmission = material.get_transmission(
-            params.scene.textures, surf_info.texcoord);
-        payload_ptr->color =
-            make_float3(transmission, transmission, transmission);
+        const float3 transmission =
+            material.get_transmission(params.scene.textures,
+                                      surf_info.texcoord) *
+            material.transmission_color;
+        payload_ptr->color = transmission;
     }
     // diffuse color
-    else if (params.output_mode == 8)
+    else if (params.output_mode == 7)
     {
-        const float3 diffuse_color = material.get_diffuse_color(
-            params.scene.textures, surf_info.texcoord);
+        const float3 diffuse_color =
+            material.diffuse * material.get_diffuse_color(params.scene.textures,
+                                                          surf_info.texcoord);
         payload_ptr->color = diffuse_color;
     }
     // emission color
-    else if (params.output_mode == 9)
+    else if (params.output_mode == 8)
     {
-        const float3 emission_color = material.get_emission_color(
-            params.scene.textures, surf_info.texcoord);
+        const float3 emission_color =
+            material.emission * material.get_emission_color(
+                                    params.scene.textures, surf_info.texcoord);
         payload_ptr->color = emission_color;
     }
 }
