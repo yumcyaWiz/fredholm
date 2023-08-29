@@ -937,8 +937,14 @@ class SceneLoader
 
             // material ids
             {
-                const auto& material_id =
-                    primitive.material + material_id_offset;
+                uint32_t material_id = primitive.material + material_id_offset;
+                // some scenes could have invalid material id
+                if (primitive.material == -1)
+                {
+                    material_id = material_id_offset;
+                    spdlog::warn("material id must be specified");
+                }
+
                 for (int i = 0; i < indices.size(); ++i)
                 {
                     material_ids.push_back(material_id);
