@@ -62,11 +62,11 @@ class BSDF
 
         // disable coat, metal, specular, sheen, diffuse reflection when
         // evaluating from inside
-        m_params.coat = m_is_entering ? m_params.coat : 0.0f;
-        m_params.metalness = m_is_entering ? m_params.metalness : 0.0f;
-        m_params.specular = m_is_entering ? m_params.specular : 0.0f;
-        m_params.sheen = m_is_entering ? m_params.sheen : 0.0f;
-        m_params.diffuse = m_is_entering ? m_params.diffuse : 0.0f;
+        // m_params.coat = m_is_entering ? m_params.coat : 0.0f;
+        // m_params.metalness = m_is_entering ? m_params.metalness : 0.0f;
+        // m_params.specular = m_is_entering ? m_params.specular : 0.0f;
+        // m_params.sheen = m_is_entering ? m_params.sheen : 0.0f;
+        // m_params.diffuse = m_is_entering ? m_params.diffuse : 0.0f;
 
         // compute weights of each BxDF
         // coat, metal, specular, transmission, sheen, diffuse transmission,

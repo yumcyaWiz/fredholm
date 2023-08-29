@@ -157,7 +157,7 @@ struct SurfaceInfo
 
         // flip normal
         is_entering = dot(-direction, n_g) > 0;
-        n_s = is_entering ? n_s : -n_s;
+        n_s = is_entering > 0 ? n_s : -n_s;
         n_g = is_entering ? n_g : -n_g;
 
         // compute tangent and bitangent vector
