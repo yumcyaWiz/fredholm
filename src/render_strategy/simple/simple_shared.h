@@ -13,6 +13,7 @@ struct SimpleStrategyParams
     uint height;
     CameraParams camera;
     SceneData scene;
+    uint output_mode;
 
     OptixTraversableHandle ias_handle;
 

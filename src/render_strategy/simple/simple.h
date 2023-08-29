@@ -1,5 +1,6 @@
 #pragma once
 #include "cuda_util.h"
+#include "imgui.h"
 #include "render_strategy/render_strategy.h"
 #include "simple_shared.h"
 
@@ -24,6 +25,13 @@ class SimpleStrategy : public RenderStrategy
         }
     }
 
+    void run_imgui() override
+    {
+        RenderStrategy::run_imgui();
+
+        ImGui::Combo("mode", &output_mode, "Position\0Normal\0Texcoord\0\0");
+    }
+
     void render(const Camera& camera, const SceneDevice& scene,
                 const OptixTraversableHandle& ias_handle) override
     {
@@ -32,6 +40,7 @@ class SimpleStrategy : public RenderStrategy
         params.height = options.resolution.y;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene);
+        params.output_mode = output_mode;
         params.ias_handle = ias_handle;
         params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
         cuda_check(
@@ -62,6 +71,8 @@ class SimpleStrategy : public RenderStrategy
 
         cuda_check(cuMemAlloc(&params_buffer, sizeof(SimpleStrategyParams)));
     }
+
+    int output_mode = 0;
 
     CUdeviceptr params_buffer = 0;
 };

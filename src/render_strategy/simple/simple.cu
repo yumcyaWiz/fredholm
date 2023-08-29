@@ -71,8 +71,19 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const uint3 idx =
         params.scene.indices[indices_offset + prim_id] + vertices_offset;
 
+    const Matrix3x4 object_to_world =
+        params.scene.object_to_worlds[instance_id];
     const Matrix3x4 world_to_object =
         params.scene.world_to_objects[instance_id];
+
+    const float3 v0 =
+        transform_position(object_to_world, params.scene.vertices[idx.x]);
+    const float3 v1 =
+        transform_position(object_to_world, params.scene.vertices[idx.y]);
+    const float3 v2 =
+        transform_position(object_to_world, params.scene.vertices[idx.z]);
+    const float3 x = (1.0f - barycentric.x - barycentric.y) * v0 +
+                     barycentric.x * v1 + barycentric.y * v2;
 
     const float3 n0 =
         transform_normal(world_to_object, params.scene.normals[idx.x]);
@@ -83,5 +94,19 @@ extern "C" CUDA_KERNEL void __closesthit__()
     const float3 ns = normalize((1.0f - barycentric.x - barycentric.y) * n0 +
                                 barycentric.x * n1 + barycentric.y * n2);
 
-    payload_ptr->color = 0.5f * (ns + 1.0f);
+    const float2 tex0 = params.scene.texcoords[idx.x];
+    const float2 tex1 = params.scene.texcoords[idx.y];
+    const float2 tex2 = params.scene.texcoords[idx.z];
+    const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
+                            barycentric.x * tex1 + barycentric.y * tex2;
+
+    if (params.output_mode == 0) { payload_ptr->color = x; }
+    else if (params.output_mode == 1)
+    {
+        payload_ptr->color = 0.5f * (ns + 1.0f);
+    }
+    else if (params.output_mode == 2)
+    {
+        payload_ptr->color = make_float3(texcoord, 0.0f);
+    }
 }
