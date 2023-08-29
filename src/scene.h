@@ -153,6 +153,8 @@ struct CompiledScene
     std::vector<Texture> m_textures = {};
 
     Camera camera = {};
+
+    Texture envmap = {};
 };
 
 // TODO: add lights
@@ -204,6 +206,7 @@ class SceneGraph
         }
         ret.m_materials = m_materials;
         ret.m_textures = m_textures;
+        ret.envmap = envmap;
         return ret;
     }
 
@@ -328,11 +331,9 @@ class SceneDevice
     uint32_t get_n_textures() const { return n_textures; }
     uint32_t get_n_area_lights() const { return n_area_lights; }
 
-    void send(const OptixDeviceContext& context, const SceneGraph& scene_graph)
+    void send(const OptixDeviceContext& context,
+              const CompiledScene& compiled_scene)
     {
-        // compile scene graph
-        const CompiledScene compiled_scene = scene_graph.compile();
-
         // build GAS
         destroy_gas();
 
@@ -598,9 +599,9 @@ class SceneDevice
         }
 
         // load envmap
-        if (scene_graph.has_envmap())
+        if (compiled_scene.envmap.get_filepath().generic_string().size() > 0)
         {
-            const Texture& envmap = scene_graph.get_envmap();
+            const Texture& envmap = compiled_scene.envmap;
 
             uint32_t width, height;
             const std::vector<float3> image = ImageLoader::load_hdr_image(

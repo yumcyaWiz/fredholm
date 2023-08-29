@@ -34,9 +34,10 @@ int main()
 
         fredholm::SceneGraph scene;
         fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
+        fredholm::CompiledScene compiled_scene = scene.compile();
 
         fredholm::SceneDevice scene_device;
-        scene_device.send(context, scene);
+        scene_device.send(context, compiled_scene);
 
         fredholm::RenderOptions options;
         options.n_spp = 512;

@@ -104,8 +104,10 @@ class SceneManager
         if (entry.is_valid())
         {
             fredholm::SceneLoader::load(entry.filepath, scene_graph);
+            fredholm::CompiledScene compiled_scene = scene_graph.compile();
+
             scene_device = std::make_unique<fredholm::SceneDevice>();
-            scene_device->send(context, scene_graph);
+            scene_device->send(context, compiled_scene);
         }
     }
 
@@ -116,8 +118,10 @@ class SceneManager
         {
             fredholm::SceneLoader::load_envmap(entry.filepath, scene_graph);
             // TODO: update only envmap
+            fredholm::CompiledScene compiled_scene = scene_graph.compile();
+
             scene_device = std::make_unique<fredholm::SceneDevice>();
-            scene_device->send(context, scene_graph);
+            scene_device->send(context, compiled_scene);
         }
     }
 
