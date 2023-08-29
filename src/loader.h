@@ -756,6 +756,8 @@ class SceneLoader
                 ret.transmission =
                     p.Get("transmissionFactor").GetNumberAsDouble();
                 ret.transmission_color = make_float3(1, 1, 1);
+                ret.specular = 1.0f;
+                ret.specular_color = make_float3(1, 1, 1);
             }
             // transmission(texture)
             if (p.Has("transmissionTexture"))
@@ -763,6 +765,8 @@ class SceneLoader
                 ret.transmission_texture_id =
                     p.Get("transmissionTexture").GetNumberAsInt();
                 ret.transmission_color = make_float3(1, 1, 1);
+                ret.specular = 1.0f;
+                ret.specular_color = make_float3(1, 1, 1);
             }
         }
 
