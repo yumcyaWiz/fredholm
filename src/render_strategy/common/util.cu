@@ -238,16 +238,18 @@ struct ShadingParams
         diffuse = clamp(material.diffuse, 0.0f, 1.0f);
 
         // diffuse roughness
-        diffuse_roughness = clamp(material.diffuse_roughness, 0.0f, 1.0f);
+        diffuse_roughness = clamp(material.diffuse_roughness, 0.01f, 1.0f);
 
         // diffuse color
-        base_color = material.get_diffuse_color(textures, texcoord);
+        base_color = clamp(material.get_diffuse_color(textures, texcoord),
+                           make_float3(0.01f), make_float3(0.99f));
 
         // specular
         specular = clamp(material.specular, 0.0f, 1.0f);
 
         // specular color
-        specular_color = material.get_specular_color(textures, texcoord);
+        specular_color = clamp(material.get_specular_color(textures, texcoord),
+                               make_float3(0.01f), make_float3(0.99f));
 
         // specular roughness
         specular_roughness = clamp(
