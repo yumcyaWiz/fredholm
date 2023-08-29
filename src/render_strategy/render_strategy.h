@@ -253,6 +253,8 @@ class RenderStrategy
         scene_data.envmap.height = scene.get_envmap_resolution().y;
         scene_data.envmap.data = scene.get_envmap();
 
+        scene_data.directional_light = scene.get_directional_light();
+
         return scene_data;
     }
 

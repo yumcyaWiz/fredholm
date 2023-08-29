@@ -425,9 +425,14 @@ struct AreaLight
 
 struct DirectionalLight
 {
-    float3 le;        // emission
-    float3 dir;       // direction
-    float angle = 0;  // angle size
+    float3 le;    // emission
+    float3 dir;   // direction
+    float angle;  // angle size
+
+    CUDA_INLINE CUDA_DEVICE bool is_valid()
+    {
+        return le.x > 0 || le.y > 0 || le.z > 0;
+    }
 };
 
 // TODO: maybe this could be removed and use SceneDevice instead?
@@ -452,6 +457,8 @@ struct SceneData
     uint n_area_lights;
 
     TextureHeader envmap;
+
+    DirectionalLight directional_light;
 };
 
 }  // namespace fredholm

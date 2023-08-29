@@ -135,6 +135,28 @@ sample_position_on_light(const SceneData& scene, float u, const float2& v,
     return p;
 }
 
+static CUDA_INLINE CUDA_DEVICE float3 sample_position_on_directional_light(
+    const SceneData& scene, const float2& u, float3& le)
+{
+    constexpr float DIRECTIONAL_LIGHT_DISTANCE = 1e9f;
+
+    le = scene.directional_light.le;
+
+    // sample point on disk
+    const float2 p_disk = sample_concentric_disk(u);
+
+    // compute world space position
+    const float disk_radius =
+        DIRECTIONAL_LIGHT_DISTANCE *
+        tan(deg_to_rad(0.5f * scene.directional_light.angle));
+    float3 t, b;
+    orthonormal_basis(scene.directional_light.dir, t, b);
+    const float3 p = DIRECTIONAL_LIGHT_DISTANCE * scene.directional_light.dir +
+                     disk_radius * (t * p_disk.x + b * p_disk.y);
+
+    return p;
+}
+
 // balance heuristics
 static CUDA_INLINE CUDA_DEVICE float compute_mis_weight(float pdf0, float pdf1)
 {
@@ -309,6 +331,34 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
                                       abs_cos_theta(wi) / pdf;
                 const float3 le =
                     fetch_envmap(params.scene.envmap, shadow_ray_direction);
+                payload->radiance += weight * le;
+            }
+        }
+
+        // directional light
+        if (params.scene.directional_light.is_valid())
+        {
+            float3 le;
+            const float3 p = sample_position_on_directional_light(
+                params.scene, sample_2d(payload->sampler), le);
+            const float3 shadow_ray_direction =
+                normalize(p - shadow_ray_origin);
+
+            ShadowPayload shadow_payload;
+            trace_shadow(params.ias_handle, shadow_ray_origin,
+                         shadow_ray_direction, 0.0f, FLT_MAX, &shadow_payload);
+
+            if (shadow_payload.visible)
+            {
+                const float3 wi =
+                    world_to_local(shadow_ray_direction, surf_info.tangent,
+                                   surf_info.n_s, surf_info.bitangent);
+                const float3 f = bsdf.eval(wo, wi);
+                const float pdf = 1.0f;
+                const float pdf_bsdf = bsdf.eval_pdf(wo, wi);
+                const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
+                const float3 weight = payload->throughput * mis_weight * f *
+                                      abs_cos_theta(wi) / pdf;
                 payload->radiance += weight * le;
             }
         }
