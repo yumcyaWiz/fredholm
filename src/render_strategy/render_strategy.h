@@ -228,10 +228,12 @@ class RenderStrategy
         scene_data.texcoords = reinterpret_cast<float2*>(scene.get_texcoords());
         scene_data.materials =
             reinterpret_cast<Material*>(scene.get_materials());
+        scene_data.n_materials = scene.get_n_materials();
         scene_data.material_ids =
             reinterpret_cast<uint*>(scene.get_material_ids());
         scene_data.textures =
             reinterpret_cast<TextureHeader*>(scene.get_textures());
+        scene_data.n_textures = scene.get_n_textures();
         scene_data.n_vertices =
             reinterpret_cast<uint*>(scene.get_n_vertices_buffer());
         scene_data.n_faces =

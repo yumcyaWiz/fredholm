@@ -198,6 +198,8 @@ class SceneGraph
         m_materials.clear();
         m_textures.clear();
 
+        m_animations.clear();
+
         envmap = {};
     }
 
@@ -597,6 +599,9 @@ class SceneDevice
         std::vector<TextureHeader> texture_headers;
         for (const auto& texture : compiled_scene.m_textures)
         {
+            spdlog::info("loading texture: {}",
+                         texture.get_filepath().generic_string());
+
             TextureHeader header;
 
             // TODO: change loading based on texture colorspace
@@ -615,8 +620,11 @@ class SceneDevice
             texture_headers.push_back(header);
         }
 
+        spdlog::info("loading area lights");
+
         // load area lights
         std::vector<AreaLight> area_lights;
+        /*
         for (int geom_id = 0; geom_id < compiled_scene.geometry_nodes.size();
              ++geom_id)
         {
@@ -640,6 +648,7 @@ class SceneDevice
                 }
             }
         }
+        */
 
         spdlog::info("===scene device info===");
         spdlog::info("# of vertices: {}", vertices.size());
@@ -655,6 +664,8 @@ class SceneDevice
 
         // allocate scene data on device
         destroy_scene_data();
+
+        spdlog::info("allocating scene data on device");
 
         cuda_check(
             cuMemAlloc(&vertices_buffer, vertices.size() * sizeof(float3)));
@@ -731,6 +742,8 @@ class SceneDevice
                                     area_lights.size() * sizeof(AreaLight)));
             n_area_lights = area_lights.size();
         }
+
+        spdlog::info("loading envmap");
 
         // load envmap
         if (compiled_scene.envmap.get_filepath().generic_string().size() > 0)

@@ -381,8 +381,9 @@ struct Material
 
     CUDA_INLINE CUDA_DEVICE bool has_emission() const
     {
-        return (emission_color.x > 0 || emission_color.y > 0 ||
-                emission_color.z > 0 || emission_texture_id != FRED_INVALID_ID);
+        return (emission_color.x > 0.0f || emission_color.y > 0.0f ||
+                emission_color.z > 0.0f ||
+                emission_texture_id != FRED_INVALID_ID);
     }
 
     CUDA_INLINE CUDA_DEVICE float3 get_emission_color(
@@ -412,12 +413,14 @@ struct DirectionalLight
 // TODO: maybe this could be removed and use SceneDevice instead?
 struct SceneData
 {
-    float3* vertices;             // key: vertex id
-    uint3* indices;               // key: vertex id
-    float3* normals;              // key: vertex id
-    float2* texcoords;            // key: vertex id
-    Material* materials;          // key: material id
-    TextureHeader* textures;      // key: texture id
+    float3* vertices;     // key: vertex id
+    uint3* indices;       // key: vertex id
+    float3* normals;      // key: vertex id
+    float2* texcoords;    // key: vertex id
+    Material* materials;  // key: material id
+    uint n_materials;
+    TextureHeader* textures;  // key: texture id
+    uint n_textures;
     uint* material_ids;           // key: face id
     uint* n_vertices;             // key: geometry id
     uint* n_faces;                // key: geometry id

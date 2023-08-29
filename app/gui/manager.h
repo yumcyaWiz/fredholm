@@ -224,7 +224,7 @@ class SceneManager
         {"Sponza", std::filesystem::path(CMAKE_SOURCE_DIR) /
                        "resources/scenes/sponza/Sponza.gltf"},
         {"AI58_009", std::filesystem::path(CMAKE_SOURCE_DIR) /
-                         "resources/scenes/ai58/AI58_009.obj"},
+                         "resources/scenes/ai58/AI58_009.gltf"},
         {"AE33_006", std::filesystem::path(CMAKE_SOURCE_DIR) /
                          "resources/scenes/ae33_006/AE33_006.obj"},
     };
