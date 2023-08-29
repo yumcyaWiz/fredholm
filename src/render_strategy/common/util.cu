@@ -235,26 +235,27 @@ struct ShadingParams
                                           const TextureHeader* textures)
     {
         // diffuse
-        diffuse = material.diffuse;
+        diffuse = clamp(material.diffuse, 0.0f, 1.0f);
 
         // diffuse roughness
-        diffuse_roughness = material.diffuse_roughness;
+        diffuse_roughness = clamp(material.diffuse_roughness, 0.0f, 1.0f);
 
         // diffuse color
         base_color = material.get_diffuse_color(textures, texcoord);
 
         // specular
-        specular = material.specular;
+        specular = clamp(material.specular, 0.0f, 1.0f);
 
         // specular color
         specular_color = material.get_specular_color(textures, texcoord);
 
         // specular roughness
-        specular_roughness =
-            material.get_specular_roughness(textures, texcoord);
+        specular_roughness = clamp(
+            material.get_specular_roughness(textures, texcoord), 0.01f, 1.0f);
 
         // metalness
-        metalness = material.get_metalness(textures, texcoord);
+        metalness =
+            clamp(material.get_metalness(textures, texcoord), 0.0f, 1.0f);
 
         // metallic roughness
         // TODO: implement this in Material
@@ -268,31 +269,33 @@ struct ShadingParams
         }
 
         // coat
-        coat = material.get_coat(textures, texcoord);
+        coat = clamp(material.get_coat(textures, texcoord), 0.0f, 1.0f);
 
         // coat roughness
-        coat_roughness = material.get_coat_roughness(textures, texcoord);
+        coat_roughness =
+            clamp(material.get_coat_roughness(textures, texcoord), 0.01f, 1.0f);
 
         // transmission
-        transmission = material.get_transmission(textures, texcoord);
+        transmission =
+            clamp(material.get_transmission(textures, texcoord), 0.0f, 1.0f);
 
         // transmission color
         transmission_color = material.transmission_color;
 
         // sheen
-        sheen = material.sheen;
+        sheen = clamp(material.sheen, 0.0f, 1.0f);
 
         // sheen roughness
-        sheen_roughness = material.sheen_roughness;
+        sheen_roughness = clamp(material.sheen_roughness, 0.01f, 1.0f);
 
         // subsurface
-        subsurface = material.subsurface;
+        subsurface = clamp(material.subsurface, 0.0f, 1.0f);
 
         // subsurface color
         subsurface_color = material.subsurface_color;
 
         // thin walled
-        thin_walled = material.thin_walled;
+        thin_walled = clamp(material.thin_walled, 0.0f, 1.0f);
     }
 };
 

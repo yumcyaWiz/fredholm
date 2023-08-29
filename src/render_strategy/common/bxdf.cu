@@ -754,11 +754,11 @@ class MicrofacetTransmission
         return 1.0f / (1.0f + lambda(wo) + lambda(wi));
     }
 
-    float m_ior_i;
-    float m_ior_t;
-    float2 m_alpha;
-    float m_thin_film_thickness;
-    float m_thin_film_ior;
+    float m_ior_i = 1.0f;
+    float m_ior_t = 1.5f;
+    float2 m_alpha = {0.0f, 0.0f};
+    float m_thin_film_thickness = 0.0f;
+    float m_thin_film_ior = 1.5f;
 };
 
 // Production Friendly Microfacet Sheen BRDF
