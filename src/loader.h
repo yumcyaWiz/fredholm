@@ -905,13 +905,10 @@ class SceneLoader
             const std::vector<GeometryNode*> geometries = load_gltf_mesh(
                 model.meshes[node.mesh], model, material_id_offset);
 
-            scene_node = new SceneNode();
-            scene_node->set_transform(transform);
-            parent->add_children(scene_node);
-
             for (const auto& geometry : geometries)
             {
-                scene_node->add_children(geometry);
+                geometry->set_transform(transform);
+                parent->add_children(geometry);
             }
         }
         else if (node.camera != -1)
@@ -923,13 +920,13 @@ class SceneLoader
             scene_node = new SceneNode();
             scene_node->set_transform(transform);
             parent->add_children(scene_node);
-        }
 
-        // load children
-        for (const auto& child_idx : node.children)
-        {
-            const auto& child = model.nodes[child_idx];
-            load_gltf_node(child, model, scene_node, material_id_offset);
+            // load children
+            for (const auto& child_idx : node.children)
+            {
+                const auto& child = model.nodes[child_idx];
+                load_gltf_node(child, model, scene_node, material_id_offset);
+            }
         }
     }
 };
