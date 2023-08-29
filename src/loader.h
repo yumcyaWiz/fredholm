@@ -697,11 +697,8 @@ class SceneLoader
         }
 
         // TODO: load KHR_materials_anisotropy
-        // TODO: load KHR_materials_ior
         // TODO: load KHR_materials_iridescence
         // TODO: load KHR_materials_sheen
-        // TODO: load KHR_materials_specular
-        // TODO: load KHR_materials_transmission
         // TODO: load KHR_materials_volume
 
         if (material.extensions.contains("KHR_materials_specular"))
@@ -734,6 +731,38 @@ class SceneLoader
                 ret.specular = 1.0f;
                 ret.specular_color_texture_id =
                     p.Get("specularColorTexture").GetNumberAsInt();
+            }
+        }
+
+        if (material.extensions.contains("KHR_materials_ior"))
+        {
+            const auto& p = material.extensions.at("KHR_materials_ior");
+
+            // ior
+            if (p.Has("ior"))
+            {
+                // TODO: implement
+            }
+        }
+
+        if (material.extensions.contains("KHR_materials_transmission"))
+        {
+            const auto& p =
+                material.extensions.at("KHR_materials_transmission");
+
+            // transmission
+            if (p.Has("transmissionFactor"))
+            {
+                ret.transmission =
+                    p.Get("transmissionFactor").GetNumberAsDouble();
+                ret.transmission_color = make_float3(1, 1, 1);
+            }
+            // transmission(texture)
+            if (p.Has("transmissionTexture"))
+            {
+                ret.transmission_texture_id =
+                    p.Get("transmissionTexture").GetNumberAsInt();
+                ret.transmission_color = make_float3(1, 1, 1);
             }
         }
 

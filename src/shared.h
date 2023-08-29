@@ -306,6 +306,7 @@ struct Material
 
     float transmission = 0;
     float3 transmission_color = make_float3(1, 1, 1);
+    int transmission_texture_id = FRED_INVALID_ID;
 
     float sheen = 0.0f;
     float3 sheen_color = make_float3(1.0f, 1.0f, 1.0f);
@@ -377,6 +378,16 @@ struct Material
                          .sample<uchar4>(texcoord)
                          .x
                    : coat_roughness;
+    }
+
+    CUDA_INLINE CUDA_DEVICE float get_transmission(
+        const TextureHeader* textures, const float2& texcoord) const
+    {
+        return transmission_texture_id != FRED_INVALID_ID
+                   ? textures[transmission_texture_id]
+                         .sample<uchar4>(texcoord)
+                         .x
+                   : transmission;
     }
 
     CUDA_INLINE CUDA_DEVICE bool has_emission() const

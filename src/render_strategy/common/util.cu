@@ -274,7 +274,7 @@ struct ShadingParams
         coat_roughness = material.get_coat_roughness(textures, texcoord);
 
         // transmission
-        transmission = material.transmission;
+        transmission = material.get_transmission(textures, texcoord);
 
         // transmission color
         transmission_color = material.transmission_color;
