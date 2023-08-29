@@ -118,6 +118,7 @@ class SceneManager
             load_scene();
             renderer.clear_render();
         }
+
         if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
         {
             load_envmap();
@@ -205,6 +206,9 @@ class SceneManager
         {"CornellBox-Textured(gltf)",
          std::filesystem::path(CMAKE_SOURCE_DIR) /
              "resources/scenes/cornellbox/CornellBox-Textured.gltf"},
+        {"CornellBox-Camera-Animated(gltf)",
+         std::filesystem::path(CMAKE_SOURCE_DIR) /
+             "resources/scenes/cornellbox/CornellBox-Camera-Animated.gltf"},
         {"test", std::filesystem::path(CMAKE_SOURCE_DIR) /
                      "resources/scenes/test/test.json"},
         {"Sponza", std::filesystem::path(CMAKE_SOURCE_DIR) /
