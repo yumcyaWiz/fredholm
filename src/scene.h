@@ -140,6 +140,26 @@ struct CameraNode : public SceneNode
     float aspect_ratio = 1.0f;
 };
 
+struct Animation
+{
+    SceneNode* target_node = nullptr;
+
+    std::vector<float> translation_times = {};
+    std::vector<glm::vec3> translation_values = {};
+
+    std::vector<float> rotation_times = {};
+    std::vector<glm::quat> rotation_values = {};
+
+    std::vector<float> scale_times = {};
+    std::vector<glm::vec3> scale_values = {};
+
+    bool is_valid() const { return target_node != nullptr; }
+
+    bool has_translation() const { return translation_times.size() > 0; }
+    bool has_rotation() const { return rotation_times.size() > 0; }
+    bool has_scale() const { return scale_times.size() > 0; }
+};
+
 // used for creating GAS and IAS
 // TODO: maybe this can be placed inside SceneDevice?
 struct CompiledScene
@@ -215,7 +235,58 @@ class SceneGraph
         for (const auto& root : root_nodes) { print_tree(root, ""); }
     }
 
+    void update_animation(const float time)
+    {
+        for (const auto& animation : m_animations)
+        {
+            if (!animation.is_valid()) continue;
+
+            glm::vec3 transform = {0.0f, 0.0f, 0.0f};
+            if (animation.has_translation())
+            {
+                transform = animation_lerp(animation.translation_times,
+                                           animation.translation_values, time);
+            }
+
+            glm::quat rotation = {1.0f, 0.0f, 0.0f, 0.0f};
+            if (animation.has_rotation())
+            {
+                rotation = animation_lerp(animation.rotation_times,
+                                          animation.rotation_values, time);
+            }
+
+            glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+            if (animation.has_scale())
+            {
+                scale = animation_lerp(animation.scale_times,
+                                       animation.scale_values, time);
+            }
+
+            const glm::mat4 transform_new =
+                glm::translate(glm::identity<glm::mat4>(), transform) *
+                glm::mat4_cast(rotation) *
+                glm::scale(glm::identity<glm::mat4>(), scale);
+
+            animation.target_node->set_transform(transform_new);
+        }
+    }
+
    private:
+    template <typename T>
+    static T animation_lerp(const std::vector<float>& times,
+                            const std::vector<T>& values, const float time)
+    {
+        const float t = std::fmod(time, times.back());
+        const int idx1 =
+            std::lower_bound(times.begin(), times.end(), t) - times.begin();
+        const int idx0 = std::max(idx1 - 1, 0);
+
+        const float h = (t - times[idx0]) / (times[idx1] - times[idx0]);
+        const T value0 = values[idx0];
+        const T value1 = values[idx1];
+        return glm::mix(value0, value1, h);
+    }
+
     void destroy(SceneNode* node)
     {
         if (node == nullptr) return;
@@ -297,6 +368,8 @@ class SceneGraph
     std::vector<Texture> m_textures = {};
 
     Texture envmap = {};
+
+    std::vector<Animation> m_animations = {};
 };
 
 // scene data on device

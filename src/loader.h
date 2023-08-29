@@ -17,6 +17,7 @@ using json = nlohmann::json;
 
 namespace fredholm
 {
+
 // https://vulkan-tutorial.com/Loading_models
 // vertex deduplication
 struct Vertex
@@ -31,10 +32,12 @@ struct Vertex
                texcoord == other.texcoord;
     }
 };
+
 }  // namespace fredholm
 
 namespace std
 {
+
 template <>
 struct hash<fredholm::Vertex>
 {
@@ -46,6 +49,7 @@ struct hash<fredholm::Vertex>
                (hash<glm::vec2>()(vertex.texcoord) << 1);
     }
 };
+
 }  // namespace std
 
 namespace fredholm
