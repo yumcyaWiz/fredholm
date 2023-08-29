@@ -704,6 +704,39 @@ class SceneLoader
         // TODO: load KHR_materials_transmission
         // TODO: load KHR_materials_volume
 
+        if (material.extensions.contains("KHR_materials_specular"))
+        {
+            const auto& p = material.extensions.at("KHR_materials_specular");
+
+            // specular
+            if (p.Has("specularFactor"))
+            {
+                ret.specular = p.Get("specularFactor").GetNumberAsDouble();
+            }
+            // specular color
+            if (p.Has("specularColorFactor"))
+            {
+                const auto& c = p.Get("specularColorFactor");
+                ret.specular_color = make_float3(c.Get(0).GetNumberAsDouble(),
+                                                 c.Get(1).GetNumberAsDouble(),
+                                                 c.Get(2).GetNumberAsDouble());
+            }
+            // specular texture
+            if (p.Has("specularTexture"))
+            {
+                ret.specular = 1.0f;
+                ret.specular_color_texture_id =
+                    p.Get("specularTexture").GetNumberAsInt();
+            }
+            // specular color texture
+            if (p.Has("specularColorTexture"))
+            {
+                ret.specular = 1.0f;
+                ret.specular_color_texture_id =
+                    p.Get("specularColorTexture").GetNumberAsInt();
+            }
+        }
+
         // emission
         if (material.emissiveFactor.size() == 3)
         {
