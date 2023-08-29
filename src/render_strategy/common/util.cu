@@ -253,10 +253,6 @@ struct ShadingParams
         specular_roughness = clamp(
             material.get_specular_roughness(textures, texcoord), 0.01f, 1.0f);
 
-        // metalness
-        metalness =
-            clamp(material.get_metalness(textures, texcoord), 0.0f, 1.0f);
-
         // metallic roughness
         // TODO: implement this in Material
         if (material.metallic_roughness_texture_id != FRED_INVALID_ID)
@@ -267,6 +263,10 @@ struct ShadingParams
             specular_roughness = clamp(mr.y, 0.01f, 1.0f);
             metalness = clamp(mr.z, 0.0f, 1.0f);
         }
+
+        // metalness
+        metalness =
+            clamp(material.get_metalness(textures, texcoord), 0.0f, 1.0f);
 
         // coat
         coat = clamp(material.get_coat(textures, texcoord), 0.0f, 1.0f);
