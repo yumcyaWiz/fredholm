@@ -57,6 +57,14 @@ class Camera
         return glm::inverse(
             glm::lookAt(m_origin, m_origin + 0.01f * m_forward, m_up));
     }
+    void set_transform(const glm::mat4& transform)
+    {
+        m_transform = transform;
+        m_origin = glm::vec3(transform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        m_forward = glm::vec3(transform * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
+        m_right = glm::vec3(transform * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+        m_up = glm::vec3(transform * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+    }
 
     float get_fov() const { return m_fov; }
 

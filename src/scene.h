@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 
+#include "camera.h"
 #include "glm/glm.hpp"
 #include "helper_math.h"
 #include "image_io.h"
@@ -42,6 +43,7 @@ enum class SceneNodeType
     DEFAULT,
     GEOMETRY,
     INSTANCE,
+    CAMERA,
 };
 
 class SceneNode
@@ -119,6 +121,25 @@ struct InstanceNode : public SceneNode
     const GeometryNode* geometry = nullptr;
 };
 
+// always leaf node
+struct CameraNode : public SceneNode
+{
+    CameraNode()
+    {
+        name = "CameraNode";
+        type = SceneNodeType::CAMERA;
+    }
+
+    void set_fov(const float fov) { this->fov = fov; }
+    void set_aspect_ratio(const float aspect_ratio)
+    {
+        this->aspect_ratio = aspect_ratio;
+    }
+
+    float fov = 0.0f;
+    float aspect_ratio = 1.0f;
+};
+
 // used for creating GAS and IAS
 // TODO: maybe this can be placed inside SceneDevice?
 struct CompiledScene
@@ -184,6 +205,16 @@ class SceneGraph
         return ret;
     }
 
+    Camera compile_camera() const
+    {
+        Camera ret;
+        for (const auto& root : root_nodes)
+        {
+            compile_camera(root, glm::identity<glm::mat4>(), ret);
+        }
+        return ret;
+    }
+
     void print_tree() const
     {
         for (const auto& root : root_nodes) { print_tree(root, ""); }
@@ -196,6 +227,47 @@ class SceneGraph
 
         for (auto child : node->get_children()) { destroy(child); }
         delete node;
+    }
+
+    void compile_camera(const SceneNode* node, const glm::mat4& transform,
+                        Camera& camera) const
+    {
+        if (node == nullptr) return;
+
+        const glm::mat4 transform_new = transform * node->get_transform();
+
+        switch (node->get_type())
+        {
+            case SceneNodeType::DEFAULT:
+            {
+                for (const auto& child : node->get_children())
+                {
+                    compile_camera(child, transform_new, camera);
+                }
+                break;
+            }
+            case SceneNodeType::CAMERA:
+            {
+                const CameraNode* camera_node =
+                    static_cast<const CameraNode*>(node);
+
+                // TODO: handle multiple camera
+                // TODO: set aspect ratio
+                camera.set_transform(transform_new);
+                camera.set_fov(camera_node->fov);
+
+                return;
+            }
+            case SceneNodeType::GEOMETRY:
+            case SceneNodeType::INSTANCE:
+            {
+                break;
+            }
+            default:
+            {
+                throw std::runtime_error("unknown scene node type");
+            }
+        }
     }
 
     void compile_nodes(const SceneNode* node, const glm::mat4& transform,
