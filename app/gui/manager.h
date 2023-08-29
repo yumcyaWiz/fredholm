@@ -153,6 +153,9 @@ class SceneManager
              "resources/scenes/cornellbox/CornellBox-Texture.obj"},
         {"CornellBox(gltf)", std::filesystem::path(CMAKE_SOURCE_DIR) /
                                  "resources/scenes/cornellbox/CornellBox.gltf"},
+        {"CornellBox-Textured(gltf)",
+         std::filesystem::path(CMAKE_SOURCE_DIR) /
+             "resources/scenes/cornellbox/CornellBox-Textured.gltf"},
         {"test", std::filesystem::path(CMAKE_SOURCE_DIR) /
                      "resources/scenes/test/test.json"},
         {"Sponza", std::filesystem::path(CMAKE_SOURCE_DIR) /
