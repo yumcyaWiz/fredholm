@@ -803,18 +803,32 @@ class SceneLoader
                 uint32_t indices_stride, indices_count = 0;
                 const auto buffer_raw = get_gltf_buffer_data(
                     model, primitive.indices, indices_stride, indices_count);
-                // TODO: support 32bit indices
-                if (indices_stride != 2)
+                if (indices_stride == 2)
                 {
-                    throw std::runtime_error("indices stride must be 2 bytes");
+                    const auto buffer =
+                        reinterpret_cast<const unsigned short*>(buffer_raw);
+                    for (int i = 0; i < indices_count / 3; ++i)
+                    {
+                        const uint3 idx = {buffer[3 * i + 0], buffer[3 * i + 1],
+                                           buffer[3 * i + 2]};
+                        indices.push_back(idx);
+                    }
                 }
-                const auto buffer =
-                    reinterpret_cast<const unsigned short*>(buffer_raw);
-                for (int i = 0; i < indices_count / 3; ++i)
+                else if (indices_stride == 4)
                 {
-                    const uint3 idx = {buffer[3 * i + 0], buffer[3 * i + 1],
-                                       buffer[3 * i + 2]};
-                    indices.push_back(idx);
+                    const auto buffer =
+                        reinterpret_cast<const unsigned int*>(buffer_raw);
+                    for (int i = 0; i < indices_count / 3; ++i)
+                    {
+                        const uint3 idx = {buffer[3 * i + 0], buffer[3 * i + 1],
+                                           buffer[3 * i + 2]};
+                        indices.push_back(idx);
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error(
+                        "indices stride must be 2 or 4 bytes");
                 }
             }
 
