@@ -230,6 +230,9 @@ class SceneManager
                      "resources/scenes/test/test.json"},
         {"Sponza", std::filesystem::path(CMAKE_SOURCE_DIR) /
                        "resources/scenes/sponza/Sponza.gltf"},
+        {"Modern Mansion", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                               "resources/scenes/blender_eevee_modern_mansion/"
+                               "modern_mansion_2_eevee.gltf"},
         {"AI58_009", std::filesystem::path(CMAKE_SOURCE_DIR) /
                          "resources/scenes/ai58/AI58_009.gltf"},
         {"AE33_006", std::filesystem::path(CMAKE_SOURCE_DIR) /
