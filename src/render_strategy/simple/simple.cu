@@ -63,69 +63,44 @@ extern "C" CUDA_KERNEL void __closesthit__()
 
     const uint prim_id = optixGetPrimitiveIndex();
     const uint instance_id = optixGetInstanceIndex();
-    const float2 barycentric = optixGetTriangleBarycentrics();
-
     const uint geom_id = params.scene.geometry_ids[instance_id];
     const uint vertices_offset = params.scene.n_vertices[geom_id];
     const uint indices_offset = params.scene.n_faces[geom_id];
-    const uint3 idx =
-        params.scene.indices[indices_offset + prim_id] + vertices_offset;
 
-    const Matrix3x4 object_to_world =
-        params.scene.object_to_worlds[instance_id];
-    const Matrix3x4 world_to_object =
-        params.scene.world_to_objects[instance_id];
+    const Material material =
+        get_material(params.scene, prim_id, indices_offset);
 
-    const float3 v0 =
-        transform_position(object_to_world, params.scene.vertices[idx.x]);
-    const float3 v1 =
-        transform_position(object_to_world, params.scene.vertices[idx.y]);
-    const float3 v2 =
-        transform_position(object_to_world, params.scene.vertices[idx.z]);
-    const float3 x = (1.0f - barycentric.x - barycentric.y) * v0 +
-                     barycentric.x * v1 + barycentric.y * v2;
+    const float3 ray_origin = optixGetWorldRayOrigin();
+    const float3 ray_direction = optixGetWorldRayDirection();
+    const float ray_tmax = optixGetRayTmax();
+    const float2 barycentric = optixGetTriangleBarycentrics();
 
-    const float3 n0 =
-        transform_normal(world_to_object, params.scene.normals[idx.x]);
-    const float3 n1 =
-        transform_normal(world_to_object, params.scene.normals[idx.y]);
-    const float3 n2 =
-        transform_normal(world_to_object, params.scene.normals[idx.z]);
-    const float3 ns = normalize((1.0f - barycentric.x - barycentric.y) * n0 +
-                                barycentric.x * n1 + barycentric.y * n2);
-
-    const float2 tex0 = params.scene.texcoords[idx.x];
-    const float2 tex1 = params.scene.texcoords[idx.y];
-    const float2 tex2 = params.scene.texcoords[idx.z];
-    const float2 texcoord = (1.0f - barycentric.x - barycentric.y) * tex0 +
-                            barycentric.x * tex1 + barycentric.y * tex2;
-
-    const uint material_id =
-        params.scene.material_ids[indices_offset + prim_id];
-    const Material& material = params.scene.materials[material_id];
+    SurfaceInfo surf_info(ray_origin, ray_direction, ray_tmax, barycentric,
+                          params.scene, material, prim_id, vertices_offset,
+                          indices_offset, instance_id, geom_id);
 
     // position
-    if (params.output_mode == 0) { payload_ptr->color = x; }
+    if (params.output_mode == 0) { payload_ptr->color = surf_info.x; }
     // normal
     else if (params.output_mode == 1)
     {
-        payload_ptr->color = 0.5f * (ns + 1.0f);
+        payload_ptr->color = 0.5f * (surf_info.n_s + 1.0f);
     }
     // texcoord
     else if (params.output_mode == 2)
     {
-        payload_ptr->color = make_float3(texcoord, 0.0f);
+        payload_ptr->color = make_float3(surf_info.texcoord, 0.0f);
     }
     // barycentric
     else if (params.output_mode == 3)
     {
-        payload_ptr->color = make_float3(barycentric, 0.0f);
+        payload_ptr->color = make_float3(surf_info.barycentric, 0.0f);
     }
     // clearcoat
     else if (params.output_mode == 4)
     {
         const float clearcoat =
-            material.get_coat(params.scene.textures, texcoord);
+            material.get_coat(params.scene.textures, surf_info.texcoord);
         payload_ptr->color = make_float3(clearcoat, clearcoat, clearcoat);
     }
     // specular
@@ -136,30 +111,30 @@ extern "C" CUDA_KERNEL void __closesthit__()
     // specular color
     else if (params.output_mode == 6)
     {
-        const float3 specular_color =
-            material.get_specular_color(params.scene.textures, texcoord);
+        const float3 specular_color = material.get_specular_color(
+            params.scene.textures, surf_info.texcoord);
         payload_ptr->color = specular_color;
     }
     // transmission
     else if (params.output_mode == 7)
     {
-        const float transmission =
-            material.get_transmission(params.scene.textures, texcoord);
+        const float transmission = material.get_transmission(
+            params.scene.textures, surf_info.texcoord);
         payload_ptr->color =
             make_float3(transmission, transmission, transmission);
     }
     // diffuse color
     else if (params.output_mode == 8)
     {
-        const float3 diffuse_color =
-            material.get_diffuse_color(params.scene.textures, texcoord);
+        const float3 diffuse_color = material.get_diffuse_color(
+            params.scene.textures, surf_info.texcoord);
         payload_ptr->color = diffuse_color;
     }
     // emission color
     else if (params.output_mode == 9)
     {
-        const float3 emission_color =
-            material.get_emission_color(params.scene.textures, texcoord);
+        const float3 emission_color = material.get_emission_color(
+            params.scene.textures, surf_info.texcoord);
         payload_ptr->color = emission_color;
     }
 }
