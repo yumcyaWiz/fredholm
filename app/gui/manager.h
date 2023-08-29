@@ -213,6 +213,8 @@ class SceneManager
                      "resources/scenes/test/test.json"},
         {"Sponza", std::filesystem::path(CMAKE_SOURCE_DIR) /
                        "resources/scenes/sponza/Sponza.gltf"},
+        {"AI58", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                     "resources/scenes/ai58/AI58_009.gltf"},
     };
 
     const std::vector<EnvmapListEntry> m_envmaps = {
