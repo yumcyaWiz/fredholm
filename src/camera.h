@@ -81,6 +81,11 @@ class Camera
 
     void set_focus(float focus) { m_focus = focus; }
 
+    float get_movement_speed() const { return m_movement_speed; }
+    void set_movement_speed(float speed) { m_movement_speed = speed; }
+
+    void set_look_around_speed(float speed) { m_look_around_speed = speed; }
+
     void move(const CameraMovement& direction, float dt)
     {
         const float velocity = m_movement_speed * dt;

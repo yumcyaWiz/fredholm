@@ -106,6 +106,12 @@ class SceneManager
                 camera.set_focus(camera_focus);
                 renderer.clear_render();
             }
+
+            camera_movement_speed = camera.get_movement_speed();
+            if (ImGui::InputFloat("movement speed", &camera_movement_speed))
+            {
+                camera.set_movement_speed(camera_movement_speed);
+            }
         }
 
         const std::string scene_list = get_scene_list_for_imgui();
@@ -142,6 +148,9 @@ class SceneManager
         if (entry.is_valid())
         {
             fredholm::SceneLoader::load(entry.filepath, scene_graph);
+            const auto& envmap_entry = m_envmaps[m_envmap_index];
+            fredholm::SceneLoader::load_envmap(envmap_entry.filepath,
+                                               scene_graph);
             fredholm::CompiledScene compiled_scene = scene_graph.compile();
 
             camera = compiled_scene.camera;
@@ -190,9 +199,10 @@ class SceneManager
     float camera_fov = 90.0f;
     float camera_F = 1.0f;
     float camera_focus = 1.0f;
+    float camera_movement_speed = 1.0f;
 
     int m_scene_index = 0;
-    int m_envmap_index = 0;
+    int m_envmap_index = 1;
 
     const std::vector<SceneListEntry> m_scenes = {
         {"CornellBox-Original",
@@ -213,8 +223,10 @@ class SceneManager
                      "resources/scenes/test/test.json"},
         {"Sponza", std::filesystem::path(CMAKE_SOURCE_DIR) /
                        "resources/scenes/sponza/Sponza.gltf"},
-        {"AI58", std::filesystem::path(CMAKE_SOURCE_DIR) /
-                     "resources/scenes/ai58/AI58_009.gltf"},
+        {"AI58_009", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                         "resources/scenes/ai58/AI58_009.obj"},
+        {"AE33_006", std::filesystem::path(CMAKE_SOURCE_DIR) /
+                         "resources/scenes/ae33_006/AE33_006.obj"},
     };
 
     const std::vector<EnvmapListEntry> m_envmaps = {
