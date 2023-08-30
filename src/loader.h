@@ -605,21 +605,144 @@ class SceneLoader
         }
 
         // load nodes
-        std::vector<SceneNode*> ret = {};
+        std::vector<SceneNode*> nodes = {};
         for (const auto& node_idx : model.scenes[0].nodes)
         {
             SceneNode* root = new SceneNode();
-            ret.push_back(root);
+            nodes.push_back(root);
 
             load_gltf_node(node_idx, model, root, material_id_offset);
         }
 
-        return ret;
+        // load animations
+        for (const auto& animation : model.animations)
+        {
+            const Animation anim = load_gltf_animation(animation, model, nodes);
+            scene_graph.add_animation(anim);
+        }
+
+        return nodes;
     }
 
-    static Animation load_gltf_animation(const tinygltf::Animation& animation)
+    static void find_node(SceneNode* root, uint32_t node_idx,
+                          std::vector<SceneNode*>& nodes)
     {
-        // TODO: implement
+        if (root == nullptr) return;
+
+        if (root->get_id() == node_idx) { nodes.push_back(root); }
+
+        for (const auto& child : root->get_children())
+        {
+            find_node(child, node_idx, nodes);
+        }
+    }
+
+    static Animation load_gltf_animation(
+        const tinygltf::Animation& animation, const tinygltf::Model& model,
+        const std::vector<SceneNode*>& root_nodes)
+    {
+        Animation ret = {};
+
+        const uint32_t target_node_idx = animation.channels[0].target_node;
+
+        std::vector<SceneNode*> target_nodes = {};
+        for (const auto& root : root_nodes)
+        {
+            find_node(root, target_node_idx, target_nodes);
+        }
+        if (target_nodes.size() == 0)
+        {
+            throw std::runtime_error(
+                std::format("failed to find node with id {}", target_node_idx));
+        }
+        for (const auto& node : target_nodes)
+        {
+            ret.target_nodes.push_back(node);
+        }
+
+        for (const auto& channel : animation.channels)
+        {
+            const auto& sampler = animation.samplers[channel.sampler];
+
+            // load input
+            uint32_t input_stride, input_count;
+            const auto input_raw = get_gltf_buffer_data(
+                model, sampler.input, input_stride, input_count);
+            if (input_stride != 4)
+            {
+                throw std::runtime_error("invalid input stride");
+            }
+
+            const auto input = reinterpret_cast<const float*>(input_raw);
+            for (int i = 0; i < input_count; ++i)
+            {
+                if (channel.target_path == "translation")
+                {
+                    ret.translation_times.push_back(input[i]);
+                }
+                else if (channel.target_path == "rotation")
+                {
+                    ret.rotation_times.push_back(input[i]);
+                }
+                else if (channel.target_path == "scale")
+                {
+                    ret.scale_times.push_back(input[i]);
+                }
+            }
+
+            // load output
+            uint32_t output_stride, output_count;
+            const auto output_raw = get_gltf_buffer_data(
+                model, sampler.output, output_stride, output_count);
+            if (input_count != output_count)
+            {
+                throw std::runtime_error("input and output count mismatch");
+            }
+
+            const auto output = reinterpret_cast<const float*>(output_raw);
+            if (channel.target_path == "translation")
+            {
+                if (output_stride != 12)
+                {
+                    throw std::runtime_error(
+                        "invalid translation output stride");
+                }
+                for (int i = 0; i < output_count; ++i)
+                {
+                    ret.translation_values.push_back(
+                        glm::vec3(output[3 * i + 0], output[3 * i + 1],
+                                  output[3 * i + 2]));
+                }
+            }
+            else if (channel.target_path == "rotation")
+            {
+                if (output_stride != 16)
+                {
+                    throw std::runtime_error("invalid rotation output stride");
+                }
+                for (int i = 0; i < output_count; ++i)
+                {
+                    ret.rotation_values.push_back(
+                        glm::quat(output[4 * i + 3], output[4 * i + 0],
+                                  output[4 * i + 1], output[4 * i + 2]));
+                }
+            }
+            else if (channel.target_path == "scale")
+            {
+                if (output_stride != 12)
+                {
+                    throw std::runtime_error("invalid scale output stride");
+                }
+                for (int i = 0; i < output_count; ++i)
+                {
+                    ret.scale_values.push_back(glm::vec3(output[3 * i + 0],
+                                                         output[3 * i + 1],
+                                                         output[3 * i + 2]));
+                }
+            }
+        }
+
+        return ret;
     }
 
     static Texture load_gltf_texture(

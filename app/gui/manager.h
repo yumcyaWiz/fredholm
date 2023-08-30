@@ -79,8 +79,15 @@ class SceneManager
         return directional_light;
     }
 
-    void run_imgui(Renderer& renderer)
+    void run_imgui(fredholm::Renderer& renderer)
     {
+        ImGui::Checkbox("animation", &animation);
+        if (animation)
+        {
+            ImGui::InputFloat("animation time", &animation_time);
+            update_animation(renderer);
+        }
+
         // TODO: place these inside camera?
         const glm::vec3 origin = camera.get_origin();
         ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y, origin.z);
@@ -202,6 +209,18 @@ class SceneManager
     const SceneDevice& get_scene_device() const { return *scene_device; }
 
    private:
+    void update_animation(fredholm::Renderer& renderer)
+    {
+        animation_time += ImGui::GetIO().DeltaTime;
+
+        scene_graph.update_animation(animation_time);
+        fredholm::CompiledScene compiled_scene = scene_graph.compile();
+        // TODO: update object transforms
+        camera = compiled_scene.camera;
+
+        renderer.clear_render();
+    }
+
     void load_scene()
     {
         const auto& entry = m_scenes[m_scene_index];
@@ -266,6 +285,9 @@ class SceneManager
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
 
     // for imgui
+    bool animation = false;
+    float animation_time = 0.0f;
+
     float camera_fov = 90.0f;
     float camera_F = 1.0f;
     float camera_focus = 1.0f;

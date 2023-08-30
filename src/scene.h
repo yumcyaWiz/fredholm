@@ -146,7 +146,7 @@ struct CameraNode : public SceneNode
 
 struct Animation
 {
-    SceneNode* target_node = nullptr;
+    std::vector<SceneNode*> target_nodes = {};
 
     std::vector<float> translation_times = {};
     std::vector<glm::vec3> translation_values = {};
@@ -157,7 +157,7 @@ struct Animation
     std::vector<float> scale_times = {};
     std::vector<glm::vec3> scale_values = {};
 
-    bool is_valid() const { return target_node != nullptr; }
+    bool is_valid() const { return target_nodes.size() > 0; }
 
     bool has_translation() const { return translation_times.size() > 0; }
     bool has_rotation() const { return rotation_times.size() > 0; }
@@ -216,6 +216,12 @@ class SceneGraph
 
     void add_texture(const Texture& texture) { m_textures.push_back(texture); }
 
+    void add_animation(const Animation& animation)
+    {
+        m_animations.push_back(animation);
+    }
+    bool has_animation() const { return m_animations.size() > 0; }
+
     const Texture& get_envmap() const { return envmap; }
     void set_envmap(const Texture& texture) { envmap = texture; }
     bool has_envmap() const
@@ -273,7 +279,10 @@ class SceneGraph
                 glm::mat4_cast(rotation) *
                 glm::scale(glm::identity<glm::mat4>(), scale);
 
-            animation.target_node->set_transform(transform_new);
+            for (const auto& node : animation.target_nodes)
+            {
+                node->set_transform(transform_new);
+            }
         }
     }
 
@@ -287,7 +296,9 @@ class SceneGraph
             std::lower_bound(times.begin(), times.end(), t) - times.begin();
         const int idx0 = std::max(idx1 - 1, 0);
 
-        const float h = (t - times[idx0]) / (times[idx1] - times[idx0]);
+        float h = (t - times[idx0]) / (times[idx1] - times[idx0]);
+        if (idx0 == idx1) { h = 0.0f; }
+
         const T value0 = values[idx0];
         const T value1 = values[idx1];
         return glm::mix(value0, value1, h);
