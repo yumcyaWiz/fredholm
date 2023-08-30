@@ -344,7 +344,7 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
                     le =
                         fetch_envmap(params.scene.envmap, shadow_ray_direction);
                 }
-                payload->radiance += weight * le;
+                payload->radiance += regularize_weight(weight) * le;
             }
         }
 
@@ -372,7 +372,7 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
                 const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
                 const float3 weight = payload->throughput * mis_weight * f *
                                       abs_cos_theta(wi) / pdf;
-                payload->radiance += weight * le;
+                payload->radiance += regularize_weight(weight) * le;
             }
         }
 
@@ -406,7 +406,7 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
                 const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
                 const float3 weight = payload->throughput * mis_weight * f *
                                       abs_cos_theta(wi) / pdf;
-                payload->radiance += weight * le;
+                payload->radiance += regularize_weight(weight) * le;
             }
         }
     }
@@ -441,7 +441,7 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
 
             const float mis_weight = compute_mis_weight(pdf, pdf_light);
             const float3 weight = payload->throughput * mis_weight;
-            payload->radiance += weight * light_payload.le;
+            payload->radiance += regularize_weight(weight) * light_payload.le;
             payload->done = true;
             return;
         }
