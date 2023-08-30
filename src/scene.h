@@ -49,6 +49,9 @@ enum class SceneNodeType
 class SceneNode
 {
    public:
+    uint32_t get_id() const { return id; }
+    void set_id(uint32_t id) { this->id = id; }
+
     std::string get_name() const { return name; }
 
     SceneNodeType get_type() const { return type; }
@@ -64,6 +67,7 @@ class SceneNode
     void add_children(SceneNode* node) { children.push_back(node); }
 
    protected:
+    uint32_t id = 0;
     std::string name = "SceneNode";
     SceneNodeType type = SceneNodeType::DEFAULT;
     glm::mat4 transform = glm::identity<glm::mat4>();

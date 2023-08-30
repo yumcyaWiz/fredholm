@@ -611,11 +611,15 @@ class SceneLoader
             SceneNode* root = new SceneNode();
             ret.push_back(root);
 
-            const auto& node = model.nodes[node_idx];
-            load_gltf_node(node, model, root, material_id_offset);
+            load_gltf_node(node_idx, model, root, material_id_offset);
         }
 
         return ret;
+    }
+
+    static Animation load_gltf_animation(const tinygltf::Animation& animation)
+    {
+        // TODO: implement
     }
 
     static Texture load_gltf_texture(
@@ -1052,15 +1056,14 @@ class SceneLoader
         return ret;
     }
 
-    static void load_gltf_node(const tinygltf::Node& node,
-                               const tinygltf::Model& model, SceneNode* parent,
-                               uint32_t material_id_offset)
+    static void load_gltf_node(uint32_t node_idx, const tinygltf::Model& model,
+                               SceneNode* parent, uint32_t material_id_offset)
     {
+        const auto& node = model.nodes[node_idx];
         spdlog::info("loading node: {}", node.name);
 
         glm::mat4 transform = load_gltf_transform(node);
 
-        SceneNode* scene_node = nullptr;
         if (node.mesh != -1)
         {
             const std::vector<GeometryNode*> geometries = load_gltf_mesh(
@@ -1068,6 +1071,7 @@ class SceneLoader
 
             for (const auto& geometry : geometries)
             {
+                geometry->set_id(node_idx);
                 geometry->set_transform(transform);
                 parent->add_children(geometry);
             }
@@ -1075,20 +1079,22 @@ class SceneLoader
         else if (node.camera != -1)
         {
             CameraNode* camera = load_gltf_camera(model.cameras[node.camera]);
+            camera->set_id(node_idx);
             camera->set_transform(transform);
             parent->add_children(camera);
         }
         else
         {
-            scene_node = new SceneNode();
+            SceneNode* scene_node = new SceneNode();
+            scene_node->set_id(node_idx);
             scene_node->set_transform(transform);
             parent->add_children(scene_node);
 
             // load children
             for (const auto& child_idx : node.children)
             {
-                const auto& child = model.nodes[child_idx];
-                load_gltf_node(child, model, scene_node, material_id_offset);
+                load_gltf_node(child_idx, model, scene_node,
+                               material_id_offset);
             }
         }
     }
