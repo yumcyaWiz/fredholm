@@ -25,6 +25,10 @@ struct RadiancePayload
     float3 throughput = make_float3(1.0f);
     float3 radiance = make_float3(0.0f);
 
+    float3 position = make_float3(0.0f);
+    float3 normal = make_float3(0.0f);
+    float3 albedo = make_float3(0.0f);
+
     SamplerState sampler;
 
     bool firsthit = true;
@@ -169,8 +173,11 @@ extern "C" CUDA_KERNEL void __raygen__()
     const uint3 dim = optixGetLaunchDimensions();
     const uint image_idx = idx.x + params.width * idx.y;
 
-    float3 beauty = make_float3(params.output[image_idx]);
-    uint sample_count = uint(params.output[image_idx].w);
+    float3 beauty = make_float3(params.beauty[image_idx]);
+    uint sample_count = uint(params.beauty[image_idx].w);
+    float3 position = make_float3(params.position[image_idx]);
+    float3 normal = make_float3(params.normal[image_idx]);
+    float3 albedo = make_float3(params.albedo[image_idx]);
 
     for (int spp = 0; spp < params.n_samples; ++spp)
     {
@@ -228,11 +235,17 @@ extern "C" CUDA_KERNEL void __raygen__()
         // streaming average
         const float coef = 1.0f / (n_spp + 1.0f);
         beauty = coef * (n_spp * beauty + radiance);
+        position = coef * (n_spp * position + payload.position);
+        normal = coef * (n_spp * normal + payload.normal);
+        albedo = coef * (n_spp * albedo + payload.albedo);
     }
 
     // write results in render layers
-    params.output[image_idx] =
+    params.beauty[image_idx] =
         make_float4(beauty, sample_count + params.n_samples);
+    params.position[image_idx] = make_float4(position, 1.0f);
+    params.normal[image_idx] = make_float4(normal, 1.0f);
+    params.albedo[image_idx] = make_float4(albedo, 1.0f);
 }
 
 extern "C" CUDA_KERNEL void __miss__radiance()
@@ -290,6 +303,10 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
     if (payload->firsthit)
     {
         payload->firsthit = false;
+
+        payload->position = surf_info.x;
+        payload->normal = 0.5f * (surf_info.n_s + 1.0f);
+        payload->albedo = shading_params.diffuse * shading_params.base_color;
 
         // first hit light case
         if (material.has_emission())
