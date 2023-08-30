@@ -30,7 +30,6 @@ struct RenderOptions
     template <typename T>
     void set_option(const std::string& name, const T& value);
 
-   private:
     template <>
     uint2 get_option(const std::string& name) const
     {

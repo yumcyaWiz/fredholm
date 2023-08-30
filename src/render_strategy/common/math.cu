@@ -2,6 +2,8 @@
 
 #include "helper_math.h"
 
+#define M_PIf 3.14f
+
 static CUDA_INLINE CUDA_DEVICE float length2(const float3& v)
 {
     return dot(v, v);

@@ -219,10 +219,10 @@ class SceneLoader
                 const std::filesystem::path& filepath,
                 const ColorSpace& color_space)
         {
-            if (unique_textures.count(filepath) == 0)
+            if (unique_textures.count(filepath.generic_string()) == 0)
             {
                 // load texture id
-                unique_textures[filepath] = scene_graph.n_textures();
+                unique_textures[filepath.generic_string()] = scene_graph.n_textures();
                 // load texture
                 scene_graph.add_texture(
                     Texture(parent_filepath / filepath, color_space));
@@ -339,7 +339,7 @@ class SceneLoader
             }
 
             // transmission
-            mat.transmission = std::max(1.0f - m.dissolve, 0.0f);
+            mat.transmission = std::max<float>(1.0f - m.dissolve, 0.0f);
 
             // transmission color
             if (m.transmittance[0] > 0.0f || m.transmittance[0] > 0.0f ||

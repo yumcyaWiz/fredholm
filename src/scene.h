@@ -12,6 +12,8 @@
 #include "shared.h"
 #include "util.h"
 
+#define M_PIf 3.14f
+
 namespace fredholm
 {
 
@@ -294,7 +296,7 @@ class SceneGraph
         const float t = std::fmod(time, times.back());
         const int idx1 =
             std::lower_bound(times.begin(), times.end(), t) - times.begin();
-        const int idx0 = std::max(idx1 - 1, 0);
+        const int idx0 = std::max<int>(idx1 - 1, 0);
 
         float h = (t - times[idx0]) / (times[idx1] - times[idx0]);
         if (idx0 == idx1) { h = 0.0f; }
@@ -797,6 +799,7 @@ class SceneDevice
         spdlog::info("loading envmap");
 
         // load envmap
+        /*
         if (compiled_scene.envmap.get_filepath().generic_string().size() > 0)
         {
             const Texture& envmap = compiled_scene.envmap;
@@ -812,6 +815,7 @@ class SceneDevice
             cuda_check(cuMemcpyHtoD(envmap_buffer, image.data(),
                                     width * height * sizeof(float3)));
         }
+        */
 
         n_vertices = vertices.size();
         n_faces = indices.size();

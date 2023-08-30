@@ -6,6 +6,7 @@
 #include "helper_math.h"
 #endif
 
+#define M_PI 3.14f
 #define FRED_INVALID_ID -1
 
 #include "arhosek.h"

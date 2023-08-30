@@ -6,6 +6,8 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/glm.hpp"
 
+#define M_PI 3.14f
+
 namespace fredholm
 {
 

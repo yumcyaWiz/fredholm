@@ -44,16 +44,14 @@ class Timer
 
 int main()
 {
-    constexpr uint32_t width = 960;
-    constexpr uint32_t height = 540;
-    constexpr uint32_t n_spp = 64;
-    constexpr float max_time = 10.0f;
+    constexpr uint32_t width = 1920;
+    constexpr uint32_t height = 1080;
+    constexpr uint32_t n_spp = 8;
+    constexpr float max_time = 5.0f;
     constexpr float fps = 24.0f;
     constexpr float time_step = 1.0f / fps;
-    constexpr float kill_time = 290.0f;
-    const std::filesystem::path filepath =
-        "../resources/scenes/ai58/"
-        "AI58_009.gltf";
+    constexpr float kill_time = 295.0f;
+    const std::filesystem::path filepath = "AI58_009.gltf";
 
     Timer global_timer;
     global_timer.start();
@@ -111,7 +109,7 @@ int main()
                     fredholm::DirectionalLight directional_light;
                     directional_light.le = make_float3(30, 20, 10);
                     directional_light.dir = sun_direction;
-                    directional_light.angle = 30.0f;
+                    directional_light.angle = 10.0f;
 
                     int frame_idx = 0;
                     float time = 0.0f;
@@ -139,7 +137,7 @@ int main()
                         renderer.clear_render();
 
                         // update camera
-                        if (time < 3.0f)
+                        if (time < 2.0f)
                         {
                             if (camera_jump1)
                             {
@@ -149,9 +147,9 @@ int main()
                                     glm::vec3(0.83, -0.008, -0.54));
                             }
                             camera.move(fredholm::CameraMovement::FORWARD,
-                                        1.0f);
+                                        3.0f);
                         }
-                        else if (time < 5.0f)
+                        else if (time < 3.0f)
                         {
                             if (camera_jump2)
                             {
@@ -160,7 +158,7 @@ int main()
                                 camera.set_forward(
                                     glm::vec3(-0.95, -0.10, -0.27));
                             }
-                            camera.move(fredholm::CameraMovement::RIGHT, 1.0f);
+                            camera.move(fredholm::CameraMovement::RIGHT, 3.0f);
                         }
                         else if (time < max_time)
                         {
@@ -171,12 +169,12 @@ int main()
                                 camera.set_forward(
                                     glm::vec3(0.83, -0.008, -0.54));
                             }
-                            camera.move(fredholm::CameraMovement::RIGHT, 1.0f);
+                            camera.move(fredholm::CameraMovement::RIGHT, 3.0f);
                         }
 
                         // update sun direction
                         sun_direction = normalize(
-                            make_float3(std::cos(time), 1.0f, std::sin(time)));
+                            make_float3(1.0f, std::cos(time) + 1.1f, std::sin(time)));
                         directional_light.dir = sun_direction;
 
                         // update sky
@@ -276,8 +274,7 @@ int main()
                     Timer image_write_timer;
                     image_write_timer.start();
                     {
-                        const std::string filename =
-                            "output/" + std::to_string(frame_idx) + ".png";
+                        const std::string filename = std::format("output/{:03d}.png", frame_idx);
                         stbi_write_png(filename.c_str(), width, height, 4,
                                        image_c4.data(), sizeof(uchar4) * width);
                         spdlog::info("image {} is written", filename);

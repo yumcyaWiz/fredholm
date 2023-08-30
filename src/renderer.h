@@ -227,7 +227,7 @@ class Renderer
         get_aov(AOVType::FINAL).copy_d_to_h(beauty_h.data());
 
         ImageWriter::write_ldr_image(filepath, resolution.x, resolution.y,
-                                     beauty_h.data());
+                                   beauty_h.data());
     }
 
    private:

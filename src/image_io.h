@@ -21,7 +21,7 @@ class ImageLoader
         int w, h, c;
         stbi_set_flip_vertically_on_load(false);
         unsigned char* img =
-            stbi_load(filepath.c_str(), &w, &h, &c, STBI_rgb_alpha);
+            stbi_load(filepath.generic_string().c_str(), &w, &h, &c, STBI_rgb_alpha);
         if (img == nullptr)
         {
             throw std::runtime_error(std::format("failed to load texture: {}",
@@ -47,7 +47,7 @@ class ImageLoader
     {
         int w, h, c;
         stbi_set_flip_vertically_on_load(false);
-        float* img = stbi_loadf(filepath.c_str(), &w, &h, &c, STBI_rgb);
+        float* img = stbi_loadf(filepath.generic_string().c_str(), &w, &h, &c, STBI_rgb);
         if (img == nullptr)
         {
             throw std::runtime_error(std::format("failed to load texture: {}",
@@ -75,7 +75,6 @@ class ImageWriter
                                 const uint32_t width, const uint32_t height,
                                 const T* image);
 
-   private:
     template <>
     void write_ldr_image(const std::filesystem::path& filepath,
                          const uint32_t width, const uint32_t height,
@@ -99,7 +98,7 @@ class ImageWriter
         }
 
         // save image
-        stbi_write_png(filepath.c_str(), width, height, 3, image_c3.data(),
+        stbi_write_png(filepath.generic_string().c_str(), width, height, 3, image_c3.data(),
                        sizeof(uchar3) * width);
     }
 
@@ -127,7 +126,7 @@ class ImageWriter
         }
 
         // save image
-        stbi_write_png(filepath.c_str(), width, height, 4, image_c4.data(),
+        stbi_write_png(filepath.generic_string().c_str(), width, height, 4, image_c4.data(),
                        sizeof(uchar4) * width);
     }
 };

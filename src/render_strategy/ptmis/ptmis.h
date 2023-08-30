@@ -46,19 +46,19 @@ class PTMISStrategy : public RenderStrategy
 
         if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&options.n_spp)))
         {
-            options.n_spp = std::min(options.n_spp, options.n_samples);
+            options.n_spp = std::min<uint32_t>(options.n_spp, options.n_samples);
             clear_render();
         }
         if (ImGui::InputInt("n_samples",
                             reinterpret_cast<int*>(&options.n_samples)))
         {
-            options.n_samples = std::max(options.n_samples, 1u);
+            options.n_samples = std::max<uint32_t>(options.n_samples, 1u);
             clear_render();
         }
         if (ImGui::InputInt("max_depth",
                             reinterpret_cast<int*>(&options.max_depth)))
         {
-            options.max_depth = std::max(options.max_depth, 1u);
+            options.max_depth = std::max<uint32_t>(options.max_depth, 1u);
             clear_render();
         }
     }

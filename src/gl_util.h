@@ -152,7 +152,7 @@ class GLPipeline
         static GLuint createShaderProgram(GLenum type,
                                           const std::filesystem::path& filepath)
         {
-            const std::string shader_source = Shadinclude::load(filepath);
+            const std::string shader_source = Shadinclude::load(filepath.generic_string());
             const char* shader_source_c = shader_source.c_str();
             GLuint program = glCreateShaderProgramv(type, 1, &shader_source_c);
             return program;
