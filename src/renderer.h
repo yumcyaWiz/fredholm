@@ -5,6 +5,7 @@
 
 #include "camera.h"
 #include "cuda_util.h"
+#include "denoiser.h"
 #include "gl_util.h"
 #include "image_io.h"
 #include "imgui.h"
