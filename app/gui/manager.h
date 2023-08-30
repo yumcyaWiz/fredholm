@@ -125,12 +125,40 @@ class SceneManager
             renderer.clear_render();
         }
 
-        if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
+        if (ImGui::Checkbox("Use arhosek sky", &use_arhosek))
         {
-            load_envmap();
+            load_arhosek();
             renderer.clear_render();
         }
 
+        if (use_arhosek)
+        {
+            if (ImGui::InputFloat("intensity", &arhosek_intensity))
+            {
+                load_arhosek();
+                renderer.clear_render();
+            }
+            if (ImGui::InputFloat("turbidity", &arhosek_turbidity))
+            {
+                load_arhosek();
+                renderer.clear_render();
+            }
+            if (ImGui::InputFloat("albedo", &arhosek_albedo))
+            {
+                load_arhosek();
+                renderer.clear_render();
+            }
+        }
+        else
+        {
+            if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
+            {
+                load_envmap();
+                renderer.clear_render();
+            }
+        }
+
+        // TODO: sync parameters
         if (ImGui::InputFloat3("directional light color",
                                directional_light_color))
         {
@@ -147,6 +175,12 @@ class SceneManager
                 directional_light_direction[0], directional_light_direction[1],
                 directional_light_direction[2]));
             renderer.clear_render();
+
+            if (use_arhosek)
+            {
+                load_arhosek();
+                renderer.clear_render();
+            }
         }
 
         if (ImGui::InputFloat("directional light angle",
@@ -200,6 +234,15 @@ class SceneManager
         }
     }
 
+    void load_arhosek()
+    {
+        const float3 sun_direction = normalize(make_float3(
+            directional_light_direction[0], directional_light_direction[1],
+            directional_light_direction[2]));
+        scene_device->update_arhosek(arhosek_intensity, sun_direction,
+                                     arhosek_turbidity, arhosek_albedo);
+    }
+
     std::string get_scene_list_for_imgui() const
     {
         std::string names;
@@ -231,6 +274,11 @@ class SceneManager
     float directional_light_color[3] = {0.0f, 0.0f, 0.0f};
     float directional_light_direction[3] = {0.0f, 0.0f, 0.0f};
     float directional_light_angle = 0.0f;
+
+    bool use_arhosek = false;
+    float arhosek_intensity = 1.0f;
+    float arhosek_turbidity = 1.0f;
+    float arhosek_albedo = 0.3f;
 
     int m_scene_index = 0;
     int m_envmap_index = 1;

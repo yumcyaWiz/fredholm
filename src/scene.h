@@ -375,6 +375,7 @@ class SceneGraph
 };
 
 // scene data on device
+// TODO: have directional light?
 class SceneDevice
 {
    public:
@@ -397,6 +398,9 @@ class SceneDevice
 
     uint2 get_envmap_resolution() const { return envmap_resolution; }
     CUdeviceptr get_envmap() const { return envmap_buffer; }
+
+    bool has_arhosek() const { return arhosek.state != nullptr; }
+    ArhosekSky get_arhosek() const { return arhosek; }
 
     uint32_t get_n_vertices() const { return n_vertices; }
     uint32_t get_n_faces() const { return n_faces; }
@@ -465,6 +469,40 @@ class SceneDevice
         cuda_check(cuMemcpyHtoD(world_to_object_buffer,
                                 inverse_transforms.data(),
                                 inverse_transforms.size() * sizeof(Matrix3x4)));
+    }
+
+    void update_arhosek(float intensity, const float3& sun_direction,
+                        float turbidity, float albedo)
+    {
+        if (arhosek_state_buffer != 0)
+        {
+            cuda_check(cuMemFree(arhosek_state_buffer));
+            arhosek_state_buffer = 0;
+        }
+        cuda_check(
+            cuMemAlloc(&arhosek_state_buffer, sizeof(ArHosekSkyModelState)));
+
+        const auto cartesian_to_spherical = [](const float3& w)
+        {
+            float2 ret;
+            ret.x = acosf(clamp(w.y, -1.0f, 1.0f));
+            ret.y = atan2f(w.z, w.x);
+            if (ret.y < 0) ret.y += 2.0f * M_PIf;
+            return ret;
+        };
+        float elevation = cartesian_to_spherical(sun_direction).x;
+        elevation = 0.5f * M_PI - elevation;
+
+        ArHosekSkyModelState state =
+            arhosek_rgb_skymodelstate_alloc_init(turbidity, albedo, elevation);
+
+        cuda_check(cuMemcpyHtoD(arhosek_state_buffer, &state,
+                                sizeof(ArHosekSkyModelState)));
+
+        arhosek.intensity = intensity;
+        arhosek.sun_direction = sun_direction;
+        arhosek.state =
+            reinterpret_cast<ArHosekSkyModelState*>(arhosek_state_buffer);
     }
 
     void send(const OptixDeviceContext& context,
@@ -894,6 +932,12 @@ class SceneDevice
             envmap_resolution = make_uint2(0, 0);
         }
 
+        if (arhosek_state_buffer != 0)
+        {
+            cuda_check(cuMemFree(arhosek_state_buffer));
+            arhosek_state_buffer = 0;
+        }
+
         // reset statistics
         n_vertices = 0;
         n_faces = 0;
@@ -924,6 +968,9 @@ class SceneDevice
 
     uint2 envmap_resolution = make_uint2(0, 0);
     CUdeviceptr envmap_buffer = 0;
+
+    CUdeviceptr arhosek_state_buffer = 0;
+    ArhosekSky arhosek = {};
 
     // statistics
     uint32_t n_vertices = 0;

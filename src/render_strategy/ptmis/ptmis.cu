@@ -243,7 +243,11 @@ extern "C" CUDA_KERNEL void __miss__radiance()
     if (payload->firsthit)
     {
         float3 le = make_float3(0.0f);
-        if (params.scene.envmap.is_valid())
+        if (params.scene.arhosek.is_valid())
+        {
+            le = fetch_arhosek(params.scene.arhosek, payload->direction);
+        }
+        else if (params.scene.envmap.is_valid())
         {
             le = fetch_envmap(params.scene.envmap, payload->direction);
         }
@@ -309,7 +313,7 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
             ray_origin_offset(surf_info.x, surf_info.n_g);
 
         // sky
-        if (params.scene.envmap.is_valid())
+        if (params.scene.envmap.is_valid() || params.scene.arhosek.is_valid())
         {
             // TODO: implement IBL importance sampling
             const float3 wi =
@@ -329,8 +333,17 @@ extern "C" CUDA_KERNEL void __closesthit__radiance()
                 const float mis_weight = compute_mis_weight(pdf, pdf_bsdf);
                 const float3 weight = payload->throughput * mis_weight * f *
                                       abs_cos_theta(wi) / pdf;
-                const float3 le =
-                    fetch_envmap(params.scene.envmap, shadow_ray_direction);
+                float3 le = make_float3(0.0f);
+                if (params.scene.arhosek.is_valid())
+                {
+                    le = fetch_arhosek(params.scene.arhosek,
+                                       shadow_ray_direction);
+                }
+                else
+                {
+                    le =
+                        fetch_envmap(params.scene.envmap, shadow_ray_direction);
+                }
                 payload->radiance += weight * le;
             }
         }
@@ -481,7 +494,11 @@ extern "C" __global__ void __miss__light()
     payload->done = true;
 
     float3 le = make_float3(0.0f);
-    if (params.scene.envmap.is_valid())
+    if (params.scene.arhosek.is_valid())
+    {
+        le = fetch_arhosek(params.scene.arhosek, payload->direction);
+    }
+    else if (params.scene.envmap.is_valid())
     {
         le = fetch_envmap(params.scene.envmap, payload->direction);
     }

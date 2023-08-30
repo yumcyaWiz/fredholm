@@ -435,6 +435,15 @@ struct DirectionalLight
     }
 };
 
+struct ArhosekSky
+{
+    float intensity;
+    float3 sun_direction;
+    ArHosekSkyModelState* state;
+
+    bool CUDA_INLINE CUDA_DEVICE is_valid() const { return state != nullptr; }
+};
+
 // TODO: maybe this could be removed and use SceneDevice instead?
 struct SceneData
 {
@@ -457,6 +466,7 @@ struct SceneData
     uint n_area_lights;
 
     TextureHeader envmap;
+    ArhosekSky arhosek;
 
     DirectionalLight directional_light;
 };

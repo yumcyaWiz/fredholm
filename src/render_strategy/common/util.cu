@@ -2,6 +2,7 @@
 
 #include <optix.h>
 
+#include "arhosek.cu"
 #include "cuda_util.h"
 #include "helper_math.h"
 
@@ -309,16 +310,16 @@ static CUDA_INLINE CUDA_DEVICE float3 fetch_envmap(const TextureHeader& envmap,
     return make_float3(envmap.sample<float3>(uv));
 }
 
-// TODO: fix this
-static CUDA_INLINE CUDA_DEVICE float3 evaluate_arhosek_sky(const float3& v)
+static CUDA_INLINE CUDA_DEVICE float3 fetch_arhosek(const ArhosekSky& arhosek,
+                                                    const float3& v)
 {
-    // const float2 thphi = cartesian_to_spherical(v);
-    // const float gamma = acosf(dot(params.sun_direction, v));
-    // return params.sky_intensity *
-    //        make_float3(arhosek_tristim_skymodel_radiance(params.arhosek,
-    //                                                      thphi.x, gamma, 0),
-    //                    arhosek_tristim_skymodel_radiance(params.arhosek,
-    //                                                      thphi.x, gamma, 1),
-    //                    arhosek_tristim_skymodel_radiance(params.arhosek,
-    //                                                      thphi.x, gamma, 2));
+    const float2 thphi = cartesian_to_spherical(v);
+    const float gamma = acos(dot(arhosek.sun_direction, v));
+    return arhosek.intensity *
+           make_float3(arhosek_tristim_skymodel_radiance(arhosek.state, thphi.x,
+                                                         gamma, 0),
+                       arhosek_tristim_skymodel_radiance(arhosek.state, thphi.x,
+                                                         gamma, 1),
+                       arhosek_tristim_skymodel_radiance(arhosek.state, thphi.x,
+                                                         gamma, 2));
 }

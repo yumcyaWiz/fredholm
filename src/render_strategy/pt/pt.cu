@@ -120,7 +120,11 @@ extern "C" CUDA_KERNEL void __miss__()
 
     // firsthit light case
     float3 le = make_float3(0.0f);
-    if (params.scene.envmap.is_valid())
+    if (params.scene.arhosek.is_valid())
+    {
+        le = fetch_arhosek(params.scene.arhosek, payload->direction);
+    }
+    else if (params.scene.envmap.is_valid())
     {
         le = fetch_envmap(params.scene.envmap, payload->direction);
     }
