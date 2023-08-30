@@ -48,7 +48,7 @@ class PostProcess
     std::unique_ptr<CUDAKernel> kernel = nullptr;
 
     float chromatic_aberration = 0.0f;
-    float ISO = 100.0f;
+    float ISO = 10.0f;
 };
 
 }  // namespace fredholm

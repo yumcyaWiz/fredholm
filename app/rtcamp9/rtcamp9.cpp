@@ -44,16 +44,16 @@ class Timer
 
 int main()
 {
-    constexpr uint32_t width = 1920;
-    constexpr uint32_t height = 1080;
-    constexpr uint32_t n_spp = 512;
+    constexpr uint32_t width = 960;
+    constexpr uint32_t height = 540;
+    constexpr uint32_t n_spp = 64;
     constexpr float max_time = 10.0f;
     constexpr float fps = 24.0f;
     constexpr float time_step = 1.0f / fps;
     constexpr float kill_time = 290.0f;
     const std::filesystem::path filepath =
-        "../resources/scenes/cornellbox/"
-        "CornellBox-Texture.obj";
+        "../resources/scenes/ai58/"
+        "AI58_009.gltf";
 
     Timer global_timer;
     global_timer.start();
@@ -84,6 +84,7 @@ int main()
 
                     fredholm::Camera camera(glm::vec3(0, 1, 2),
                                             glm::vec3(0, 0, -1));
+                    camera.set_fov(0.25f * M_PI);
 
                     Timer scene_load_timer;
                     scene_load_timer.start();
@@ -106,18 +107,26 @@ int main()
                     renderer.set_render_strategy(
                         fredholm::RenderStrategyType::PTMIS, options);
 
+                    float3 sun_direction = normalize(make_float3(1, 1, 1));
                     fredholm::DirectionalLight directional_light;
-                    directional_light.le = make_float3(0, 0, 0);
-                    // directional_light.dir =
-                    //     normalize(make_float3(0.0f, 1.0f, 0.0f));
-                    // directional_light.angle = 30.0f;
+                    directional_light.le = make_float3(30, 20, 10);
+                    directional_light.dir = sun_direction;
+                    directional_light.angle = 30.0f;
 
                     int frame_idx = 0;
                     float time = 0.0f;
 
+                    bool camera_jump1 = true;
+                    bool camera_jump2 = true;
+                    bool camera_jump3 = true;
+
                     while (true)
                     {
-                        spdlog::info("rendering frame: {}", frame_idx);
+                        // spdlog::info("rendering frame: {}", frame_idx);
+                        // spdlog::info("current frame time: {}", time);
+
+                        Timer frame_timer;
+                        frame_timer.start();
 
                         if (time > max_time ||
                             global_timer.elapsed<std::chrono::seconds>() >
@@ -130,18 +139,49 @@ int main()
                         renderer.clear_render();
 
                         // update camera
-                        Timer compile_scene_timer;
-                        compile_scene_timer.start();
+                        if (time < 3.0f)
                         {
-                            scene.update_animation(time);
-                            compiled_scene = scene.compile();
-                            camera = compiled_scene.camera;
+                            if (camera_jump1)
+                            {
+                                camera_jump1 = false;
+                                camera.set_origin(glm::vec3(-478, 151, 769));
+                                camera.set_forward(
+                                    glm::vec3(0.83, -0.008, -0.54));
+                            }
+                            camera.move(fredholm::CameraMovement::FORWARD,
+                                        1.0f);
                         }
-                        compile_scene_timer.end();
-                        spdlog::info(
-                            "compile_scene_time: {} ms",
-                            compile_scene_timer
-                                .duration<std::chrono::milliseconds>());
+                        else if (time < 5.0f)
+                        {
+                            if (camera_jump2)
+                            {
+                                camera_jump2 = false;
+                                camera.set_origin(glm::vec3(1122, 168, 658));
+                                camera.set_forward(
+                                    glm::vec3(-0.95, -0.10, -0.27));
+                            }
+                            camera.move(fredholm::CameraMovement::RIGHT, 1.0f);
+                        }
+                        else if (time < max_time)
+                        {
+                            if (camera_jump3)
+                            {
+                                camera_jump3 = false;
+                                camera.set_origin(glm::vec3(-434, 148, 200));
+                                camera.set_forward(
+                                    glm::vec3(0.83, -0.008, -0.54));
+                            }
+                            camera.move(fredholm::CameraMovement::RIGHT, 1.0f);
+                        }
+
+                        // update sun direction
+                        sun_direction = normalize(
+                            make_float3(std::cos(time), 1.0f, std::sin(time)));
+                        directional_light.dir = sun_direction;
+
+                        // update sky
+                        scene_device.update_arhosek(1.0f, sun_direction, 3.0f,
+                                                    0.3f);
 
                         // render
                         Timer render_timer;
@@ -152,9 +192,9 @@ int main()
                             renderer.synchronize();
                         }
                         render_timer.end();
-                        spdlog::info(
-                            "render_time: {} ms",
-                            render_timer.duration<std::chrono::milliseconds>());
+                        // spdlog::info(
+                        //     "render_time: {} ms",
+                        //     render_timer.duration<std::chrono::milliseconds>());
 
                         // copy image from device to host
                         Timer image_transfer_timer;
@@ -173,6 +213,11 @@ int main()
                         // go to next frame
                         frame_idx++;
                         time += time_step;
+
+                        frame_timer.end();
+                        spdlog::info(
+                            "frame {}: {} ms", frame_idx,
+                            frame_timer.duration<std::chrono::milliseconds>());
                     }
                 }
             });
@@ -224,9 +269,9 @@ int main()
                     }
                     delete[] image_f4;
                     image_convert_time.end();
-                    spdlog::info("image_convert_time: {} ms",
-                                 image_convert_time
-                                     .duration<std::chrono::milliseconds>());
+                    // spdlog::info("image_convert_time: {} ms",
+                    //              image_convert_time
+                    //                  .duration<std::chrono::milliseconds>());
 
                     Timer image_write_timer;
                     image_write_timer.start();
@@ -238,9 +283,9 @@ int main()
                         spdlog::info("image {} is written", filename);
                     }
                     image_write_timer.end();
-                    spdlog::info("image_write_time: {} ms",
-                                 image_write_timer
-                                     .duration<std::chrono::milliseconds>());
+                    // spdlog::info("image_write_time: {} ms",
+                    //              image_write_timer
+                    //                  .duration<std::chrono::milliseconds>());
                 }
             });
 

@@ -56,8 +56,20 @@ class Camera
     }
 
     glm::vec3 get_origin() const { return m_origin; }
+    void set_origin(const glm::vec3& origin)
+    {
+        m_origin = origin;
+        update_transform();
+    }
 
     glm::vec3 get_forward() const { return m_forward; }
+    void set_forward(const glm::vec3& forward)
+    {
+        m_forward = glm::normalize(forward);
+        m_right = glm::normalize(glm::cross(m_forward, glm::vec3(0, 1, 0)));
+        m_up = glm::normalize(glm::cross(m_right, m_forward));
+        update_transform();
+    }
 
     glm::mat4 get_transform() const { return m_transform; }
     void set_transform(const glm::mat4& transform)

@@ -271,6 +271,9 @@ struct ShadingParams
         metalness =
             clamp(material.get_metalness(textures, texcoord), 0.0f, 1.0f);
 
+        specular_roughness = 0.01f;
+        metalness = 0.0f;
+
         // coat
         coat = clamp(material.get_coat(textures, texcoord), 0.0f, 1.0f);
 
