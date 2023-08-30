@@ -9,16 +9,6 @@
 namespace fredholm
 {
 
-enum class AOVType
-{
-    FINAL = 0,
-    BEAUTY,
-    POSITION,
-    NORMAL,
-    ALBEDO,
-    N_AOV_TYPES
-};
-
 struct RenderOptions
 {
     uint2 resolution = make_uint2(512, 512);

@@ -78,20 +78,42 @@ class RenderStrategyFactory
     }
 };
 
+// TODO: how to combine with RenderOptions?
+struct RendererOptions
+{
+    bool use_denoiser = false;
+
+    template <typename T>
+    T get_option(const std::string& name) const;
+
+   private:
+    template <>
+    bool get_option(const std::string& name) const
+    {
+        if (name == "use_denoiser") { return use_denoiser; }
+        else { throw std::runtime_error("Unknown option name"); }
+    }
+};
+
 class Renderer
 {
    public:
     Renderer(const OptixDeviceContext& context, bool debug)
         : context(context), debug(debug)
     {
-        m_post_process = std::make_unique<PostProcess>();
+        init_post_process();
+        init_denoiser();
     }
 
     ~Renderer()
     {
         if (m_render_strategy) { m_render_strategy.reset(); }
+
+        if (m_denoiser) { m_denoiser.reset(); }
+        if (m_denoised) { m_denoised.reset(); }
+
         if (m_post_process) { m_post_process.reset(); }
-        if (final) { final.reset(); }
+        if (m_final) { m_final.reset(); }
     }
 
     const CUDABuffer<float4>& get_aov(const AOVType& type) const
@@ -99,16 +121,37 @@ class Renderer
         switch (type)
         {
             case AOVType::FINAL:
-                return *final;
+                if (!m_final)
+                {
+                    throw std::runtime_error("final buffer not initialized");
+                }
+                return *m_final;
+            case AOVType::DENOISED:
+                if (!m_denoised)
+                {
+                    throw std::runtime_error("denoised buffer not initialized");
+                }
+                return *m_denoised;
             default:
+            {
+                if (!m_render_strategy)
+                {
+                    throw std::runtime_error("render strategy not set");
+                }
                 return m_render_strategy->get_aov(type);
+            }
         }
     }
 
+    // TODO: want to add RendererOptions here
     template <typename T>
     T get_option(const std::string& name) const
     {
-        return m_render_strategy->get_option<T>(name);
+        if (m_render_strategy)
+        {
+            return m_render_strategy->get_option<T>(name);
+        }
+        else { return RenderOptions().get_option<T>(name); }
     }
 
     template <typename T>
@@ -116,7 +159,11 @@ class Renderer
     {
         m_render_strategy->set_option<T>(name, value);
 
-        if (name == "resolution") { init_final_buffer(); }
+        if (name == "resolution")
+        {
+            init_render_layers();
+            init_denoiser();
+        }
     }
 
     RenderStrategyType get_render_strategy_type() const
@@ -134,7 +181,7 @@ class Renderer
             RenderStrategyFactory::create(type, context, debug, options);
         m_render_strategy_type = type;
 
-        init_final_buffer();
+        init_render_layers();
     }
 
     void set_render_strategy(const RenderStrategyType& type)
@@ -165,6 +212,7 @@ class Renderer
         if (paused) return;
         m_render_strategy->render(camera, directional_light, scene,
                                   scene.get_ias_handle());
+        run_denoiser();
         run_post_process();
     }
 
@@ -172,8 +220,7 @@ class Renderer
 
     void save_image(const std::filesystem::path& filepath) const
     {
-        const uint2 resolution =
-            m_render_strategy->get_option<uint2>("resolution");
+        const uint2 resolution = get_option<uint2>("resolution");
 
         // copy image from device to host
         std::vector<float4> beauty_h(resolution.x * resolution.y);
@@ -184,25 +231,52 @@ class Renderer
     }
 
    private:
-    void init_final_buffer()
+    void init_render_layers()
     {
-        const uint2 resolution =
-            m_render_strategy->get_option<uint2>("resolution");
-        const bool use_gl_interop =
-            m_render_strategy->get_option<bool>("use_gl_interop");
-        final = std::make_unique<CUDABuffer<float4>>(
+        const uint2 resolution = get_option<uint2>("resolution");
+        const bool use_gl_interop = get_option<bool>("use_gl_interop");
+
+        m_final = std::make_unique<CUDABuffer<float4>>(
             resolution.x * resolution.y, use_gl_interop);
+        m_denoised = std::make_unique<CUDABuffer<float4>>(
+            resolution.x * resolution.y, use_gl_interop);
+    }
+
+    void init_post_process()
+    {
+        m_post_process = std::make_unique<PostProcess>();
+    }
+
+    void init_denoiser()
+    {
+        const uint2 resolution = get_option<uint2>("resolution");
+        m_denoiser =
+            std::make_unique<Denoiser>(context, resolution.x, resolution.y);
     }
 
     void run_post_process()
     {
-        const uint2 resolution =
-            m_render_strategy->get_option<uint2>("resolution");
-        m_post_process->run(
-            resolution.x, resolution.y,
-            reinterpret_cast<float4*>(
-                m_render_strategy->get_aov(AOVType::BEAUTY).get_device_ptr()),
-            reinterpret_cast<float4*>(final->get_device_ptr()));
+        const uint2 resolution = get_option<uint2>("resolution");
+        if (m_post_process)
+        {
+            m_post_process->run(
+                resolution.x, resolution.y,
+                reinterpret_cast<float4*>(
+                    get_aov(AOVType::DENOISED).get_device_ptr()),
+                reinterpret_cast<float4*>(m_final->get_device_ptr()));
+        }
+    }
+
+    void run_denoiser()
+    {
+        const uint2 resolution = get_option<uint2>("resolution");
+        if (m_denoiser)
+        {
+            m_denoiser->denoise(get_aov(AOVType::BEAUTY).get_device_ptr(),
+                                get_aov(AOVType::NORMAL).get_device_ptr(),
+                                get_aov(AOVType::ALBEDO).get_device_ptr(),
+                                m_denoised->get_device_ptr());
+        }
     }
 
     OptixDeviceContext context = nullptr;
@@ -213,8 +287,11 @@ class Renderer
         RenderStrategyType::N_RENDER_STRATEGIES;
     std::unique_ptr<RenderStrategy> m_render_strategy = nullptr;
 
+    std::unique_ptr<Denoiser> m_denoiser = nullptr;
+    std::unique_ptr<CUDABuffer<float4>> m_denoised = nullptr;
+
     std::unique_ptr<PostProcess> m_post_process = nullptr;
-    std::unique_ptr<CUDABuffer<float4>> final = nullptr;
+    std::unique_ptr<CUDABuffer<float4>> m_final = nullptr;
 };
 
 }  // namespace fredholm

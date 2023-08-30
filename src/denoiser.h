@@ -7,12 +7,14 @@
 namespace fredholm
 {
 
+// TODO: use observer pattern to update denoiser?
 class Denoiser
 {
    public:
     Denoiser(OptixDeviceContext context, uint32_t width, uint32_t height)
         : context(context), width(width), height(height)
     {
+        init_denoiser();
     }
 
     void init_denoiser()
