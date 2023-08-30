@@ -44,13 +44,13 @@ class Timer
 
 int main()
 {
-    constexpr uint32_t width = 960;
-    constexpr uint32_t height = 540;
-    constexpr uint32_t n_spp = 64;
+    constexpr uint32_t width = 1920;
+    constexpr uint32_t height = 1080;
+    constexpr uint32_t n_spp = 16;
     constexpr float max_time = 10.0f;
     constexpr float fps = 24.0f;
     constexpr float time_step = 1.0f / fps;
-    constexpr float kill_time = 290.0f;
+    constexpr float kill_time = 295.0f;
     const std::filesystem::path filepath =
         "../resources/scenes/ai58/"
         "AI58_009.gltf";
@@ -104,6 +104,7 @@ int main()
                     fredholm::RenderOptions options;
                     options.resolution = make_uint2(width, height);
                     options.n_spp = n_spp;
+                    options.max_depth = 10;
                     renderer.set_render_strategy(
                         fredholm::RenderStrategyType::PTMIS, options);
 
@@ -175,8 +176,9 @@ int main()
                         }
 
                         // update sun direction
-                        sun_direction = normalize(
-                            make_float3(std::cos(time), 1.0f, std::sin(time)));
+                        sun_direction = normalize(make_float3(
+                            1.0f, std::cos(0.5f * time + 2.0f) + 1.1f,
+                            std::sin(0.5f * time + 2.0f)));
                         directional_light.dir = sun_direction;
 
                         // update sky
@@ -277,7 +279,7 @@ int main()
                     image_write_timer.start();
                     {
                         const std::string filename =
-                            "output/" + std::to_string(frame_idx) + ".png";
+                            std::format("output/{:03d}.png", frame_idx);
                         stbi_write_png(filename.c_str(), width, height, 4,
                                        image_c4.data(), sizeof(uchar4) * width);
                         spdlog::info("image {} is written", filename);
