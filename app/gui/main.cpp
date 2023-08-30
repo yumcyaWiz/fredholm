@@ -273,7 +273,8 @@ class App
                         "resolution", make_uint2(resolution[0], resolution[1]));
                 }
 
-                ImGui::Combo("AOV", &selected_aov, "Final\0Beauty\0\0");
+                ImGui::Combo("AOV", &selected_aov,
+                             "Final\0Beauty\0Position\0Normal\0Albedo\0\0");
 
                 selected_render_strategy =
                     static_cast<int>(renderer->get_render_strategy_type());

@@ -12,7 +12,10 @@ namespace fredholm
 enum class AOVType
 {
     FINAL = 0,
-    BEAUTY = 1,
+    BEAUTY,
+    POSITION,
+    NORMAL,
+    ALBEDO,
     N_AOV_TYPES
 };
 
@@ -98,6 +101,9 @@ class RenderStrategy
     virtual ~RenderStrategy()
     {
         if (beauty) { beauty.reset(); }
+        if (position) { position.reset(); }
+        if (normal) { normal.reset(); }
+        if (albedo) { albedo.reset(); }
 
         cuda_check(cuMemFree(sbt_record_set.raygen_records));
         cuda_check(cuMemFree(sbt_record_set.miss_records));
@@ -175,6 +181,12 @@ class RenderStrategy
         {
             case AOVType::BEAUTY:
                 return *beauty;
+            case AOVType::POSITION:
+                return *position;
+            case AOVType::NORMAL:
+                return *normal;
+            case AOVType::ALBEDO:
+                return *albedo;
             default:
                 throw std::runtime_error("Unknown AOV type");
         }
@@ -204,6 +216,15 @@ class RenderStrategy
     void init_render_layers()
     {
         beauty = std::make_unique<CUDABuffer<float4>>(
+            options.resolution.x * options.resolution.y,
+            options.use_gl_interop);
+        position = std::make_unique<CUDABuffer<float4>>(
+            options.resolution.x * options.resolution.y,
+            options.use_gl_interop);
+        normal = std::make_unique<CUDABuffer<float4>>(
+            options.resolution.x * options.resolution.y,
+            options.use_gl_interop);
+        albedo = std::make_unique<CUDABuffer<float4>>(
             options.resolution.x * options.resolution.y,
             options.use_gl_interop);
     }
@@ -274,6 +295,9 @@ class RenderStrategy
 
     RenderOptions options = {};
     std::unique_ptr<CUDABuffer<float4>> beauty = nullptr;
+    std::unique_ptr<CUDABuffer<float4>> position = nullptr;
+    std::unique_ptr<CUDABuffer<float4>> normal = nullptr;
+    std::unique_ptr<CUDABuffer<float4>> albedo = nullptr;
 };
 
 }  // namespace fredholm
