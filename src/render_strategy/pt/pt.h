@@ -78,7 +78,10 @@ class PtStrategy : public RenderStrategy
         params.n_samples = options.n_spp;
         params.max_depth = options.max_depth;
         params.seed = seed;
-        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
+        params.beauty = reinterpret_cast<float4*>(beauty->get_device_ptr());
+        params.position = reinterpret_cast<float4*>(position->get_device_ptr());
+        params.normal = reinterpret_cast<float4*>(normal->get_device_ptr());
+        params.albedo = reinterpret_cast<float4*>(albedo->get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(PtStrategyParams)));
 

@@ -21,7 +21,10 @@ struct PtStrategyParams
     uint max_depth;
     uint seed;
 
-    float4* output;
+    float4* beauty;
+    float4* position;
+    float4* normal;
+    float4* albedo;
 };
 
 }  // namespace fredholm
