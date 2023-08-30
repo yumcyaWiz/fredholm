@@ -40,15 +40,15 @@ int main()
         scene_device.send(context, compiled_scene);
 
         fredholm::RenderOptions options;
-        options.n_spp = 512;
-        renderer.set_render_strategy(fredholm::RenderStrategyType::PT, options);
+        options.n_spp = 16;
+        renderer.set_render_strategy(fredholm::RenderStrategyType::PTMIS,
+                                     options);
 
         fredholm::DirectionalLight directional_light;
         directional_light.le = make_float3(0, 0, 0);
 
         // render
         renderer.render(camera, directional_light, scene_device);
-        renderer.synchronize();
         renderer.save_image("output.png");
     }
 

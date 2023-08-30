@@ -63,6 +63,7 @@ class Denoiser
                                         state_buffer, state_size, &guide_layer,
                                         &denoiser_layer, 1, 0, 0,
                                         scratch_buffer, scratch_size));
+        cuda_check(cuCtxSynchronize());
     }
 
    private:

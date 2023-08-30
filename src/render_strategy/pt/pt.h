@@ -88,6 +88,7 @@ class PtStrategy : public RenderStrategy
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(PtStrategyParams), &sbt,
                                 options.resolution.x, options.resolution.y, 1));
+        cuda_check(cuCtxSynchronize());
         sample_count += options.n_spp;
     }
 

@@ -39,6 +39,7 @@ class HelloStrategy : public RenderStrategy
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
                                 sizeof(HelloStrategyParams), &sbt,
                                 options.resolution.x, options.resolution.y, 1));
+        cuda_check(cuCtxSynchronize());
     }
 
    private:

@@ -102,7 +102,6 @@ class Renderer
         : context(context), debug(debug)
     {
         init_post_process();
-        init_denoiser();
     }
 
     ~Renderer()
@@ -182,6 +181,7 @@ class Renderer
         m_render_strategy_type = type;
 
         init_render_layers();
+        init_denoiser();
     }
 
     void set_render_strategy(const RenderStrategyType& type)
