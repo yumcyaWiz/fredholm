@@ -3,6 +3,7 @@
 
 #include "cuda_util.h"
 #include "optix_util.h"
+#include "types.h"
 
 namespace fredholm
 {
@@ -15,6 +16,21 @@ class Denoiser
         : context(context), width(width), height(height)
     {
         init_denoiser();
+
+        RenderOptions::get_instance().register_observer(
+            [&](const RenderOptionNames& name, const RenderOptions& options)
+            {
+                if (name == RenderOptionNames::RESOLUTION)
+                {
+                    this->width =
+                        options.get_option<uint2>(RenderOptionNames::RESOLUTION)
+                            .x;
+                    this->height =
+                        options.get_option<uint2>(RenderOptionNames::RESOLUTION)
+                            .y;
+                    init_denoiser();
+                }
+            });
     }
 
     void init_denoiser()
