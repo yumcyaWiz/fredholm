@@ -82,7 +82,9 @@ class Renderer
     Renderer(const OptixDeviceContext& context, bool debug)
         : context(context), debug(debug)
     {
+        init_render_layers();
         init_post_process();
+        init_denoiser();
     }
 
     ~Renderer()
@@ -106,14 +108,6 @@ class Renderer
     void set_option(const RenderOptionNames& name, const T& value)
     {
         return RenderOptions::get_instance().set_option<T>(name, value);
-
-        /*
-        if (name == "resolution")
-        {
-            init_render_layers();
-            init_denoiser();
-        }
-        */
     }
 
     const CUDABuffer<float4>& get_aov(const AOVType& type) const
@@ -133,9 +127,7 @@ class Renderer
     {
         m_render_strategy = RenderStrategyFactory::create(type, context, debug);
         m_render_strategy_type = type;
-
-        init_render_layers();
-        init_denoiser();
+        clear_render();
     }
 
     void run_imgui()
@@ -149,6 +141,7 @@ class Renderer
         if (m_post_process) { m_post_process->run_imgui(); }
     }
 
+    // TODO: use observer pattern?
     void clear_render()
     {
         m_render_layers->clear_render_layers();

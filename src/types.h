@@ -97,7 +97,8 @@ class RenderLayers
         RenderOptions::get_instance().register_observer(
             [&](const RenderOptionNames& name, const RenderOptions& options)
             {
-                if (name == RenderOptionNames::RESOLUTION)
+                if (name == RenderOptionNames::RESOLUTION ||
+                    name == RenderOptionNames::USE_GL_INTEROP)
                 {
                     init_render_layers(
                         options.get_option<uint2>(RenderOptionNames::RESOLUTION)
@@ -106,6 +107,12 @@ class RenderLayers
                             .y,
                         options.get_option<bool>(
                             RenderOptionNames::USE_GL_INTEROP));
+                }
+                else if (name == RenderOptionNames::N_SPP ||
+                         name == RenderOptionNames::N_SAMPLES ||
+                         name == RenderOptionNames::MAX_DEPTH)
+                {
+                    clear_render_layers();
                 }
             });
     }

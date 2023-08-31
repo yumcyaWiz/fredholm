@@ -78,34 +78,6 @@ class RenderStrategy
 
     virtual void clear_render() {}
 
-    /*
-    template <typename T>
-    void set_option(const std::string& name, const T& value)
-    {
-        options.set_option<T>(name, value);
-        clear_render();
-    }
-    */
-
-    /*
-    virtual CUDABuffer<float4>& get_aov(const AOVType& type) const
-    {
-        switch (type)
-        {
-            case AOVType::BEAUTY:
-                return *beauty;
-            case AOVType::POSITION:
-                return *position;
-            case AOVType::NORMAL:
-                return *normal;
-            case AOVType::ALBEDO:
-                return *albedo;
-            default:
-                throw std::runtime_error("Unknown AOV type");
-        }
-    }
-    */
-
     // TODO: add common GUI elements in this function(template method
     // pattern)
     virtual void run_imgui() {}

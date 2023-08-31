@@ -45,21 +45,20 @@ class PTMISStrategy : public RenderStrategy
             ImVec2(0.0f, 0.0f));
         ImGui::SameLine();
         ImGui::Text("%d/%d spp", sample_count, n_samples);
-        if (ImGui::Button("clear")) { clear_render(); }
 
         uint32_t n_spp = options.get_option<uint32_t>(RenderOptionNames::N_SPP);
         if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&n_spp)))
         {
             options.set_option<uint32_t>(RenderOptionNames::N_SPP,
                                          std::min(n_spp, n_samples));
-            // clear_render();
+            clear_render();
         }
 
         if (ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples)))
         {
             options.set_option<uint32_t>(RenderOptionNames::N_SAMPLES,
-                                         std::min(n_samples, 1u));
-            // clear_render();
+                                         std::max(n_samples, 1u));
+            clear_render();
         }
 
         uint32_t max_depth =
@@ -68,7 +67,7 @@ class PTMISStrategy : public RenderStrategy
         {
             options.set_option<uint32_t>(RenderOptionNames::MAX_DEPTH,
                                          std::max(max_depth, 1u));
-            // clear_render();
+            clear_render();
         }
     }
 
