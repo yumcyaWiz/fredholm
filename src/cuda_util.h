@@ -118,7 +118,7 @@ class CUDABuffer
         return *gl_buffer;
     }
 
-    void clear() { cuda_check(cuMemsetD32(dptr, 0, size)); }
+    void clear() { cuda_check(cuMemsetD8(dptr, 0, sizeof(T) * size)); }
 
     void copy_h_to_d(const T *hptr) const
     {

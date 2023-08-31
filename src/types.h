@@ -117,7 +117,7 @@ class RenderOptions
     {
         options[RenderOptionNames::RESOLUTION] = make_uint2(1280, 720);
         options[RenderOptionNames::USE_GL_INTEROP] = false;
-        options[RenderOptionNames::N_SAMPLES] = static_cast<uint32_t>(1);
+        options[RenderOptionNames::N_SAMPLES] = static_cast<uint32_t>(512);
         options[RenderOptionNames::N_SPP] = static_cast<uint32_t>(1);
         options[RenderOptionNames::MAX_DEPTH] = static_cast<uint32_t>(10);
     }

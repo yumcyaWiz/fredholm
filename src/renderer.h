@@ -149,7 +149,11 @@ class Renderer
         if (m_post_process) { m_post_process->run_imgui(); }
     }
 
-    void clear_render() { m_render_layers->clear_render_layers(); }
+    void clear_render()
+    {
+        m_render_layers->clear_render_layers();
+        m_render_strategy->clear_render();
+    }
 
     // TODO: renderer should manage camera and scene?
     void render(const Camera& camera, const DirectionalLight& directional_light,
