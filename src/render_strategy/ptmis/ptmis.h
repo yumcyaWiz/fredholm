@@ -12,9 +12,8 @@ namespace fredholm
 class PTMISStrategy : public RenderStrategy
 {
    public:
-    PTMISStrategy(const OptixDeviceContext& context, bool debug,
-                  const RenderOptions& options)
-        : RenderStrategy(context, debug, options)
+    PTMISStrategy(const OptixDeviceContext& context, bool debug)
+        : RenderStrategy(context, debug)
     {
     }
 
@@ -37,59 +36,82 @@ class PTMISStrategy : public RenderStrategy
     {
         RenderStrategy::run_imgui();
 
-        ImGui::ProgressBar(static_cast<float>(sample_count) /
-                               static_cast<float>(options.n_samples),
-                           ImVec2(0.0f, 0.0f));
+        RenderOptions& options = RenderOptions::get_instance();
+
+        uint32_t n_samples =
+            options.get_option<uint32_t>(RenderOptionNames::N_SAMPLES);
+        ImGui::ProgressBar(
+            static_cast<float>(sample_count) / static_cast<float>(n_samples),
+            ImVec2(0.0f, 0.0f));
         ImGui::SameLine();
-        ImGui::Text("%d/%d spp", sample_count, options.n_samples);
+        ImGui::Text("%d/%d spp", sample_count, n_samples);
         if (ImGui::Button("clear")) { clear_render(); }
 
-        if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&options.n_spp)))
+        uint32_t n_spp = options.get_option<uint32_t>(RenderOptionNames::N_SPP);
+        if (ImGui::InputInt("n_spp", reinterpret_cast<int*>(&n_spp)))
         {
-            options.n_spp = std::min(options.n_spp, options.n_samples);
-            clear_render();
+            options.set_option<uint32_t>(RenderOptionNames::N_SPP,
+                                         std::min(n_spp, n_samples));
+            // clear_render();
         }
-        if (ImGui::InputInt("n_samples",
-                            reinterpret_cast<int*>(&options.n_samples)))
+
+        if (ImGui::InputInt("n_samples", reinterpret_cast<int*>(&n_samples)))
         {
-            options.n_samples = std::max(options.n_samples, 1u);
-            clear_render();
+            options.set_option<uint32_t>(RenderOptionNames::N_SAMPLES,
+                                         std::min(n_samples, 1u));
+            // clear_render();
         }
-        if (ImGui::InputInt("max_depth",
-                            reinterpret_cast<int*>(&options.max_depth)))
+
+        uint32_t max_depth =
+            options.get_option<uint32_t>(RenderOptionNames::MAX_DEPTH);
+        if (ImGui::InputInt("max_depth", reinterpret_cast<int*>(&max_depth)))
         {
-            options.max_depth = std::max(options.max_depth, 1u);
-            clear_render();
+            options.set_option<uint32_t>(RenderOptionNames::MAX_DEPTH,
+                                         std::max(max_depth, 1u));
+            // clear_render();
         }
     }
 
     void render(const Camera& camera, const DirectionalLight& directional_light,
-                const SceneDevice& scene,
+                const SceneDevice& scene, const RenderLayers& render_layers,
                 const OptixTraversableHandle& ias_handle) override
     {
-        if (sample_count >= options.n_samples) return;
+        const RenderOptions& options = RenderOptions::get_instance();
+
+        if (sample_count >=
+            options.get_option<uint32_t>(RenderOptionNames::N_SAMPLES))
+            return;
 
         PTMISStrategyParams params;
-        params.width = options.resolution.x;
-        params.height = options.resolution.y;
+        params.width =
+            options.get_option<uint2>(RenderOptionNames::RESOLUTION).x;
+        params.height =
+            options.get_option<uint2>(RenderOptionNames::RESOLUTION).y;
         params.camera = get_camera_params(camera);
         params.scene = get_scene_data(scene, directional_light);
         params.ias_handle = ias_handle;
-        params.n_samples = options.n_spp;
-        params.max_depth = options.max_depth;
+        params.n_samples =
+            options.get_option<uint32_t>(RenderOptionNames::N_SPP);
+        params.max_depth =
+            options.get_option<uint32_t>(RenderOptionNames::MAX_DEPTH);
         params.seed = seed;
-        params.beauty = reinterpret_cast<float4*>(beauty->get_device_ptr());
-        params.position = reinterpret_cast<float4*>(position->get_device_ptr());
-        params.normal = reinterpret_cast<float4*>(normal->get_device_ptr());
-        params.albedo = reinterpret_cast<float4*>(albedo->get_device_ptr());
+        params.beauty = reinterpret_cast<float4*>(
+            render_layers.get_aov(AOVType::BEAUTY).get_device_ptr());
+        params.position = reinterpret_cast<float4*>(
+            render_layers.get_aov(AOVType::POSITION).get_device_ptr());
+        params.normal = reinterpret_cast<float4*>(
+            render_layers.get_aov(AOVType::NORMAL).get_device_ptr());
+        params.albedo = reinterpret_cast<float4*>(
+            render_layers.get_aov(AOVType::ALBEDO).get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(PTMISStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(PTMISStrategyParams), &sbt,
-                                options.resolution.x, options.resolution.y, 1));
+                                sizeof(PTMISStrategyParams), &sbt, params.width,
+                                params.height, 1));
         cuda_check(cuCtxSynchronize());
-        sample_count += options.n_spp;
+
+        sample_count += params.n_samples;
     }
 
    private:

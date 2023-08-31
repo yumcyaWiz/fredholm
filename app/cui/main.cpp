@@ -39,10 +39,7 @@ int main()
         fredholm::SceneDevice scene_device;
         scene_device.send(context, compiled_scene);
 
-        fredholm::RenderOptions options;
-        options.n_spp = 16;
-        renderer.set_render_strategy(fredholm::RenderStrategyType::PTMIS,
-                                     options);
+        renderer.set_render_strategy(fredholm::RenderStrategyType::PTMIS);
 
         fredholm::DirectionalLight directional_light;
         directional_light.le = make_float3(0, 0, 0);

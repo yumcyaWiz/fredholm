@@ -4,97 +4,24 @@
 #include "optix_util.h"
 #include "scene.h"
 #include "shared.h"
+#include "types.h"
 #include "util.h"
 
 namespace fredholm
 {
 
-struct RenderOptions
-{
-    uint2 resolution = make_uint2(512, 512);
-
-    bool use_gl_interop = false;
-
-    // TODO: hide these options inside path tracing strategy
-    // define RenderOptions interface: get_option, set_option
-    // have a pointer to hello, simple, path tracing render options
-    uint32_t n_samples = 512;
-    uint32_t n_spp = 1;
-    uint32_t max_depth = 100;
-
-    // TODO: use enum class instead of string
-    template <typename T>
-    T get_option(const std::string& name) const;
-
-    // TODO: use enum class instead of string
-    template <typename T>
-    void set_option(const std::string& name, const T& value);
-
-   private:
-    template <>
-    uint2 get_option(const std::string& name) const
-    {
-        if (name == "resolution") { return resolution; }
-        else { throw std::runtime_error("Unknown option name"); }
-    }
-
-    template <>
-    bool get_option(const std::string& name) const
-    {
-        if (name == "use_gl_interop") { return use_gl_interop; }
-        else { throw std::runtime_error("Unknown option name"); }
-    }
-
-    template <>
-    uint32_t get_option(const std::string& name) const
-    {
-        if (name == "n_samples") { return n_samples; }
-        else if (name == "n_spp") { return n_spp; }
-        else if (name == "max_depth") { return max_depth; }
-        else { throw std::runtime_error("Unknown option name"); }
-    }
-
-    template <>
-    void set_option(const std::string& name, const uint2& value)
-    {
-        if (name == "resolution") { resolution = value; }
-        else { throw std::runtime_error("Unknown option name"); }
-    }
-
-    template <>
-    void set_option(const std::string& name, const bool& value)
-    {
-        if (name == "use_gl_interop") { use_gl_interop = value; }
-        else { throw std::runtime_error("Unknown option name"); }
-    }
-
-    template <>
-    void set_option(const std::string& name, const uint32_t& value)
-    {
-        if (name == "n_samples") { n_samples = value; }
-        else if (name == "n_spp") { n_spp = value; }
-        else if (name == "max_depth") { max_depth = value; }
-        else { throw std::runtime_error("Unknown option name"); }
-    }
-};
-
 // TODO: use observer pattern to detect changes in RenderOptions
+// TODO: separate render layers
 class RenderStrategy
 {
    public:
-    RenderStrategy(const OptixDeviceContext& context, bool debug,
-                   const RenderOptions& options)
-        : context(context), debug(debug), options(options)
+    RenderStrategy(const OptixDeviceContext& context, bool debug)
+        : context(context), debug(debug)
     {
     }
 
     virtual ~RenderStrategy()
     {
-        if (beauty) { beauty.reset(); }
-        if (position) { position.reset(); }
-        if (normal) { normal.reset(); }
-        if (albedo) { albedo.reset(); }
-
         cuda_check(cuMemFree(sbt_record_set.raygen_records));
         cuda_check(cuMemFree(sbt_record_set.miss_records));
         cuda_check(cuMemFree(sbt_record_set.hitgroup_records));
@@ -145,26 +72,22 @@ class RenderStrategy
     // virtual
     void init()
     {
-        init_render_layers();
         init_render_strategy();
         init_sbt();
     }
 
-    const RenderOptions& get_options() const { return options; }
+    virtual void clear_render() {}
 
-    template <typename T>
-    T get_option(const std::string& name) const
-    {
-        return options.get_option<T>(name);
-    }
-
+    /*
     template <typename T>
     void set_option(const std::string& name, const T& value)
     {
         options.set_option<T>(name, value);
         clear_render();
     }
+    */
 
+    /*
     virtual CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
         switch (type)
@@ -181,9 +104,7 @@ class RenderStrategy
                 throw std::runtime_error("Unknown AOV type");
         }
     }
-
-    // TODO: separate init and clear
-    virtual void clear_render() { init_render_layers(); }
+    */
 
     // TODO: add common GUI elements in this function(template method
     // pattern)
@@ -192,6 +113,7 @@ class RenderStrategy
     virtual void render(const Camera& camera,
                         const DirectionalLight& directional_light,
                         const SceneDevice& scene,
+                        const RenderLayers& render_layers,
                         const OptixTraversableHandle& ias_handle) = 0;
 
    protected:
@@ -203,23 +125,7 @@ class RenderStrategy
         sbt = optix_create_sbt(sbt_record_set);
     }
 
-    void init_render_layers()
-    {
-        beauty = std::make_unique<CUDABuffer<float4>>(
-            options.resolution.x * options.resolution.y,
-            options.use_gl_interop);
-        position = std::make_unique<CUDABuffer<float4>>(
-            options.resolution.x * options.resolution.y,
-            options.use_gl_interop);
-        normal = std::make_unique<CUDABuffer<float4>>(
-            options.resolution.x * options.resolution.y,
-            options.use_gl_interop);
-        albedo = std::make_unique<CUDABuffer<float4>>(
-            options.resolution.x * options.resolution.y,
-            options.use_gl_interop);
-    }
-
-    // TODO: this should be defined on Camera
+    // TODO: this should be defined on Camera?
     static CameraParams get_camera_params(const Camera& camera)
     {
         CameraParams camera_params;
@@ -231,7 +137,7 @@ class RenderStrategy
         return camera_params;
     }
 
-    // TODO: this should be defined on SceneDevice
+    // TODO: this should be defined on SceneDevice?
     static SceneData get_scene_data(const SceneDevice& scene,
                                     const DirectionalLight& directional_light)
     {
@@ -282,12 +188,6 @@ class RenderStrategy
 
     SbtRecordSet sbt_record_set;
     OptixShaderBindingTable sbt;
-
-    RenderOptions options = {};
-    std::unique_ptr<CUDABuffer<float4>> beauty = nullptr;
-    std::unique_ptr<CUDABuffer<float4>> position = nullptr;
-    std::unique_ptr<CUDABuffer<float4>> normal = nullptr;
-    std::unique_ptr<CUDABuffer<float4>> albedo = nullptr;
 };
 
 }  // namespace fredholm

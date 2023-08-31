@@ -10,9 +10,8 @@ namespace fredholm
 class HelloStrategy : public RenderStrategy
 {
    public:
-    HelloStrategy(const OptixDeviceContext& context, bool debug,
-                  const RenderOptions& options)
-        : RenderStrategy(context, debug, options)
+    HelloStrategy(const OptixDeviceContext& context, bool debug)
+        : RenderStrategy(context, debug)
     {
     }
 
@@ -26,19 +25,24 @@ class HelloStrategy : public RenderStrategy
     }
 
     void render(const Camera& camera, const DirectionalLight& directional_light,
-                const SceneDevice& scene,
+                const SceneDevice& scene, const RenderLayers& render_layers,
                 const OptixTraversableHandle& ias_handle) override
     {
+        const RenderOptions& options = RenderOptions::get_instance();
+
         HelloStrategyParams params;
-        params.width = options.resolution.x;
-        params.height = options.resolution.y;
-        params.output = reinterpret_cast<float4*>(beauty->get_device_ptr());
+        params.width =
+            options.get_option<uint2>(RenderOptionNames::RESOLUTION).x;
+        params.height =
+            options.get_option<uint2>(RenderOptionNames::RESOLUTION).y;
+        params.output = reinterpret_cast<float4*>(
+            render_layers.get_aov(AOVType::BEAUTY).get_device_ptr());
         cuda_check(
             cuMemcpyHtoD(params_buffer, &params, sizeof(HelloStrategyParams)));
 
         optix_check(optixLaunch(m_pipeline, 0, params_buffer,
-                                sizeof(HelloStrategyParams), &sbt,
-                                options.resolution.x, options.resolution.y, 1));
+                                sizeof(HelloStrategyParams), &sbt, params.width,
+                                params.height, 1));
         cuda_check(cuCtxSynchronize());
     }
 

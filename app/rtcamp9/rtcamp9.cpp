@@ -101,12 +101,8 @@ int main()
                         "scene_load_time: {} ms",
                         scene_load_timer.duration<std::chrono::milliseconds>());
 
-                    fredholm::RenderOptions options;
-                    options.resolution = make_uint2(width, height);
-                    options.n_spp = n_spp;
-                    options.max_depth = 10;
                     renderer.set_render_strategy(
-                        fredholm::RenderStrategyType::PTMIS, options);
+                        fredholm::RenderStrategyType::PTMIS);
 
                     float3 sun_direction = normalize(make_float3(1, 1, 1));
                     fredholm::DirectionalLight directional_light;

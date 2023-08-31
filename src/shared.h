@@ -16,17 +16,6 @@
 namespace fredholm
 {
 
-enum class AOVType
-{
-    FINAL = 0,
-    DENOISED,
-    BEAUTY,
-    POSITION,
-    NORMAL,
-    ALBEDO,
-    N_AOV_TYPES
-};
-
 struct Matrix3x4
 {
     // 0 - (a00 a01 a02 a03)

@@ -145,8 +145,8 @@ class App
                 renderer->synchronize();
 
                 // show image
-                const uint2 resolution =
-                    renderer->get_option<uint2>("resolution");
+                const uint2 resolution = renderer->get_option<uint2>(
+                    fredholm::RenderOptionNames::RESOLUTION);
                 const fredholm::GLBuffer& image =
                     renderer
                         ->get_aov(static_cast<fredholm::AOVType>(selected_aov))
@@ -190,10 +190,8 @@ class App
 
         scene_manager = std::make_unique<fredholm::SceneManager>(context);
 
-        fredholm::RenderOptions options;
-        options.use_gl_interop = true;
-        renderer->set_render_strategy(fredholm::RenderStrategyType::PT,
-                                      options);
+        renderer->set_option(fredholm::RenderOptionNames::USE_GL_INTEROP, true);
+        renderer->set_render_strategy(fredholm::RenderStrategyType::PT);
     }
 
     void init_glad()
@@ -263,14 +261,16 @@ class App
                                         ImGuiTreeNodeFlags_DefaultOpen))
             {
                 // TODO: place these inside renderer
-                const uint2 res = renderer->get_option<uint2>("resolution");
+                const uint2 res = renderer->get_option<uint2>(
+                    fredholm::RenderOptionNames::RESOLUTION);
                 resolution[0] = res.x;
                 resolution[1] = res.y;
                 if (ImGui::InputInt2("resolution",
                                      reinterpret_cast<int*>(&resolution)))
                 {
-                    renderer->set_option<uint2>(
-                        "resolution", make_uint2(resolution[0], resolution[1]));
+                    renderer->set_option(
+                        fredholm::RenderOptionNames::RESOLUTION,
+                        make_uint2(resolution[0], resolution[1]));
                 }
 
                 ImGui::Combo(
