@@ -5,8 +5,8 @@
 
 [レイトレ合宿9](https://sites.google.com/view/rtcamp9/home)に提出したレンダラー
 
-* [レンダラー紹介のスライド](https://github.com/yumcyaWiz/fredholm/blob/feature/rtcamp9/docs/fredholm(rtcamp9).pdf)
-* [セミナーのスライド](https://github.com/yumcyaWiz/fredholm/blob/feature/rtcamp9/docs/seminar.pdf)
+* [レンダラー紹介のスライド](https://speakerdeck.com/yumcyawiz/fredholm-rtcamp9)
+* [セミナーのスライド](https://speakerdeck.com/yumcyawiz/huotonmatupinguwopasukong-jian-karakao-eru)
 
 ## Features
 
