@@ -1,27 +1,32 @@
-# fredholm
+# fredholm(rtcamp9)
 
-Research oriented GPU offline renderer.
+![](img/014.png)
+![](img/239.png)
 
-![](img/rtcamp8.jpg)
-![](img/gui.jpg)
+[レイトレ合宿9](https://sites.google.com/view/rtcamp9/home)に提出したレンダラー
 
-## Requirements
-
-* C++ 17
-* CUDA 11.7
-* OptiX 7.5
-* OpenGL 4.6(for GUI app, optional)
+![レンダラー紹介のスライド]()
+![セミナーのスライド]()
 
 ## Features
 
-* Path tracing integrator with multi importance sampling
-* [Arnold Standard Surface](https://autodesk.github.io/standard-surface/)
-* [Correlated Multi Jittered Sampling](https://graphics.pixar.com/library/MultiJitteredSampling/#:~:text=Abstract%3A,to%20which%20they%20are%20prone.)
-* [Hosek Sky Model](https://cgg.mff.cuni.cz/projects/SkylightModelling/)
-* `.obj`, `.gltf` scene file
-* Post process kernels(Bloom, Chromatic aberration, Tone mapping)
+* 研究用レンダラー
+* Path tracing(with MIS)
+* 動的に切り替え可能なレンダリング手法
+* obj, glTF読み込み対応
+* [Autodesk Standard Surface](https://autodesk.github.io/standard-surface/)
+
+## Requirements
+
+* C++ 20
+* CUDA 12.1
+* OptiX 7.7
+* CMake (>= 3.26)
+* OpenGL 4.6(for GUI app, optional)
 
 ## Build
+
+事前に`CMakeLists.txt`内の`CMAKE_MODULE_PATH`と`OptiX_INSTALL_DIR`を環境に合わせて変えてください。
 
 ```
 git submodule update --init
@@ -33,14 +38,16 @@ make
 
 ## Run
 
+(注意: アセットはこのリポジトリには含まれていません)
+
 ```
 cd build
-./app/gui
+./app/rtcamp9/rtcamp9
 ```
 
 ## References
 
-* [Arnold Standard Surface](https://autodesk.github.io/standard-surface/)
+* [Autodesk Standard Surface](https://autodesk.github.io/standard-surface/)
 * [Estevez, A. C., & Kulla, C. (2017). Production Friendly Microfacet Sheen BRDF. ACM SIGGRAPH 2017.](http://www.aconty.com/pdf/s2017_pbs_imageworks_sheen.pdf)
 * [Gulbrandsen, O. (2014). Artist friendly metallic fresnel. Journal of Computer Graphics Techniques, 3(4).](https://jcgt.org/published/0003/04/03/)
 * [Heitz, E. (2018). Sampling the GGX distribution of visible normals. Journal of Computer Graphics Techniques (JCGT), 7(4), 1-13.](https://jcgt.org/published/0007/04/01/)
