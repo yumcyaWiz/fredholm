@@ -17,25 +17,67 @@ enum class RenderCommandType
     N_RENDER_COMMAND_TYPES,
 };
 
+class RenderOperation
+{
+   public:
+    virtual void move_camera() const = 0;
+    virtual void render() const = 0;
+    virtual void clear_render() const = 0;
+};
+
+class RenderCommand
+{
+   public:
+    virtual ~RenderCommand() = default;
+
+    virtual void execute(RenderOperation& renderer) = 0;
+};
+
+class RenderCommandRender : public RenderCommand
+{
+   public:
+    void execute(RenderOperation& renderer) override
+    {
+        // TODO: implement
+        renderer.render();
+    }
+};
+
+class RenderCommandClear : public RenderCommand
+{
+   public:
+    void execute(RenderOperation& renderer) override
+    {
+        renderer.clear_render();
+    }
+};
+
 class RenderCommandQueue
 {
    private:
-    std::queue<RenderCommandType> commands;
+    std::queue<std::unique_ptr<RenderCommand>> commands;
 
    public:
     bool is_empty() const { return commands.empty(); }
 
-    void enqueue(const RenderCommandType& command) { commands.push(command); }
-
-    RenderCommandType dequeue()
+    void enqueue(std::unique_ptr<RenderCommand> command)
     {
-        if (is_empty()) { throw std::runtime_error("queue is empty"); }
-        const auto command = commands.front();
-        commands.pop();
-        return command;
+        commands.push(std::move(command));
     }
 
-    void clear() { commands = std::queue<RenderCommandType>(); }
+    void execute(RenderOperation& renderer)
+    {
+        if (commands.empty()) return;
+
+        const auto command = std::move(commands.front());
+        commands.pop();
+        command->execute(renderer);
+    }
+
+    void execute_all(RenderOperation& renderer)
+    {
+        while (!commands.empty()) { execute(renderer); }
+    }
 };
 
 enum class RenderOptionNames
