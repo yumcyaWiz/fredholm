@@ -123,6 +123,38 @@ class Renderer
     bool get_paused() const { return paused; }
     void set_paused(bool paused) { this->paused = paused; }
 
+    void enqueue_render_command(const RenderCommandType& command)
+    {
+        m_render_command_queue.enqueue(command);
+    }
+
+    void process_render_commands()
+    {
+        while (!m_render_command_queue.is_empty()) { process_render_command(); }
+    }
+
+    void process_render_command()
+    {
+        if (m_render_command_queue.is_empty()) return;
+
+        const auto command = m_render_command_queue.dequeue();
+        switch (command)
+        {
+            case RenderCommandType::RENDER:
+            {
+                // TODO: implement
+                break;
+            }
+            case RenderCommandType::CLEAR:
+            {
+                clear_render();
+                break;
+            }
+            default:
+                throw std::runtime_error("unknown render command type");
+        }
+    }
+
     void set_render_strategy(const RenderStrategyType& type)
     {
         m_render_strategy = RenderStrategyFactory::create(type, context, debug);
@@ -231,6 +263,8 @@ class Renderer
 
     OptixDeviceContext context = nullptr;
     bool debug = false;
+
+    RenderCommandQueue m_render_command_queue;
 
     bool paused = false;
 

@@ -2,11 +2,41 @@
 
 #include <any>
 #include <cstdint>
+#include <memory>
+#include <queue>
 
 #include "cuda_util.h"
 
 namespace fredholm
 {
+
+enum class RenderCommandType
+{
+    RENDER = 0,
+    CLEAR,
+    N_RENDER_COMMAND_TYPES,
+};
+
+class RenderCommandQueue
+{
+   private:
+    std::queue<RenderCommandType> commands;
+
+   public:
+    bool is_empty() const { return commands.empty(); }
+
+    void enqueue(const RenderCommandType& command) { commands.push(command); }
+
+    RenderCommandType dequeue()
+    {
+        if (is_empty()) { throw std::runtime_error("queue is empty"); }
+        const auto command = commands.front();
+        commands.pop();
+        return command;
+    }
+
+    void clear() { commands = std::queue<RenderCommandType>(); }
+};
 
 enum class RenderOptionNames
 {
