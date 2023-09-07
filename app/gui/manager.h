@@ -65,13 +65,8 @@ class SceneManager
     SceneManager(OptixDeviceContext context, Renderer& renderer)
         : context(context), m_renderer(renderer)
     {
-        load_scene();
+        renderer.load_scene(get_current_scene_entry().filepath);
     }
-
-    // fredholm::DirectionalLight& get_directional_light()
-    // {
-    //     return directional_light;
-    // }
 
     void run_imgui(fredholm::Renderer& renderer)
     {
@@ -125,15 +120,17 @@ class SceneManager
         // doesn't work
         if (ImGui::Combo("Scene", &m_scene_index, scene_list.c_str()))
         {
-            // TODO: place scene inside renderer
-            load_scene();
+            renderer.load_scene(get_current_scene_entry().filepath);
             renderer.clear_render();
         }
 
         if (ImGui::Checkbox("Use arhosek sky", &use_arhosek))
         {
-            // TODO: place scene inside renderer
-            load_arhosek();
+            renderer.load_arhosek(arhosek_intensity,
+                                  make_float3(directional_light_direction[0],
+                                              directional_light_direction[1],
+                                              directional_light_direction[2]),
+                                  arhosek_turbidity, arhosek_albedo);
             renderer.clear_render();
         }
 
@@ -141,20 +138,32 @@ class SceneManager
         {
             if (ImGui::InputFloat("intensity", &arhosek_intensity))
             {
-                // TODO: place scene inside renderer
-                load_arhosek();
+                renderer.load_arhosek(
+                    arhosek_intensity,
+                    make_float3(directional_light_direction[0],
+                                directional_light_direction[1],
+                                directional_light_direction[2]),
+                    arhosek_turbidity, arhosek_albedo);
                 renderer.clear_render();
             }
             if (ImGui::InputFloat("turbidity", &arhosek_turbidity))
             {
-                // TODO: place scene inside renderer
-                load_arhosek();
+                renderer.load_arhosek(
+                    arhosek_intensity,
+                    make_float3(directional_light_direction[0],
+                                directional_light_direction[1],
+                                directional_light_direction[2]),
+                    arhosek_turbidity, arhosek_albedo);
                 renderer.clear_render();
             }
             if (ImGui::InputFloat("albedo", &arhosek_albedo))
             {
-                // TODO: place scene inside renderer
-                load_arhosek();
+                renderer.load_arhosek(
+                    arhosek_intensity,
+                    make_float3(directional_light_direction[0],
+                                directional_light_direction[1],
+                                directional_light_direction[2]),
+                    arhosek_turbidity, arhosek_albedo);
                 renderer.clear_render();
             }
         }
@@ -162,8 +171,8 @@ class SceneManager
         {
             if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
             {
-                // TODO: place scene inside renderer
-                load_envmap();
+                renderer.load_envmap(get_current_scene_entry().filepath,
+                                     get_current_envmap_entry().filepath);
                 renderer.clear_render();
             }
         }
@@ -190,7 +199,12 @@ class SceneManager
 
             if (use_arhosek)
             {
-                load_arhosek();
+                renderer.load_arhosek(
+                    arhosek_intensity,
+                    make_float3(directional_light_direction[0],
+                                directional_light_direction[1],
+                                directional_light_direction[2]),
+                    arhosek_turbidity, arhosek_albedo);
                 renderer.clear_render();
             }
         }
@@ -220,11 +234,6 @@ class SceneManager
                     m_renderer.get_scene_device().get_n_area_lights());
     }
 
-    // const SceneDevice& get_scene_device() const
-    // {
-    //     return m_renderer.get_scene_device();
-    // }
-
    private:
     void update_animation(fredholm::Renderer& renderer)
     {
@@ -240,49 +249,14 @@ class SceneManager
         renderer.clear_render();
     }
 
-    // TODO: place this inside renderer?
-    void load_scene()
+    const SceneListEntry& get_current_scene_entry() const
     {
-        const auto& entry = m_scenes[m_scene_index];
-        if (entry.is_valid())
-        {
-            fredholm::SceneLoader::load(entry.filepath, scene_graph);
-            const auto& envmap_entry = m_envmaps[m_envmap_index];
-            fredholm::SceneLoader::load_envmap(envmap_entry.filepath,
-                                               scene_graph);
-            fredholm::CompiledScene compiled_scene = scene_graph.compile();
-
-            m_renderer.get_camera().set_transform(
-                compiled_scene.camera.get_transform());
-            m_renderer.get_camera().set_fov(compiled_scene.camera.get_fov());
-
-            m_renderer.get_scene_device().send(context, compiled_scene);
-        }
+        return m_scenes[m_scene_index];
     }
 
-    // TODO: place this inside renderer?
-    void load_envmap()
+    const EnvmapListEntry& get_current_envmap_entry() const
     {
-        const auto& entry = m_envmaps[m_envmap_index];
-        if (entry.is_valid())
-        {
-            fredholm::SceneLoader::load_envmap(entry.filepath, scene_graph);
-            // TODO: update only envmap
-            fredholm::CompiledScene compiled_scene = scene_graph.compile();
-
-            m_renderer.get_scene_device().send(context, compiled_scene);
-        }
-    }
-
-    // TODO: place this inside renderer?
-    void load_arhosek()
-    {
-        const float3 sun_direction = normalize(make_float3(
-            directional_light_direction[0], directional_light_direction[1],
-            directional_light_direction[2]));
-        m_renderer.get_scene_device().update_arhosek(
-            arhosek_intensity, sun_direction, arhosek_turbidity,
-            arhosek_albedo);
+        return m_envmaps[m_envmap_index];
     }
 
     std::string get_scene_list_for_imgui() const

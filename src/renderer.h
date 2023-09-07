@@ -9,6 +9,7 @@
 #include "gl_util.h"
 #include "image_io.h"
 #include "imgui.h"
+#include "loader.h"
 #include "optix_util.h"
 #include "post_process/post_process.h"
 #include "render_strategy/hello/hello.h"
@@ -115,6 +116,55 @@ class Renderer
     DirectionalLight& get_directional_light() { return m_directional_light; }
 
     SceneDevice& get_scene_device() { return m_scene_device; }
+
+    void load_scene(const std::filesystem::path& filepath)
+    {
+        SceneLoader::load(filepath, m_scene_graph);
+
+        CompiledScene compiled_scene = m_scene_graph.compile();
+
+        m_camera.set_transform(compiled_scene.camera.get_transform());
+        m_camera.set_fov(compiled_scene.camera.get_fov());
+
+        m_scene_device.send(context, compiled_scene);
+    }
+
+    void load_envmap(const std::filesystem::path& filepath,
+                     const std::filesystem::path& envmap)
+    {
+        // TODO: only update envmap
+        SceneLoader::load(filepath, m_scene_graph);
+        if (!envmap.empty())
+        {
+            SceneLoader::load_envmap(envmap, m_scene_graph);
+        }
+
+        CompiledScene compiled_scene = m_scene_graph.compile();
+
+        m_camera.set_transform(compiled_scene.camera.get_transform());
+        m_camera.set_fov(compiled_scene.camera.get_fov());
+
+        m_scene_device.send(context, compiled_scene);
+    }
+
+    void load_arhosek(float intensity, const float3& sun_direction,
+                      float turbidity, float albedo)
+    {
+        m_scene_device.update_arhosek(intensity, sun_direction, turbidity,
+                                      albedo);
+    }
+
+    void update_animation(float time)
+    {
+        m_scene_graph.update_animation(time);
+        CompiledScene compiled_scene = m_scene_graph.compile();
+
+        // TODO: update object transforms
+        m_camera.set_transform(compiled_scene.camera.get_transform());
+        m_camera.set_fov(compiled_scene.camera.get_fov());
+
+        clear_render();
+    }
 
     const CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
@@ -240,7 +290,9 @@ class Renderer
     bool paused = false;
 
     Camera m_camera;
+
     DirectionalLight m_directional_light;
+    SceneGraph m_scene_graph;
     SceneDevice m_scene_device;
 
     std::unique_ptr<RenderLayers> m_render_layers = nullptr;
