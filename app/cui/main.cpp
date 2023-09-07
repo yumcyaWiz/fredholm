@@ -34,18 +34,14 @@ int main()
         fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
         fredholm::CompiledScene compiled_scene = scene.compile();
 
-        fredholm::SceneDevice scene_device;
-        scene_device.send(context, compiled_scene);
+        renderer.get_scene_device().send(context, compiled_scene);
 
         renderer.set_render_strategy(fredholm::RenderStrategyType::PTMIS);
         renderer.set_option(fredholm::RenderOptionNames::N_SPP, 512u);
         renderer.set_option(fredholm::RenderOptionNames::N_SAMPLES, 512u);
 
-        fredholm::DirectionalLight directional_light;
-        directional_light.le = make_float3(0, 0, 0);
-
         // render
-        renderer.render(directional_light, scene_device);
+        renderer.render();
         renderer.save_image("output.png");
     }
 

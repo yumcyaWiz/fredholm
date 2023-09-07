@@ -91,8 +91,7 @@ int main()
                     fredholm::SceneLoader::load(filepath, scene);
                     fredholm::CompiledScene compiled_scene = scene.compile();
 
-                    fredholm::SceneDevice scene_device;
-                    scene_device.send(context, compiled_scene);
+                    renderer.get_scene_device().send(context, compiled_scene);
 
                     scene_load_timer.end();
                     spdlog::info(
@@ -103,10 +102,10 @@ int main()
                         fredholm::RenderStrategyType::PTMIS);
 
                     float3 sun_direction = normalize(make_float3(1, 1, 1));
-                    fredholm::DirectionalLight directional_light;
-                    directional_light.le = make_float3(30, 20, 10);
-                    directional_light.dir = sun_direction;
-                    directional_light.angle = 30.0f;
+                    renderer.get_directional_light().le =
+                        make_float3(30, 20, 10);
+                    renderer.get_directional_light().dir = sun_direction;
+                    renderer.get_directional_light().angle = 30.0f;
 
                     int frame_idx = 0;
                     float time = 0.0f;
@@ -178,17 +177,17 @@ int main()
                         sun_direction = normalize(make_float3(
                             1.0f, std::cos(0.5f * time + 2.0f) + 1.1f,
                             std::sin(0.5f * time + 2.0f)));
-                        directional_light.dir = sun_direction;
+                        renderer.get_directional_light().dir = sun_direction;
 
                         // update sky
-                        scene_device.update_arhosek(1.0f, sun_direction, 3.0f,
-                                                    0.3f);
+                        renderer.get_scene_device().update_arhosek(
+                            1.0f, sun_direction, 3.0f, 0.3f);
 
                         // render
                         Timer render_timer;
                         render_timer.start();
                         {
-                            renderer.render(directional_light, scene_device);
+                            renderer.render();
                             renderer.synchronize();
                         }
                         render_timer.end();
