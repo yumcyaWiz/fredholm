@@ -30,11 +30,7 @@ int main()
         // init renderer
         fredholm::Renderer renderer(context, debug);
 
-        fredholm::SceneGraph scene;
-        fredholm::SceneLoader::load("CornellBox-Texture.obj", scene);
-        fredholm::CompiledScene compiled_scene = scene.compile();
-
-        renderer.get_scene_device().send(context, compiled_scene);
+        renderer.load_scene("CornellBox-Texture.obj");
 
         renderer.set_render_strategy(fredholm::RenderStrategyType::PTMIS);
         renderer.set_option(fredholm::RenderOptionNames::N_SPP, 512u);
