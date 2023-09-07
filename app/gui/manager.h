@@ -68,17 +68,10 @@ class SceneManager
         load_scene();
     }
 
-    ~SceneManager()
-    {
-        if (scene_device) { scene_device.reset(); }
-    }
-
-    // fredholm::Camera& get_camera() { return camera; }
-
-    fredholm::DirectionalLight& get_directional_light()
-    {
-        return directional_light;
-    }
+    // fredholm::DirectionalLight& get_directional_light()
+    // {
+    //     return directional_light;
+    // }
 
     void run_imgui(fredholm::Renderer& renderer)
     {
@@ -180,9 +173,9 @@ class SceneManager
                                directional_light_color))
         {
             // TODO: place scene inside renderer
-            directional_light.le = make_float3(directional_light_color[0],
-                                               directional_light_color[1],
-                                               directional_light_color[2]);
+            m_renderer.get_directional_light().le = make_float3(
+                directional_light_color[0], directional_light_color[1],
+                directional_light_color[2]);
             renderer.clear_render();
         }
 
@@ -190,7 +183,7 @@ class SceneManager
                                directional_light_direction))
         {
             // TODO: place scene inside renderer
-            directional_light.dir = normalize(make_float3(
+            m_renderer.get_directional_light().dir = normalize(make_float3(
                 directional_light_direction[0], directional_light_direction[1],
                 directional_light_direction[2]));
             renderer.clear_render();
@@ -206,20 +199,31 @@ class SceneManager
                               &directional_light_angle))
         {
             // TODO: place scene inside renderer
-            directional_light.angle = deg_to_rad(directional_light_angle);
+            m_renderer.get_directional_light().angle =
+                deg_to_rad(directional_light_angle);
             renderer.clear_render();
         }
 
-        ImGui::Text("# of vertices: %d", scene_device->get_n_vertices());
-        ImGui::Text("# of faces: %d", scene_device->get_n_faces());
-        ImGui::Text("# of materials: %d", scene_device->get_n_materials());
-        ImGui::Text("# of textures: %d", scene_device->get_n_textures());
-        ImGui::Text("# of geometries: %d", scene_device->get_n_geometries());
-        ImGui::Text("# of instances: %d", scene_device->get_n_instances());
-        ImGui::Text("# of area lights: %d", scene_device->get_n_area_lights());
+        ImGui::Text("# of vertices: %d",
+                    m_renderer.get_scene_device().get_n_vertices());
+        ImGui::Text("# of faces: %d",
+                    m_renderer.get_scene_device().get_n_faces());
+        ImGui::Text("# of materials: %d",
+                    m_renderer.get_scene_device().get_n_materials());
+        ImGui::Text("# of textures: %d",
+                    m_renderer.get_scene_device().get_n_textures());
+        ImGui::Text("# of geometries: %d",
+                    m_renderer.get_scene_device().get_n_geometries());
+        ImGui::Text("# of instances: %d",
+                    m_renderer.get_scene_device().get_n_instances());
+        ImGui::Text("# of area lights: %d",
+                    m_renderer.get_scene_device().get_n_area_lights());
     }
 
-    const SceneDevice& get_scene_device() const { return *scene_device; }
+    // const SceneDevice& get_scene_device() const
+    // {
+    //     return m_renderer.get_scene_device();
+    // }
 
    private:
     void update_animation(fredholm::Renderer& renderer)
@@ -236,6 +240,7 @@ class SceneManager
         renderer.clear_render();
     }
 
+    // TODO: place this inside renderer?
     void load_scene()
     {
         const auto& entry = m_scenes[m_scene_index];
@@ -251,11 +256,11 @@ class SceneManager
                 compiled_scene.camera.get_transform());
             m_renderer.get_camera().set_fov(compiled_scene.camera.get_fov());
 
-            scene_device = std::make_unique<fredholm::SceneDevice>();
-            scene_device->send(context, compiled_scene);
+            m_renderer.get_scene_device().send(context, compiled_scene);
         }
     }
 
+    // TODO: place this inside renderer?
     void load_envmap()
     {
         const auto& entry = m_envmaps[m_envmap_index];
@@ -265,18 +270,19 @@ class SceneManager
             // TODO: update only envmap
             fredholm::CompiledScene compiled_scene = scene_graph.compile();
 
-            scene_device = std::make_unique<fredholm::SceneDevice>();
-            scene_device->send(context, compiled_scene);
+            m_renderer.get_scene_device().send(context, compiled_scene);
         }
     }
 
+    // TODO: place this inside renderer?
     void load_arhosek()
     {
         const float3 sun_direction = normalize(make_float3(
             directional_light_direction[0], directional_light_direction[1],
             directional_light_direction[2]));
-        scene_device->update_arhosek(arhosek_intensity, sun_direction,
-                                     arhosek_turbidity, arhosek_albedo);
+        m_renderer.get_scene_device().update_arhosek(
+            arhosek_intensity, sun_direction, arhosek_turbidity,
+            arhosek_albedo);
     }
 
     std::string get_scene_list_for_imgui() const
@@ -297,8 +303,6 @@ class SceneManager
 
     OptixDeviceContext context = nullptr;
     fredholm::SceneGraph scene_graph = {};
-    fredholm::DirectionalLight directional_light = {};
-    std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
 
     Renderer& m_renderer;
 

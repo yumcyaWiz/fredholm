@@ -112,6 +112,10 @@ class Renderer
 
     Camera& get_camera() { return m_camera; }
 
+    DirectionalLight& get_directional_light() { return m_directional_light; }
+
+    SceneDevice& get_scene_device() { return m_scene_device; }
+
     const CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
         return m_render_layers->get_aov(type);
@@ -236,6 +240,8 @@ class Renderer
     bool paused = false;
 
     Camera m_camera;
+    DirectionalLight m_directional_light;
+    SceneDevice m_scene_device;
 
     std::unique_ptr<RenderLayers> m_render_layers = nullptr;
 

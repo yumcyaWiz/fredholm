@@ -139,8 +139,8 @@ class App
             if (renderer)
             {
                 // render
-                renderer->render(scene_manager->get_directional_light(),
-                                 scene_manager->get_scene_device());
+                renderer->render(renderer->get_directional_light(),
+                                 renderer->get_scene_device());
                 renderer->synchronize();
 
                 // show image
