@@ -82,9 +82,7 @@ int main()
                     // init renderer
                     fredholm::Renderer renderer(context, debug);
 
-                    fredholm::Camera camera(glm::vec3(0, 1, 2),
-                                            glm::vec3(0, 0, -1));
-                    camera.set_fov(0.25f * M_PI);
+                    renderer.get_camera().set_fov(0.25f * M_PI);
 
                     Timer scene_load_timer;
                     scene_load_timer.start();
@@ -141,34 +139,39 @@ int main()
                             if (camera_jump1)
                             {
                                 camera_jump1 = false;
-                                camera.set_origin(glm::vec3(-478, 151, 769));
-                                camera.set_forward(
+                                renderer.get_camera().set_origin(
+                                    glm::vec3(-478, 151, 769));
+                                renderer.get_camera().set_forward(
                                     glm::vec3(0.83, -0.008, -0.54));
                             }
-                            camera.move(fredholm::CameraMovement::FORWARD,
-                                        1.0f);
+                            renderer.get_camera().move(
+                                fredholm::CameraMovement::FORWARD, 1.0f);
                         }
                         else if (time < 5.0f)
                         {
                             if (camera_jump2)
                             {
                                 camera_jump2 = false;
-                                camera.set_origin(glm::vec3(1122, 168, 658));
-                                camera.set_forward(
+                                renderer.get_camera().set_origin(
+                                    glm::vec3(1122, 168, 658));
+                                renderer.get_camera().set_forward(
                                     glm::vec3(-0.95, -0.10, -0.27));
                             }
-                            camera.move(fredholm::CameraMovement::RIGHT, 1.0f);
+                            renderer.get_camera().move(
+                                fredholm::CameraMovement::RIGHT, 1.0f);
                         }
                         else if (time < max_time)
                         {
                             if (camera_jump3)
                             {
                                 camera_jump3 = false;
-                                camera.set_origin(glm::vec3(-434, 148, 200));
-                                camera.set_forward(
+                                renderer.get_camera().set_origin(
+                                    glm::vec3(-434, 148, 200));
+                                renderer.get_camera().set_forward(
                                     glm::vec3(0.83, -0.008, -0.54));
                             }
-                            camera.move(fredholm::CameraMovement::RIGHT, 1.0f);
+                            renderer.get_camera().move(
+                                fredholm::CameraMovement::RIGHT, 1.0f);
                         }
 
                         // update sun direction
@@ -185,8 +188,7 @@ int main()
                         Timer render_timer;
                         render_timer.start();
                         {
-                            renderer.render(camera, directional_light,
-                                            scene_device);
+                            renderer.render(directional_light, scene_device);
                             renderer.synchronize();
                         }
                         render_timer.end();

@@ -139,8 +139,7 @@ class App
             if (renderer)
             {
                 // render
-                renderer->render(renderer->get_camera(),
-                                 scene_manager->get_directional_light(),
+                renderer->render(scene_manager->get_directional_light(),
                                  scene_manager->get_scene_device());
                 renderer->synchronize();
 

@@ -151,13 +151,13 @@ class Renderer
     }
 
     // TODO: renderer should manage camera and scene?
-    void render(const Camera& camera, const DirectionalLight& directional_light,
+    void render(const DirectionalLight& directional_light,
                 const SceneDevice& scene)
     {
         if (paused) return;
         // TODO: use RenderPipeline
         // TODO: use RenderPass
-        m_render_strategy->render(camera, directional_light, scene,
+        m_render_strategy->render(m_camera, directional_light, scene,
                                   *m_render_layers, scene.get_ias_handle());
         run_denoiser();
         run_post_process();
@@ -212,8 +212,7 @@ class Renderer
             m_post_process->run(
                 resolution.x, resolution.y,
                 reinterpret_cast<float4*>(
-                    m_render_layers->get_aov(AOVType::DENOISED)
-                        .get_device_ptr()),
+                    m_render_layers->get_aov(AOVType::BEAUTY).get_device_ptr()),
                 reinterpret_cast<float4*>(
                     m_render_layers->get_aov(AOVType::FINAL).get_device_ptr()));
         }
