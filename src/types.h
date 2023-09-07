@@ -10,12 +10,17 @@
 namespace fredholm
 {
 
-class IRenderOperation
+class IRenderer
 {
    public:
-    virtual void move_camera() const = 0;
+    virtual void load_scene(const std::filesystem::path& filepath) = 0;
+    virtual void load_envmap(const std::filesystem::path& filepath) = 0;
+    virtual void load_arhosek(float intensity, const float3& sun_direction,
+                              float turbidity, float albedo) = 0;
+    virtual void update_animation(float time) = 0;
+
     virtual void set_render_strategy() const = 0;
-    virtual void load_scene() const = 0;
+
     virtual void render() const = 0;
     virtual void clear_render() const = 0;
 };
@@ -25,13 +30,13 @@ class RenderCommand
    public:
     virtual ~RenderCommand() = default;
 
-    virtual void execute(IRenderOperation& renderer) = 0;
+    virtual void execute(IRenderer& renderer) = 0;
 };
 
 class RenderCommandRender : public RenderCommand
 {
    public:
-    void execute(IRenderOperation& renderer) override
+    void execute(IRenderer& renderer) override
     {
         // TODO: implement
         renderer.render();
@@ -41,10 +46,7 @@ class RenderCommandRender : public RenderCommand
 class RenderCommandClear : public RenderCommand
 {
    public:
-    void execute(IRenderOperation& renderer) override
-    {
-        renderer.clear_render();
-    }
+    void execute(IRenderer& renderer) override { renderer.clear_render(); }
 };
 
 class RenderCommandQueue
@@ -60,7 +62,7 @@ class RenderCommandQueue
         commands.push(std::move(command));
     }
 
-    void execute(IRenderOperation& renderer)
+    void execute(IRenderer& renderer)
     {
         if (commands.empty()) return;
 
@@ -69,7 +71,7 @@ class RenderCommandQueue
         command->execute(renderer);
     }
 
-    void execute_all(IRenderOperation& renderer)
+    void execute_all(IRenderer& renderer)
     {
         while (!commands.empty()) { execute(renderer); }
     }
