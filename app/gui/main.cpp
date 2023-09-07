@@ -125,7 +125,7 @@ class App
             glfwPollEvents();
 
             handle_input(window, ImGui::GetIO(), *renderer,
-                         scene_manager->get_camera());
+                         renderer->get_camera());
 
             // start imgui frame
             ImGui_ImplOpenGL3_NewFrame();
@@ -139,7 +139,7 @@ class App
             if (renderer)
             {
                 // render
-                renderer->render(scene_manager->get_camera(),
+                renderer->render(renderer->get_camera(),
                                  scene_manager->get_directional_light(),
                                  scene_manager->get_scene_device());
                 renderer->synchronize();
@@ -188,7 +188,8 @@ class App
     {
         renderer = std::make_unique<fredholm::Renderer>(context, debug);
 
-        scene_manager = std::make_unique<fredholm::SceneManager>(context);
+        scene_manager =
+            std::make_unique<fredholm::SceneManager>(context, *renderer);
 
         renderer->set_option(fredholm::RenderOptionNames::USE_GL_INTEROP, true);
         renderer->set_render_strategy(fredholm::RenderStrategyType::PT);

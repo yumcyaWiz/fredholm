@@ -62,7 +62,8 @@ static bool ImGuiComboUI(const std::string& caption, int current_idx,
 class SceneManager
 {
    public:
-    SceneManager(OptixDeviceContext context) : context(context)
+    SceneManager(OptixDeviceContext context, Renderer& renderer)
+        : context(context), m_renderer(renderer)
     {
         load_scene();
     }
@@ -72,7 +73,7 @@ class SceneManager
         if (scene_device) { scene_device.reset(); }
     }
 
-    fredholm::Camera& get_camera() { return camera; }
+    // fredholm::Camera& get_camera() { return camera; }
 
     fredholm::DirectionalLight& get_directional_light()
     {
@@ -89,36 +90,39 @@ class SceneManager
         }
 
         // TODO: place these inside camera?
-        const glm::vec3 origin = camera.get_origin();
+        const glm::vec3 origin = m_renderer.get_camera().get_origin();
         ImGui::Text("origin: (%f, %f, %f)", origin.x, origin.y, origin.z);
-        const glm::vec3 forward = camera.get_forward();
+        const glm::vec3 forward = m_renderer.get_camera().get_forward();
         ImGui::Text("forward: (%f, %f, %f)", forward.x, forward.y, forward.z);
 
-        camera_fov = rad_to_deg(camera.get_fov());
+        camera_fov = rad_to_deg(m_renderer.get_camera().get_fov());
         if (ImGui::InputFloat("fov", &camera_fov))
         {
-            camera.set_fov(deg_to_rad(camera_fov));
+            m_renderer.get_camera().set_fov(deg_to_rad(camera_fov));
+            // TODO: use renderer's command queue
             renderer.clear_render();
         }
 
-        camera_F = camera.get_F();
+        camera_F = m_renderer.get_camera().get_F();
         if (ImGui::InputFloat("F", &camera_F))
         {
-            camera.set_F(camera_F);
+            m_renderer.get_camera().set_F(camera_F);
+            // TODO: use renderer's command queue
             renderer.clear_render();
         }
 
-        camera_focus = camera.get_focus();
+        camera_focus = m_renderer.get_camera().get_focus();
         if (ImGui::InputFloat("focus", &camera_focus))
         {
-            camera.set_focus(camera_focus);
+            m_renderer.get_camera().set_focus(camera_focus);
+            // TODO: use renderer's command queue
             renderer.clear_render();
         }
 
-        camera_movement_speed = camera.get_movement_speed();
+        camera_movement_speed = m_renderer.get_camera().get_movement_speed();
         if (ImGui::InputFloat("movement speed", &camera_movement_speed))
         {
-            camera.set_movement_speed(camera_movement_speed);
+            m_renderer.get_camera().set_movement_speed(camera_movement_speed);
         }
 
         const std::string scene_list = get_scene_list_for_imgui();
@@ -128,12 +132,14 @@ class SceneManager
         // doesn't work
         if (ImGui::Combo("Scene", &m_scene_index, scene_list.c_str()))
         {
+            // TODO: place scene inside renderer
             load_scene();
             renderer.clear_render();
         }
 
         if (ImGui::Checkbox("Use arhosek sky", &use_arhosek))
         {
+            // TODO: place scene inside renderer
             load_arhosek();
             renderer.clear_render();
         }
@@ -142,16 +148,19 @@ class SceneManager
         {
             if (ImGui::InputFloat("intensity", &arhosek_intensity))
             {
+                // TODO: place scene inside renderer
                 load_arhosek();
                 renderer.clear_render();
             }
             if (ImGui::InputFloat("turbidity", &arhosek_turbidity))
             {
+                // TODO: place scene inside renderer
                 load_arhosek();
                 renderer.clear_render();
             }
             if (ImGui::InputFloat("albedo", &arhosek_albedo))
             {
+                // TODO: place scene inside renderer
                 load_arhosek();
                 renderer.clear_render();
             }
@@ -160,6 +169,7 @@ class SceneManager
         {
             if (ImGui::Combo("Envmap", &m_envmap_index, envmap_list.c_str()))
             {
+                // TODO: place scene inside renderer
                 load_envmap();
                 renderer.clear_render();
             }
@@ -169,6 +179,7 @@ class SceneManager
         if (ImGui::InputFloat3("directional light color",
                                directional_light_color))
         {
+            // TODO: place scene inside renderer
             directional_light.le = make_float3(directional_light_color[0],
                                                directional_light_color[1],
                                                directional_light_color[2]);
@@ -178,6 +189,7 @@ class SceneManager
         if (ImGui::InputFloat3("directional light direction",
                                directional_light_direction))
         {
+            // TODO: place scene inside renderer
             directional_light.dir = normalize(make_float3(
                 directional_light_direction[0], directional_light_direction[1],
                 directional_light_direction[2]));
@@ -193,6 +205,7 @@ class SceneManager
         if (ImGui::InputFloat("directional light angle",
                               &directional_light_angle))
         {
+            // TODO: place scene inside renderer
             directional_light.angle = deg_to_rad(directional_light_angle);
             renderer.clear_render();
         }
@@ -216,7 +229,9 @@ class SceneManager
         scene_graph.update_animation(animation_time);
         fredholm::CompiledScene compiled_scene = scene_graph.compile();
         // TODO: update object transforms
-        camera = compiled_scene.camera;
+        m_renderer.get_camera().set_transform(
+            compiled_scene.camera.get_transform());
+        m_renderer.get_camera().set_fov(compiled_scene.camera.get_fov());
 
         renderer.clear_render();
     }
@@ -232,7 +247,9 @@ class SceneManager
                                                scene_graph);
             fredholm::CompiledScene compiled_scene = scene_graph.compile();
 
-            camera = compiled_scene.camera;
+            m_renderer.get_camera().set_transform(
+                compiled_scene.camera.get_transform());
+            m_renderer.get_camera().set_fov(compiled_scene.camera.get_fov());
 
             scene_device = std::make_unique<fredholm::SceneDevice>();
             scene_device->send(context, compiled_scene);
@@ -280,9 +297,10 @@ class SceneManager
 
     OptixDeviceContext context = nullptr;
     fredholm::SceneGraph scene_graph = {};
-    fredholm::Camera camera = {};
     fredholm::DirectionalLight directional_light = {};
     std::unique_ptr<fredholm::SceneDevice> scene_device = nullptr;
+
+    Renderer& m_renderer;
 
     // for imgui
     bool animation = false;

@@ -110,6 +110,8 @@ class Renderer
         return RenderOptions::get_instance().set_option<T>(name, value);
     }
 
+    Camera& get_camera() { return m_camera; }
+
     const CUDABuffer<float4>& get_aov(const AOVType& type) const
     {
         return m_render_layers->get_aov(type);
@@ -233,6 +235,8 @@ class Renderer
     bool debug = false;
 
     bool paused = false;
+
+    Camera m_camera;
 
     std::unique_ptr<RenderLayers> m_render_layers = nullptr;
 
