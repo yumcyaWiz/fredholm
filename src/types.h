@@ -10,17 +10,12 @@
 namespace fredholm
 {
 
-enum class RenderCommandType
-{
-    RENDER = 0,
-    CLEAR,
-    N_RENDER_COMMAND_TYPES,
-};
-
-class RenderOperation
+class IRenderOperation
 {
    public:
     virtual void move_camera() const = 0;
+    virtual void set_render_strategy() const = 0;
+    virtual void load_scene() const = 0;
     virtual void render() const = 0;
     virtual void clear_render() const = 0;
 };
@@ -30,13 +25,13 @@ class RenderCommand
    public:
     virtual ~RenderCommand() = default;
 
-    virtual void execute(RenderOperation& renderer) = 0;
+    virtual void execute(IRenderOperation& renderer) = 0;
 };
 
 class RenderCommandRender : public RenderCommand
 {
    public:
-    void execute(RenderOperation& renderer) override
+    void execute(IRenderOperation& renderer) override
     {
         // TODO: implement
         renderer.render();
@@ -46,7 +41,7 @@ class RenderCommandRender : public RenderCommand
 class RenderCommandClear : public RenderCommand
 {
    public:
-    void execute(RenderOperation& renderer) override
+    void execute(IRenderOperation& renderer) override
     {
         renderer.clear_render();
     }
@@ -65,7 +60,7 @@ class RenderCommandQueue
         commands.push(std::move(command));
     }
 
-    void execute(RenderOperation& renderer)
+    void execute(IRenderOperation& renderer)
     {
         if (commands.empty()) return;
 
@@ -74,7 +69,7 @@ class RenderCommandQueue
         command->execute(renderer);
     }
 
-    void execute_all(RenderOperation& renderer)
+    void execute_all(IRenderOperation& renderer)
     {
         while (!commands.empty()) { execute(renderer); }
     }
