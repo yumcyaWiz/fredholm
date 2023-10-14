@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.27)
 project(fredholm LANGUAGES C CXX CUDA)
 
 # set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -35,17 +35,64 @@ find_package(OpenGL REQUIRED)
 # external
 add_subdirectory("externals/")
 
-# oglw
-add_subdirectory("oglw/")
+# fredholm
+add_library(fredholm
+    "src/fredholm.cpp"
+)
+target_include_directories(fredholm PUBLIC
+    "src/"
+    ${OptiX_INCLUDE}
+)
+target_link_libraries(fredholm PUBLIC
+    CUDA::cudart
+    CUDA::cuda_driver
+    glm
+    glad
+    stb_image
+    stb_image_write
+    tinygltf
+    tinyobjloader
+    spdlog::spdlog
+    glsl-shader-includes
+    imgui
+    nlohmann_json::nlohmann_json
+)
 
-# cwl
-add_subdirectory("cwl/")
+# fredholm optix kernel
+add_library(fredholm-kernel
+    "src/render_strategy/hello/hello.cu"
+    "src/render_strategy/simple/simple.cu"
+    "src/render_strategy/pt/pt.cu"
+    "src/render_strategy/ptmis/ptmis.cu"
+)
+target_compile_options(fredholm-kernel PRIVATE
+    --optix-ir
+)
+target_include_directories(fredholm-kernel PRIVATE
+    "src/"
+    ${OptiX_INCLUDE}
+)
+set_target_properties(fredholm-kernel PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+)
+add_dependencies(fredholm-kernel
+    fredholm
+)
 
-# optwl
-add_subdirectory("optwl/")
+# copy ptx files
+add_custom_command(
+    TARGET fredholm-kernel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fredholm-kernel.dir/src/render_strategy
+    ${CMAKE_CURRENT_BINARY_DIR}/optixir
+    COMMENT "Copying ptx files" VERBATIM
+)
 
 # fredholm
-add_subdirectory("fredholm/")
+add_subdirectory("src/")
 
 # app
 add_subdirectory("app/")
+
+# util
+add_subdirectory("util/")
